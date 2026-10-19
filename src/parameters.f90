@@ -1440,7 +1440,7 @@ contains
          if (total_temperature_inlet .le. 0.0e0) then
             call abort_ucns3d_configuration(n, 'MU_REF requires a positive inlet total temperature')
          end if
-         suther = 110.0e0 /  273.15 !total_temperature_inlet
+         suther = 110.0e0 / total_temperature_inlet
       else if (uvel .lt. 10.0) then
          r_gas = 1.0
       else

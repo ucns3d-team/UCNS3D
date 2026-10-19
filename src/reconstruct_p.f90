@@ -1,4 +1,5 @@
 module recon
+   use mesh_local_nodes
    use declaration
    use derivatives
    use library
@@ -209,7 +210,7 @@ contains
                      nnd = 4
                      if (idummy == 0) then
                         do k = 1, nnd
-                           vext(k, 1:3) = dinoder(ielem_nodes_faces(i, l, k))%cord(1:dims)
+                           vext(k, 1:3) = node_coords(ielem_nodes_faces(i, l, k))
                         end do
                      else
                         facex = l
@@ -221,7 +222,7 @@ contains
                      nnd = 3
                      if (idummy == 0) then
                         do k = 1, nnd
-                           vext(k, 1:3) = dinoder(ielem_nodes_faces(i, l, k))%CORD(1:dims)
+                           vext(k, 1:3) = node_coords(ielem_nodes_faces(i, l, k))
                         end do
                      else
                         facex = l
@@ -235,14 +236,14 @@ contains
                      iqp = qp_quad
                      nnd = 4
                      do k = 1, nnd
-                        vext(k, 1:3) = dinoder(ielem_nodes_faces(i, l, k))%CORD(1:dims)
+                        vext(k, 1:3) = node_coords(ielem_nodes_faces(i, l, k))
                      end do
                      call quadraturequad3d(n, igqrules, vext, qpoints2d, wequa2d)
                   else
                      iqp = qp_triangle
                      nnd = 3
                      do k = 1, nnd
-                        vext(k, 1:3) = dinoder(ielem_nodes_faces(i, l, k))%CORD(1:dims)
+                        vext(k, 1:3) = node_coords(ielem_nodes_faces(i, l, k))
                      end do
                      call quadraturetriang(n, igqrules, vext, qpoints2d, wequa2d)
                   end if
@@ -286,7 +287,7 @@ contains
                      nnd = 4
                      if (idummy == 0) then
                         do k = 1, nnd
-                           vext(k, 1:3) = dinoder(ielem_nodes_faces(i, l, k))%CORD(1:dims)
+                           vext(k, 1:3) = node_coords(ielem_nodes_faces(i, l, k))
                            do mm_j = 1, 3
                               mm_old(mm_j) = vext(k, mm_j) - rec_vext_ref(i, mm_j)
                            end do
@@ -318,7 +319,7 @@ contains
                      nnd = 3
                      if (idummy == 0) then
                         do k = 1, nnd
-                           vext(k, 1:3) = dinoder(ielem_nodes_faces(i, l, k))%CORD(1:dims)
+                           vext(k, 1:3) = node_coords(ielem_nodes_faces(i, l, k))
                            do mm_j = 1, 3
                               mm_old(mm_j) = vext(k, mm_j) - rec_vext_ref(i, mm_j)
                            end do
@@ -352,7 +353,7 @@ contains
                      iqp = qp_quad
                      nnd = 4
                      do k = 1, nnd
-                        vext(k, 1:3) = dinoder(ielem_nodes_faces(i, l, k))%CORD(1:dims)
+                        vext(k, 1:3) = node_coords(ielem_nodes_faces(i, l, k))
                         do mm_j = 1, 3
                            mm_old(mm_j) = vext(k, mm_j) - rec_vext_ref(i, mm_j)
                         end do
@@ -368,7 +369,7 @@ contains
                      iqp = qp_triangle
                      nnd = 3
                      do k = 1, nnd
-                        vext(k, 1:3) = dinoder(ielem_nodes_faces(i, l, k))%CORD(1:dims)
+                        vext(k, 1:3) = node_coords(ielem_nodes_faces(i, l, k))
                         do mm_j = 1, 3
                            mm_old(mm_j) = vext(k, mm_j) - rec_vext_ref(i, mm_j)
                         end do
@@ -409,7 +410,7 @@ contains
                   nnd = 2
                   if (idummy == 0) then
                      do k = 1, nnd
-                        vext(k, 1:2) = dinoder(ielem_nodes_faces(i, l, k))%CORD(1:dims)
+                        vext(k, 1:2) = node_coords(ielem_nodes_faces(i, l, k))
                         do mm_j = 1, 2
                            mm_old(mm_j) = vext(k, mm_j) - rec_vext_ref(i, mm_j)
                         end do
@@ -456,7 +457,7 @@ contains
 !             end do
 
                   do k = 1, nnd
-                     vext(k, 1:2) = dinoder(ielem_nodes_faces(i, l, k))%CORD(1:dims)
+                     vext(k, 1:2) = node_coords(ielem_nodes_faces(i, l, k))
                      do mm_j = 1, 2
                         mm_old(mm_j) = vext(k, mm_j) - rec_vext_ref(i, mm_j)
                      end do
@@ -5495,7 +5496,7 @@ contains
       i = iconsidered
       nvtot = nof_variables + turbulenceequations + passivescalar
 
-      kappa_ven = 5.0
+      kappa_ven = 0.1
 
       if (wenwrt .eq. 3) then
          u0_state(1:nof_variables) = u_c_val(i, 1, 1:nof_variables)

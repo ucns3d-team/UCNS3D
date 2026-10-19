@@ -1,4 +1,7 @@
 module communications
+   use mesh_local_cells
+   use mesh_local_nodes, only: node_sort
+   use mesh_mpi_io, only: mesh_distributed
 !> @brief
 !> this module includes all the subroutines related to the mpi communications for various procedures
 !> including exchange of halo cells from stencils, direct-side neighbours, and the boundary extrapolated
@@ -24,8 +27,8 @@ contains
       integer :: i, j, k, l, m, e, kmaxe, ineedt, tneedt, ix1, ix2, cnbt, ivt, itax, inum_points, inn, jjj, kk, itogg, ifdn, &
          & ifdn2, ifdn3, iii, iouf, jj1
       integer :: c_n1, c_n2, c_n3, c_n4, d_n1, d_n2, d_n3, d_n4, kvf, itor4
-      ineedt = diexchanger(1)%tot
-      tneedt = diexchanges(1)%tot
+      ineedt = size(diexchanger)
+      tneedt = size(diexchanges)
       kmaxe = xmpielrank(n)
 !$omp parallel do default(shared) schedule(static) private(j, k, ivt, itax)
       do i = 1, kmaxe
@@ -50,12 +53,12 @@ contains
          if (ielem_interior(i) .eq. 0) then
             do j = 1, ielem_ifca(i)
                if (ielem_ineighg(i, j) .gt. 0) then
-                  if (xmpie(ielem_ineighg(i, j)) .eq. n) then
+                  if (cell_owner(ielem_ineighg(i, j)) .eq. n) then
 
-                     k = xmpil(ielem_ineighg(i, j))
+                     k = cell_index(ielem_ineighg(i, j))
                      do ivt = 1, ielem_ifca(k)
                         if (ielem_ineighg(k, ivt) .eq. ielem_ihexgl(i)) then
-                           ielem_ineigh(i, j) = xmpil(ielem_ineighg(i, j))
+                           ielem_ineigh(i, j) = cell_index(ielem_ineighg(i, j))
                            ielem_ineighn(i, j) = ivt
                            go to 101
                         end if
@@ -75,12 +78,12 @@ contains
             do j = 1, ielem_ifca(i)
                itax = 0
                if ((ielem_ineighg(i, j) .gt. 0)) then
-                  if (xmpie(ielem_ineighg(i, j)) .ne. n) then
-                     ielem_ineighb(i, j) = xmpie(ielem_ineighg(i, j))
+                  if (cell_owner(ielem_ineighg(i, j)) .ne. n) then
+                     ielem_ineighb(i, j) = cell_owner(ielem_ineighg(i, j))
 
                   else
 
-                     k = xmpil(ielem_ineighg(i, j))
+                     k = cell_index(ielem_ineighg(i, j))
                      !
                      do ivt = 1, ielem_ifca(k)
                         if (ielem_ineighg(k, ivt) .eq. ielem_ihexgl(i)) then
@@ -113,7 +116,7 @@ contains
                   if ((diexchanges1(ix1)%whattheyneed(ix2) .eq. diexchanger1(k)%sideineedn(e)) .and. &
                      & (diexchanges1(ix1)%sidetheyneedn(ix2) .eq. diexchanger1(k)%whatineed(e))) then !if 1
 
-                     i = xmpil(diexchanger1(k)%sideineedn(e))
+                     i = cell_index(diexchanger1(k)%sideineedn(e))
 ! do i=1,kmaxe
                      if (ielem_interior(i) .eq. 1) then !if 2
                         do j = 1, ielem_ifca(i)
@@ -347,7 +350,7 @@ contains
          if (ielem_interior(k) .eq. 1) then
             do l = 1, ielem_ifca(k)
                if (ielem_ineighg(k, l) .gt. 0) then
-                  if (xmpie(ielem_ineighg(k, l)) .ne. n) then
+                  if (cell_owner(ielem_ineighg(k, l)) .ne. n) then
 
                      if (dimensiona .eq. 3) then
                         if (ielem_types_faces(k, l) .eq. 5) then
@@ -359,7 +362,8 @@ contains
                         inum_points = qp_line_n;
                      end if
 
-                     listofpr(xmpie(ielem_ineighg(k, l))) = listofpr(xmpie(ielem_ineighg(k, l))) + inum_points
+                     listofpr(cell_owner(ielem_ineighg(k, l))) = listofpr(cell_owner(ielem_ineighg(k, l))) + &
+                        & inum_points
                   end if
                end if
             end do
@@ -407,8 +411,8 @@ contains
             if (ielem_interior(k) .eq. 1) then
                do l = 1, ielem_ifca(k)
                   if (ielem_ineighg(k, l) .gt. 0) then
-                     if (xmpie(ielem_ineighg(k, l)) .ne. n) then
-                        if (xmpie(ielem_ineighg(k, l)) .eq. dilistgog(kk)%procid) then
+                     if (cell_owner(ielem_ineighg(k, l)) .ne. n) then
+                        if (cell_owner(ielem_ineighg(k, l)) .eq. dilistgog(kk)%procid) then
                            if (dimensiona .eq. 3) then
                               if (ielem_types_faces(k, l) .eq. 5) then
                                  inum_points = qp_quad_n; ifdn2 = 4
@@ -615,9 +619,9 @@ contains
       do i = 1, temp2
          do k = 1, diexchanges(i)%muchtheyneed(1)
 
-            if (xmpie(diexchanges1(i)%whattheyneed(k)) .eq. n) then
+            if (cell_owner(diexchanges1(i)%whattheyneed(k)) .eq. n) then
 
-               diexchanges(i)%localref(k) = xmpil(diexchanges1(i)%whattheyneed(k))
+               diexchanges(i)%localref(k) = cell_index(diexchanges1(i)%whattheyneed(k))
             end if
 
          end do
@@ -639,7 +643,11 @@ contains
          stencounter = 0
 !
 
-         allocate (totstenc2(imaxe))
+         if (mesh_distributed) then
+            allocate(totstenc2(cells_count))
+         else
+            allocate(totstenc2(imaxe))
+         end if
          totstenc2 = 0
 
          do i = 1, kmaxe
@@ -661,13 +669,17 @@ contains
 
                      iiflag = 0
 
-                     if (xmpie(ilocalstencil(n, i, k, kk)) .eq. n) then
+                     if (cell_owner(ilocalstencil(n, i, k, kk)) .eq. n) then
 
                         iiflag = 1
                      end if
 
                      if (iiflag .eq. 0) then
-                        totstenc2((ilocalstencil(n, i, k, kk))) = ilocalstencil(n, i, k, kk)
+                        if (mesh_distributed) then
+                           totstenc2(cell_cache_slot(ilocalstencil(n, i, k, kk))) = ilocalstencil(n, i, k, kk)
+                        else
+                           totstenc2(ilocalstencil(n, i, k, kk)) = ilocalstencil(n, i, k, kk)
+                        end if
                      end if
                   end do
                end if
@@ -675,7 +687,7 @@ contains
          end do
 
          kxk = 0
-         do i = 1, imaxe
+         do i = 1, size(totstenc2)
             if (totstenc2(i) .gt. 0) then
                kxk = kxk + 1
             end if
@@ -689,7 +701,7 @@ contains
          allocate (totstenc(stencounter))
          totstenc = 0
          kxk = 0
-         do i = 1, imaxe
+         do i = 1, size(totstenc2)
             if (totstenc2(i) .gt. 0) then
                kxk = kxk + 1
                totstenc(kxk) = totstenc2(i)
@@ -697,6 +709,7 @@ contains
          end do
 
          deallocate (totstenc2)
+         if (mesh_distributed) call node_sort(totstenc, 1, size(totstenc))
 
          stenred = 0
          stenredproc = 0
@@ -711,7 +724,7 @@ contains
          deallocate (totstenc)
 
          do i = 1, kxk
-            stenredproc(i) = xmpie(stenred(i))
+            stenredproc(i) = cell_owner(stenred(i))
          end do
          do i = 0, isize - 1
             ihmste(i) = 0
@@ -888,8 +901,8 @@ contains
          do i = 1, temp2
             do k = 1, direcexs(i)%muchtheyneed(1)
                !do j=1,kmaxe
-               if (xmpie(direcexs1(i)%whattheyneed(k)) .eq. n) then
-                  j = xmpil(direcexs1(i)%whattheyneed(k))
+               if (cell_owner(direcexs1(i)%whattheyneed(k)) .eq. n) then
+                  j = cell_index(direcexs1(i)%whattheyneed(k))
                   !if (direcexs(i)%whattheyneed(k).eq.ielem_ihexgl(j))then
                   direcexs(i)%localref(k) = j
                   direcexs1(i)%ishape(k) = ielem_ishape(j)

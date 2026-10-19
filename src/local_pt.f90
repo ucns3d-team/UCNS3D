@@ -1,10 +1,84 @@
 module local
+   use iso_fortran_env, only: lookup_int64 => int64
+   use mesh_local_cells
+   use mesh_local_nodes
    use library
    use declaration
    use transform
    implicit none
 
+   ! Built once before cell workers start; lookups never mutate this table.
+   type :: stencil_remote_lookup
+      private
+      integer, allocatable :: ids(:), owners(:), groups(:), rows(:)
+   end type stencil_remote_lookup
+
 contains
+
+   subroutine build_stencil_remote_lookup(table)
+      type(stencil_remote_lookup), intent(out) :: table
+      integer(kind=lookup_int64) :: entries
+      integer :: group, row, gid, owner, slot, capacity
+      entries = 0
+      do group = 1, direcexr(1)%tot
+         entries = entries + int(direcexr(group)%muchineed(1), lookup_int64)
+      end do
+      if (entries > (int(huge(capacity), lookup_int64) - 1) / 2) then
+         error stop 'prestore remote lookup exceeds integer indexing capacity'
+      end if
+      capacity = int(2 * entries + 1)
+      allocate(table%ids(capacity), table%owners(capacity), table%groups(capacity), table%rows(capacity))
+      table%ids = 0
+      do group = 1, direcexr(1)%tot
+         owner = diexcordr(group)%procid
+         do row = 1, direcexr(group)%muchineed(1)
+            gid = direcexr1(group)%whatineed(row)
+            if (gid <= 0) error stop 'invalid global cell ID in prestore receive list'
+            slot = stencil_remote_hash(gid, owner, capacity)
+            do while (table%ids(slot) /= 0)
+               if (table%ids(slot) == gid .and. table%owners(slot) == owner) exit
+               slot = mod(slot, capacity) + 1
+            end do
+            if (table%ids(slot) /= 0) then
+               ! Match the legacy search: first match within a receive group.
+               if (table%groups(slot) == group) cycle
+            end if
+            table%ids(slot) = gid
+            table%owners(slot) = owner
+            table%groups(slot) = group
+            table%rows(slot) = row
+         end do
+      end do
+   end subroutine build_stencil_remote_lookup
+
+   pure integer function stencil_remote_hash(gid, owner, capacity) result(slot)
+      integer, intent(in) :: gid, owner, capacity
+      slot = int(modulo(int(gid, lookup_int64) + 104729_lookup_int64 * int(owner, lookup_int64), &
+         int(capacity, lookup_int64))) + 1
+   end function stencil_remote_hash
+
+   subroutine find_stencil_remote(gid, owner, group, row, table)
+      integer, intent(in) :: gid, owner
+      integer, intent(out) :: group, row
+      type(stencil_remote_lookup), intent(in) :: table
+      integer :: slot, first
+      group = 0; row = 0
+      slot = stencil_remote_hash(gid, owner, size(table%ids))
+      first = slot
+      do while (table%ids(slot) /= 0)
+         if (table%ids(slot) == gid .and. table%owners(slot) == owner) then
+            group = table%groups(slot); row = table%rows(slot)
+            return
+         end if
+         slot = mod(slot, size(table%ids)) + 1
+         if (slot == first) exit
+      end do
+      error stop 'remote stencil cell missing from coordinate receive list'
+   end subroutine find_stencil_remote
+
+   subroutine release_stencil_remote_lookup(table)
+      type(stencil_remote_lookup), intent(out) :: table
+   end subroutine release_stencil_remote_lookup
 
    subroutine exch_cords(n)
 !> @brief
@@ -157,7 +231,7 @@ contains
 !
                do j = 1, ielem_nonodes(direcexs(i)%localref(k))
 !
-                  diexcords(i)%nodecord(k, j, 1:dims) = dinoder(ielem_nodes(j, direcexs(i)%localref(k)))%cord(1:dims)
+                  diexcords(i)%nodecord(k, j, 1:dims) = node_coords(ielem_nodes(j, direcexs(i)%localref(k)))
 !
                end do
             end do
@@ -555,10 +629,11 @@ contains
    end subroutine exch_cords2
 
    subroutine localise_stencil(n, iconsi, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, &
-      & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
+      & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, remote_lookup)
 !> @brief
 !> this subroutine starts expressing all the stencil elements coordinates and volumes with respect to the considered cell
       implicit none
+      type(stencil_remote_lookup), intent(in) :: remote_lookup
       integer, intent(in) :: n, iconsi
       integer :: i, j, l, ixff, ixsst, ikg, ismp, inv, ineedt, ikg2, in_sten, k, itarget
       integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexg !global index of cells
@@ -605,7 +680,7 @@ contains
                do l = 1, itarget
                   ilox_ihexg(ikg2, l) = ilocalstencil(n, i, ismp, l)
                   ilox_periodicflag(ikg2, l) = ilocalstencilper(n, i, ismp, l)
-                  j = (xmpil(ilox_ihexg(ikg2, l)))
+                  j = (cell_index(ilox_ihexg(ikg2, l)))
                   ilox_ihexl(ikg2, l) = j
                   ilox_ishape(ikg2, l) = ielem_ishape(j)
                   call compute_centre3d(j, cords)
@@ -616,9 +691,9 @@ contains
                   ilon_nodcount(ikg2, l, 1:ielem_nonodes(j)) = ielem_nodes(1:ielem_nonodes(j), j)
 
                   do k = 1, ielem_nonodes(j)
-                     ilon_x(ikg2, l, k) = dinoder(ielem_nodes(k, j))%cord(1)
-                     ilon_y(ikg2, l, k) = dinoder(ielem_nodes(k, j))%cord(2)
-                     ilon_z(ikg2, l, k) = dinoder(ielem_nodes(k, j))%cord(3)
+                     ilon_x(ikg2, l, k) = node_coord(ielem_nodes(k, j), 1)
+                     ilon_y(ikg2, l, k) = node_coord(ielem_nodes(k, j), 2)
+                     ilon_z(ikg2, l, k) = node_coord(ielem_nodes(k, j), 3)
                   end do
                end do
 
@@ -627,9 +702,9 @@ contains
                do l = 1, itarget
                   ilox_ihexg(ikg2, l) = ilocalstencil(n, i, ismp, l)
                   ilox_periodicflag(ikg2, l) = ilocalstencilper(n, i, ismp, l)
-                  ilox_ihexb(ikg2, l) = xmpie(ilocalstencil(n, i, ismp, l))
+                  ilox_ihexb(ikg2, l) = cell_owner(ilocalstencil(n, i, ismp, l))
                   if (ilox_ihexb(ikg2, l) .eq. n) then
-                     j = (xmpil(ilox_ihexg(ikg2, l)))
+                     j = (cell_index(ilox_ihexg(ikg2, l)))
                      if (ilox_ihexg(ikg2, l) .eq. ielem_ihexgl(j)) then
                         ilox_ihexl(ikg2, l) = j
                         ilox_ishape(ikg2, l) = ielem_ishape(j)
@@ -640,26 +715,17 @@ contains
                      ilox_zzc(ikg2, l) = cords(3)
                      ilon_nodcount(ikg2, l, 1:ielem_nonodes(j)) = ielem_nodes(1:ielem_nonodes(j), j)
                      do k = 1, ielem_nonodes(j)
-                        ilon_x(ikg2, l, k) = dinoder(ielem_nodes(k, j))%cord(1)
-                        ilon_y(ikg2, l, k) = dinoder(ielem_nodes(k, j))%cord(2)
-                        ilon_z(ikg2, l, k) = dinoder(ielem_nodes(k, j))%cord(3)
+                        ilon_x(ikg2, l, k) = node_coord(ielem_nodes(k, j), 1)
+                        ilon_y(ikg2, l, k) = node_coord(ielem_nodes(k, j), 2)
+                        ilon_z(ikg2, l, k) = node_coord(ielem_nodes(k, j), 3)
 
                      end do
 
                   else
 
-                     do ixff = 1, ineedt
-                        if (diexcordr(ixff)%procid .eq. ilox_ihexb(ikg2, l)) then
-                           do ixsst = 1, direcexr(ixff)%muchineed(1)
-                              if ((ilox_ihexg(ikg2, l)) .eq. direcexr1(ixff)%whatineed(ixsst)) then
-                                 ilox_ihexl(ikg2, l) = ixsst
-                                 ilox_ihexn(ikg2, l) = ixff
-                                 ilox_ishape(ikg2, l) = direcexr1(ixff)%ishape(ixsst)
-                                 exit
-                              end if
-                           end do
-                        end if
-                     end do
+                     call find_stencil_remote(ilox_ihexg(ikg2, l), ilox_ihexb(ikg2, l), &
+                        ilox_ihexn(ikg2, l), ilox_ihexl(ikg2, l), remote_lookup)
+                     ilox_ishape(ikg2, l) = direcexr1(ilox_ihexn(ikg2, l))%ishape(ilox_ihexl(ikg2, l))
                      select case (ilox_ishape(ikg2, l))
                      case (1)
                         in_sten = 8
@@ -694,10 +760,11 @@ contains
    end subroutine localise_stencil
 
    subroutine localise_stencil2d(n, iconsi, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, &
-      & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
+      & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, remote_lookup)
 !> @brief
 !> this subroutine starts expressing all the stencil elements coordinates and volumes with respect to the considered cell in 2d
       implicit none
+      type(stencil_remote_lookup), intent(in) :: remote_lookup
       integer, intent(in) :: n, iconsi
       integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexg !global index of cells
       integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexl !local index of cells
@@ -740,7 +807,7 @@ contains
                ikg2 = ikg2 + 1
                do l = 1, itarget
                   ilox_ihexg(ikg2, l) = ilocalstencil(n, i, ismp, l)
-                  j = (xmpil(ilox_ihexg(ikg2, l)))
+                  j = (cell_index(ilox_ihexg(ikg2, l)))
                   ilox_ihexl(ikg2, l) = j
                   ilox_ishape(ikg2, l) = ielem_ishape(j)
                   call compute_centre2d(j, cords)
@@ -749,8 +816,8 @@ contains
 
                   ilon_nodcount(ikg2, l, 1:ielem_nonodes(j)) = ielem_nodes(1:ielem_nonodes(j), j)
                   do k = 1, ielem_nonodes(j)
-                     ilon_x(ikg2, l, k) = dinoder(ielem_nodes(k, j))%cord(1)
-                     ilon_y(ikg2, l, k) = dinoder(ielem_nodes(k, j))%cord(2)
+                     ilon_x(ikg2, l, k) = node_coord(ielem_nodes(k, j), 1)
+                     ilon_y(ikg2, l, k) = node_coord(ielem_nodes(k, j), 2)
 
                   end do
                end do
@@ -758,9 +825,9 @@ contains
                ikg2 = ikg2 + 1
                do l = 1, itarget
                   ilox_ihexg(ikg2, l) = ilocalstencil(n, i, ismp, l)
-                  ilox_ihexb(ikg2, l) = xmpie(ilocalstencil(n, i, ismp, l))
+                  ilox_ihexb(ikg2, l) = cell_owner(ilocalstencil(n, i, ismp, l))
                   if (ilox_ihexb(ikg2, l) .eq. n) then
-                     j = (xmpil(ilox_ihexg(ikg2, l)))
+                     j = (cell_index(ilox_ihexg(ikg2, l)))
                      if (ilox_ihexg(ikg2, l) .eq. ielem_ihexgl(j)) then
                         ilox_ihexl(ikg2, l) = j
                         ilox_ishape(ikg2, l) = ielem_ishape(j)
@@ -771,23 +838,14 @@ contains
 
                      ilon_nodcount(ikg2, l, 1:ielem_nonodes(j)) = ielem_nodes(1:ielem_nonodes(j), j)
                      do k = 1, ielem_nonodes(j)
-                        ilon_x(ikg2, l, k) = dinoder(ielem_nodes(k, j))%cord(1)
-                        ilon_y(ikg2, l, k) = dinoder(ielem_nodes(k, j))%cord(2)
+                        ilon_x(ikg2, l, k) = node_coord(ielem_nodes(k, j), 1)
+                        ilon_y(ikg2, l, k) = node_coord(ielem_nodes(k, j), 2)
 
                      end do
                   else
-                     do ixff = 1, ineedt
-                        if (diexcordr(ixff)%procid .eq. ilox_ihexb(ikg2, l)) then
-                           do ixsst = 1, direcexr(ixff)%muchineed(1)
-                              if ((ilox_ihexg(ikg2, l)) .eq. direcexr1(ixff)%whatineed(ixsst)) then
-                                 ilox_ihexl(ikg2, l) = ixsst
-                                 ilox_ihexn(ikg2, l) = ixff
-                                 ilox_ishape(ikg2, l) = direcexr1(ixff)%ishape(ixsst)
-                                 exit
-                              end if
-                           end do
-                        end if
-                     end do
+                     call find_stencil_remote(ilox_ihexg(ikg2, l), ilox_ihexb(ikg2, l), &
+                        ilox_ihexn(ikg2, l), ilox_ihexl(ikg2, l), remote_lookup)
+                     ilox_ishape(ikg2, l) = direcexr1(ilox_ihexn(ikg2, l))%ishape(ilox_ihexl(ikg2, l))
                      select case (ilox_ishape(ikg2, l))
                      case (5)
                         in_sten = 4
@@ -1430,7 +1488,7 @@ contains
 
             if (rec_local(i) .eq. 0) then
                do l = 2, itarget
-                  j = (xmpil(ilox_ihexg(1, l)))
+                  j = (cell_index(ilox_ihexg(1, l)))
                   do k = 1, ielem_nonodes(j)
                      x2x = ilon_x(1, l, k)
                      y2y = ilon_y(1, l, k)
@@ -1448,7 +1506,7 @@ contains
             if (rec_local(i) .ne. 0) then
                do l = 2, itarget
                   if (ilox_ihexb(1, l) .eq. n) then
-                     j = (xmpil(ilox_ihexg(1, l)))
+                     j = (cell_index(ilox_ihexg(1, l)))
                      do k = 1, ielem_nonodes(j)
                         x2x = ilon_x(1, l, k)
                         y2y = ilon_y(1, l, k)
@@ -2428,7 +2486,7 @@ contains
                if (ielem_ineighb(i, l) .ne. n) then
 
                   do k = 1, nnd
-                     nodes_list(k, 1:dims) = dinoder(ielem_nodes_faces(iconsi, l, k))%cord(1:dims)
+                     nodes_list(k, 1:dims) = node_coords(ielem_nodes_faces(iconsi, l, k))
                   end do
 
                   do k = 1, nnd

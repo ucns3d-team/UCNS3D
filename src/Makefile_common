@@ -2,7 +2,7 @@
 # Depend on objects: compilers may leave unchanged .mod timestamps untouched.
 # Run make clean when switching compilers/command-line flags or deleting .mod files.
 
-OBJECTS = declarations.o translate.o grid_t.o flow_operations.o memory.o io.o mpi_p.o der_r.o \
+OBJECTS = checkpoint_mpi_io.o vtk_ghost_output.o mesh_local_cells.o mesh_local_nodes.o mesh_mpi_io.o declarations.o translate.o grid_t.o flow_operations.o memory.o io.o mpi_p.o der_r.o \
     parameters.o communications.o riemann.o flux_p.o profile.o init_p.o parts.o bc_p.o matrix.o \
     grid_p.o basis.o gradients.o prestore.o reconstruct_p.o source.o implicit_fluxes.o \
     implicit_time.o time_p.o svd.o local_pt.o mood.o dg_functions.o main.o
@@ -22,34 +22,34 @@ $(OBJECTS): %.o: %.f90
 
 # Dependencies from the USE statements in each source file.
 basis.o: declarations.o grid_p.o
-bc_p.o: declarations.o grid_p.o grid_t.o
-communications.o: declarations.o grid_t.o mpi_p.o
+bc_p.o: mesh_local_nodes.o mesh_mpi_io.o declarations.o grid_p.o grid_t.o
+communications.o: mesh_local_cells.o declarations.o grid_t.o mpi_p.o
 der_r.o: declarations.o mpi_p.o
-dg_functions.o: basis.o declarations.o der_r.o flow_operations.o grid_t.o matrix.o
+dg_functions.o: mesh_local_nodes.o basis.o declarations.o der_r.o flow_operations.o grid_t.o matrix.o
 flow_operations.o: declarations.o grid_t.o mpi_p.o
 flux_p.o: basis.o declarations.o dg_functions.o flow_operations.o grid_p.o grid_t.o local_pt.o \
     riemann.o
 gradients.o: declarations.o flow_operations.o grid_p.o grid_t.o
-grid_p.o: declarations.o grid_t.o io.o mpi_p.o
-grid_t.o: declarations.o mpi_p.o
+grid_p.o: mesh_local_cells.o mesh_local_nodes.o mesh_mpi_io.o declarations.o grid_t.o io.o mpi_p.o
+grid_t.o: mesh_local_nodes.o declarations.o mpi_p.o
 implicit_fluxes.o: declarations.o flow_operations.o grid_p.o grid_t.o local_pt.o riemann.o \
     source.o
 implicit_time.o: communications.o declarations.o flow_operations.o grid_p.o grid_t.o \
     implicit_fluxes.o
-init_p.o: declarations.o grid_p.o grid_t.o profile.o
-io.o: declarations.o flow_operations.o grid_t.o mpi_p.o
-local_pt.o: declarations.o grid_p.o grid_t.o
+init_p.o: mesh_local_nodes.o declarations.o grid_p.o grid_t.o profile.o
+io.o: checkpoint_mpi_io.o vtk_ghost_output.o mesh_local_cells.o mesh_local_nodes.o mesh_mpi_io.o declarations.o flow_operations.o grid_t.o mpi_p.o
+local_pt.o: mesh_local_cells.o mesh_local_nodes.o declarations.o grid_p.o grid_t.o
 main.o: $(filter-out main.o,$(OBJECTS))
 matrix.o: declarations.o mpi_p.o
-memory.o: declarations.o mpi_p.o
+memory.o: mesh_local_cells.o mesh_mpi_io.o declarations.o mpi_p.o
 mood.o: basis.o bc_p.o communications.o declarations.o flow_operations.o flux_p.o gradients.o \
     grid_p.o grid_t.o implicit_fluxes.o implicit_time.o init_p.o io.o local_pt.o memory.o \
     mpi_p.o parts.o prestore.o profile.o reconstruct_p.o riemann.o source.o translate.o
 parameters.o: declarations.o mpi_p.o
-parts.o: declarations.o mpi_p.o
+parts.o: mesh_mpi_io.o declarations.o mpi_p.o
 prestore.o: basis.o declarations.o der_r.o dg_functions.o grid_p.o grid_t.o local_pt.o matrix.o
 profile.o: basis.o declarations.o grid_p.o
-reconstruct_p.o: basis.o declarations.o der_r.o gradients.o grid_p.o grid_t.o local_pt.o \
+reconstruct_p.o: mesh_local_nodes.o basis.o declarations.o der_r.o gradients.o grid_p.o grid_t.o local_pt.o \
     matrix.o
 riemann.o: declarations.o flow_operations.o grid_p.o
 source.o: declarations.o flow_operations.o grid_p.o grid_t.o local_pt.o riemann.o
@@ -60,3 +60,9 @@ translate.o: declarations.o
 
 clean:
 	rm -f $(OBJECTS) *.mod ucns3d_p
+
+mesh_local_nodes.o: declarations.o mesh_mpi_io.o mpi_p.o
+mesh_local_cells.o: mesh_local_nodes.o declarations.o mesh_mpi_io.o mpi_p.o
+
+# Both volume and surface modules share this implementation.
+vtk_ghost_output.o: vtk_ghost_core.inc

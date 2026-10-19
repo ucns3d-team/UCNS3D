@@ -9,14 +9,50 @@ module prestore
    use dg_functions
    implicit none
 
+   ! One host workspace per OpenMP worker, reused across its cells.
+   type :: prestore_workspace
+      real, allocatable :: intbs(:), basefaceval(:), basefacgval(:), permutation(:), permutationg(:)
+      real, allocatable :: xder(:), yder(:), zder(:), wlsqr(:), qr_vec(:)
+      real, allocatable :: stencils(:, :), invmat(:, :), lsqm(:, :), lscqm(:, :)
+      real, allocatable :: qff(:, :), rff(:, :), qtff(:, :), invrff(:, :), vellsqmat(:, :)
+      real, allocatable :: weff(:, :), weffc(:, :)
+   end type prestore_workspace
+
 contains
+
+   subroutine allocate_prestore_workspace(ws, neighbour_capacity)
+      type(prestore_workspace), intent(out) :: ws
+      integer, intent(in), optional :: neighbour_capacity
+      integer :: d, neighbours
+      d = idegfree
+      neighbours = numneighbours - 1
+      if (ees == 5) neighbours = max(neighbours, numneighbours2 - 1)
+      if (present(neighbour_capacity)) neighbours = max(neighbours, neighbour_capacity - 1)
+      allocate(ws%lscqm(d, d), ws%qff(d, d), ws%rff(d, d), ws%qtff(d, d), ws%invrff(d, d))
+      allocate(ws%invmat(d, d), ws%vellsqmat(d - 1, d - 1), ws%lsqm(max(imaxdegfree, neighbours), d - 1))
+      allocate(ws%intbs(d), ws%basefaceval(d), ws%basefacgval(d), ws%permutation(d), ws%permutationg(d))
+      allocate(ws%xder(d), ws%yder(d), ws%zder(d), ws%qr_vec(d), ws%wlsqr(neighbours))
+      ! Each stencil is consumed before the next one is assembled.
+      allocate(ws%stencils(neighbours, d))
+      if (iweno == 1) then
+         allocate(ws%weff(d, d))
+         if (ees == 5) allocate(ws%weffc(idegfree2, idegfree2))
+      end if
+   end subroutine allocate_prestore_workspace
+
+   subroutine release_prestore_workspace(ws)
+      ! INTENT(OUT) finalizes/deallocates every allocatable component.
+      type(prestore_workspace), intent(out) :: ws
+   end subroutine release_prestore_workspace
 
    subroutine prestore_1(n)
 !> @brief
 !> this subroutine calls other subroutines to prestore the pseudoinverse reconstruction least square matrices
       implicit none
       integer, intent(in) :: n
-      integer :: kmaxe, i, m, k
+      integer :: kmaxe, i, m, k, neighbour_capacity
+      type(prestore_workspace) :: ws
+      type(stencil_remote_lookup) :: remote_lookup
       integer, allocatable, dimension(:, :) :: ilox_ihexg !global index of cells
       integer, allocatable, dimension(:, :) :: ilox_ihexl !local index of cells
       integer, allocatable, dimension(:, :) :: ilox_ihexb !cpu that that each cell belongs to
@@ -35,28 +71,33 @@ contains
       kmaxe = xmpielrank(n)
       if (kmaxe == 0) return
       m = typesten
+      ! Some compact-stencil settings grow individual cell stencils.
+      neighbour_capacity = max(numneighbours, maxval(ielem_inumneighbours))
+      if (ees == 5) neighbour_capacity = max(neighbour_capacity, numneighbours2)
+      call build_stencil_remote_lookup(remote_lookup)
 ! Set this shared configuration value once, before the cell workers start.
       inum2 = numneighbours2
 
 ! Each thread owns its stencil workspace and reuses it for its cells.
 ! Keep contiguous cell chunks for the cell-first output arrays.
 !$omp parallel default(none) &
-!$omp& shared(n, kmaxe, m, numneighbours, iextend, dimensiona, dg, adda_type) &
-!$omp& private(i, k, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, &
+!$omp& shared(n, kmaxe, m, neighbour_capacity, dimensiona, dg, adda_type, remote_lookup) &
+!$omp& private(i, k, ws, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, &
 !$omp& ilox_xxc, ilox_yyc, ilox_zzc, ilox_volume, ilox_periodicflag, &
 !$omp& ilon_nodcount, ilon_x, ilon_y, ilon_z)
 
-      allocate (ilox_ihexg(m, numneighbours * iextend))
-      allocate (ilox_ihexl(m, numneighbours * iextend))
-      allocate (ilox_ihexb(m, numneighbours * iextend))
-      allocate (ilox_ihexn(m, numneighbours * iextend))
-      allocate (ilox_periodicflag(m, numneighbours * iextend))
-      allocate (ilox_ishape(m, numneighbours * iextend))
-      allocate (ilox_xxc(m, numneighbours * iextend))
-      allocate (ilox_volume(m, numneighbours * iextend))
-      allocate (ilox_yyc(m, numneighbours * iextend))
+      call allocate_prestore_workspace(ws, neighbour_capacity)
+      allocate (ilox_ihexg(m, neighbour_capacity))
+      allocate (ilox_ihexl(m, neighbour_capacity))
+      allocate (ilox_ihexb(m, neighbour_capacity))
+      allocate (ilox_ihexn(m, neighbour_capacity))
+      allocate (ilox_periodicflag(m, neighbour_capacity))
+      allocate (ilox_ishape(m, neighbour_capacity))
+      allocate (ilox_xxc(m, neighbour_capacity))
+      allocate (ilox_volume(m, neighbour_capacity))
+      allocate (ilox_yyc(m, neighbour_capacity))
       if (dimensiona .eq. 3) then
-         allocate (ilox_zzc(m, numneighbours * iextend))
+         allocate (ilox_zzc(m, neighbour_capacity))
          ilox_zzc = 0.0
       end if
       ilox_ihexg = 0
@@ -74,11 +115,11 @@ contains
          k = 4
       end if
 
-      allocate (ilon_nodcount(m, numneighbours * iextend, k))
-      allocate (ilon_x(m, numneighbours * iextend, k))
-      allocate (ilon_y(m, numneighbours * iextend, k))
+      allocate (ilon_nodcount(m, neighbour_capacity, k))
+      allocate (ilon_x(m, neighbour_capacity, k))
+      allocate (ilon_y(m, neighbour_capacity, k))
       if (dimensiona .eq. 3) then
-         allocate (ilon_z(m, numneighbours * iextend, k))
+         allocate (ilon_z(m, neighbour_capacity, k))
          ilon_z = 0.0
       end if
       ilon_nodcount = 0
@@ -90,7 +131,7 @@ contains
          do i = 1, kmaxe
 
             call localise_stencil(n, i, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, &
-               & ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
+               & ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, remote_lookup)
 
             call localise_sten2(n, i, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, &
                & ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
@@ -98,7 +139,7 @@ contains
             call find_rot_angles(n, i)
 
             call prestore_reconstruction3(n, i, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, &
-               & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
+               & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, ws)
 
             if ((dg .eq. 1) .or. (adda_type .eq. 2)) then
 
@@ -113,13 +154,13 @@ contains
          !$omp do schedule(static)
          do i = 1, kmaxe
             call localise_stencil2d(n, i, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, &
-               & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
+               & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, remote_lookup)
             call localise_sten2d(n, i, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, &
                & ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
             call checkgrads2d(n, i)
             call find_rot_angles2d(n, i)
             call prestore_reconstruction2(n, i, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, &
-               & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
+               & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, ws)
             if ((dg .eq. 1) .or. (adda_type .eq. 2)) then
 
                call prestore_dg1(i)
@@ -137,15 +178,18 @@ contains
          deallocate (ilox_zzc, ilon_z)
       end if
 
+      call release_prestore_workspace(ws)
 !$omp end parallel
+      call release_stencil_remote_lookup(remote_lookup)
 
    end subroutine prestore_1
 
    subroutine prestore_reconstruction3(n, iconsi, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, &
-      & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
+      & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, ws)
 !> @brief
 !> this subroutine prestores the pseudoinverse reconstruction least square matrices
       implicit none
+      type(prestore_workspace), intent(inout) :: ws
       integer :: kbasis
       integer :: mm_i
       integer :: mm_j
@@ -162,9 +206,6 @@ contains
       real, dimension(1:8, 1:dimensiona) :: vext
       real, dimension(1:dims, 1:dims) :: ainvjt
       real, dimension(1:dimensiona) :: cords
-      real, allocatable, dimension(:) :: intbs, basefaceval, basefacgval, permutation, permutationg, xder, yder, zder
-      real, allocatable, dimension(:, :) :: stencil, invmat, wlsqr, lsqm, lscqm, qff, rff, qtff, invrff, vellsqmat
-      real, allocatable, dimension(:, :, :) :: stencils
       integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexg !global index of cells
       integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexl !local index of cells
       integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexb !cpu that that each cell belongs to
@@ -180,17 +221,6 @@ contains
       real, allocatable, dimension(:, :, :), intent(inout) :: ilon_x !coordinates of each node in x
       real, allocatable, dimension(:, :, :), intent(inout) :: ilon_y !coordinates of each node in x
       real, allocatable, dimension(:, :, :), intent(inout) :: ilon_z !coordinates of each node in x
-
-      allocate (lscqm(1:idegfree, 1:idegfree), qff(1:idegfree, 1:idegfree), rff(1:idegfree, 1:idegfree), qtff(1:idegfree, &
-         & 1:idegfree), invrff(1:idegfree, 1:idegfree))
-      allocate (vellsqmat(1:idegfree - 1, 1:idegfree - 1))
-      allocate (lsqm(1:imaxdegfree, 1:idegfree - 1))
-      allocate (intbs(1:idegfree), basefaceval(1:idegfree), basefacgval(1:idegfree), permutation(1:idegfree), &
-         & permutationg(1:idegfree), xder(1:idegfree), yder(1:idegfree), zder(1:idegfree))
-      allocate (invmat(1:idegfree, 1:idegfree))
-      allocate (wlsqr(1:20, 1:numneighbours - 1))
-      allocate (stencil(1:numneighbours - 1, 1:idegfree))
-      allocate (stencils(1:20, 1:numneighbours - 1, 1:idegfree))
 
       i = iconsi
 
@@ -209,36 +239,39 @@ contains
 
       !firstly compute the integrals of the basis functions
 
-      intbs = zero; jxx = 1; ixx = i; lxx1 = 1; number_of_dog = ielem_idegfree(i); kxx = ielem_iorder(i); eltype = ielem_ishape(i)
+      ws%intbs = zero; jxx = 1; ixx = i; lxx1 = 1; number_of_dog = ielem_idegfree(i); kxx = ielem_iorder(i); eltype = &
+         & ielem_ishape(i)
       icompwrt = 0
 
-      intbs = calintbasis(n, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, eltype, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, &
+      ws%intbs(1:number_of_dog) = calintbasis(n, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, eltype, ilox_ihexg, ilox_ihexl, &
+         & ilox_ihexb, ilox_ihexn, &
          & ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
 
       ! store integration-basis vector intbs into all entries 1:number_of_dog for element i
 
-      integ_basis_value(i, 1:number_of_dog) = intbs(1:number_of_dog)
+      integ_basis_value(i, 1:number_of_dog) = ws%intbs(1:number_of_dog)
 
       !the indicator matrix for the smaller polynomial
       if (iweno .eq. 1) then
          call indicatormatrix(n, i, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, &
-            & ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
+            & ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, ws%weff)
       end if
 
       !the indicator matrix for the lower order polynomial
       if (ees .eq. 5) then
-         intbs = zero; jxx = 1; ixx = i; lxx1 = 1; number_of_dog = idegfree2; kxx = iorder2; eltype = ielem_ishape(i)
+         ws%intbs = zero; jxx = 1; ixx = i; lxx1 = 1; number_of_dog = idegfree2; kxx = iorder2; eltype = ielem_ishape(i)
          icompwrt = 1
-         intbs = calintbasis(n, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, eltype, ilox_ihexg, ilox_ihexl, ilox_ihexb, &
+         ws%intbs(1:number_of_dog) = calintbasis(n, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, eltype, ilox_ihexg, &
+         & ilox_ihexl, ilox_ihexb, &
             & ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, &
             & ilon_y, ilon_z)
          ! store lower-order integration-basis vector
 
-         integ_basis_valuec(i, 1:number_of_dog) = intbs(1:number_of_dog)
+         integ_basis_valuec(i, 1:number_of_dog) = ws%intbs(1:number_of_dog)
 
          if (iweno .eq. 1) then
             call indicatormatrix2(n, i, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, &
-               & ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
+               & ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, ws%weffc)
             icompwrt = 0
          end if
       end if
@@ -246,7 +279,7 @@ contains
       llco = ielem_admis(i); imax = ielem_inumneighbours(i) - 1; inum = ielem_inumneighbours(i); ideg = ielem_idegfree(i)
       inumo = ielem_iorder(i); imax2 = numneighbours2 - 1; ideg2 = idegfree2; inumo2 = iorder2
 
-      !this section computes the ratio of volumes inside each stencil
+      !this section computes the ratio of volumes inside each stencils
       dist_sten = zero
 
       dist_sten = -tolbig; dist_sten2 = tolbig
@@ -262,7 +295,7 @@ contains
 !                         ielem_stencil_dist(i)=max((dist_sten/dist_sten2),(dist_sten2/dist_sten))
 
       !now we start with looping all the admissible stencils
-      do ll = 1, llco !for all stencils
+      do ll = 1, llco !for all ws%stencils
          if ((ees .ne. 5) .or. (ll .eq. 1)) then
             imax = ielem_inumneighbours(i) - 1; inum = ielem_inumneighbours(i); ideg = ielem_idegfree(i); inumo = ielem_iorder(i)
             icompwrt = 0; number_of_dog = ideg
@@ -282,9 +315,9 @@ contains
             dist_sten2 = sqrt(x_stencil + y_stencil + z_stencil)
 
             if (weight_lsqr .eq. 1) then
-               wlsqr(ll, k) = 1.00 / ((dist_sten2))
+               ws%wlsqr(k) = 1.00 / ((dist_sten2))
             else
-               wlsqr(ll, k) = 1.00
+               ws%wlsqr(k) = 1.00
             end if
 
             if (fastest .eq. 1) then !this is when transformation is not active (rarely used)
@@ -297,33 +330,33 @@ contains
                      if ((ees .ne. 5) .or. (ll .eq. 1)) then
                         icompwrt = 0
                         if (itestcase .eq. 4) then
-                           rec_stencils(rec_wall(i), ll, k, 1:ielem_idegfree(i)) = wlsqr(ll, k) * basis_rec(n, x1, y1, z1, &
+                           rec_stencils(rec_wall(i), ll, k, 1:ielem_idegfree(i)) = ws%wlsqr(k) * basis_rec(n, x1, y1, z1, &
                               & ielem_iorder(i), i, ielem_idegfree(i), icompwrt)
-                           rec_weightl(rec_wall(i), ll, k) = wlsqr(ll, k)
-                           stencils(ll, k, 1:ideg) = rec_stencils(rec_wall(i), ll, k, 1:ielem_idegfree(i))
+                           rec_weightl(rec_wall(i), ll, k) = ws%wlsqr(k)
+                           ws%stencils(k, 1:ideg) = rec_stencils(rec_wall(i), ll, k, 1:ielem_idegfree(i))
                         else
-                           stencils(ll, k, 1:ideg) = wlsqr(ll, k) * basis_rec(n, x1, y1, z1, ielem_iorder(i), i, &
+                           ws%stencils(k, 1:ideg) = ws%wlsqr(k) * basis_rec(n, x1, y1, z1, ielem_iorder(i), i, &
                               & ielem_idegfree(i), icompwrt)
                         end if
 
                      else
                         icompwrt = 1
                         if (itestcase .eq. 4) then
-!                                                                 rec_stencilsc(ll,k,1:ideg,rec_wall(i))=wlsqr(ll,k)*basis_rec(n,x1,y1,z1,inumo,i,ideg,icompwrt)
-!                                                                 rec_weightl(ll,k,rec_wall(i))=wlsqr(ll,k)
-                           stencils(ll, k, 1:ideg) = wlsqr(ll, k) * basis_rec(n, x1, y1, z1, inumo, i, ideg, icompwrt)
+!                                                                 rec_stencilsc(ll,k,1:ideg,rec_wall(i))=wlsqr(k)*basis_rec(n,x1,y1,z1,inumo,i,ideg,icompwrt)
+!                                                                 rec_weightl(ll,k,rec_wall(i))=wlsqr(k)
+                           ws%stencils(k, 1:ideg) = ws%wlsqr(k) * basis_rec(n, x1, y1, z1, inumo, i, ideg, icompwrt)
                         else
-                           stencils(ll, k, 1:ideg) = wlsqr(ll, k) * basis_rec(n, x1, y1, z1, inumo, i, ideg, icompwrt)
+                           ws%stencils(k, 1:ideg) = ws%wlsqr(k) * basis_rec(n, x1, y1, z1, inumo, i, ideg, icompwrt)
                         end if
                      end if
                   else
                      if ((ees .ne. 5) .or. (ll .eq. 1)) then
 
                         icompwrt = 0
-                        stencils(ll, k, 1:ideg) = wlsqr(ll, k) * basis_rec(n, x1, y1, z1, inumo, ixx, ideg, icompwrt)
+                        ws%stencils(k, 1:ideg) = ws%wlsqr(k) * basis_rec(n, x1, y1, z1, inumo, ixx, ideg, icompwrt)
                      else
                         icompwrt = 1
-                        stencils(ll, k, 1:ideg) = wlsqr(ll, k) * basis_rec(n, x1, y1, z1, inumo, ixx, ideg, icompwrt)
+                        ws%stencils(k, 1:ideg) = ws%wlsqr(k) * basis_rec(n, x1, y1, z1, inumo, ixx, ideg, icompwrt)
 
                      end if
                   end if
@@ -331,10 +364,10 @@ contains
                else
                   if ((ees .ne. 5) .or. (ll .eq. 1)) then
                      icompwrt = 0
-                     stencils(ll, k, 1:ideg) = wlsqr(ll, k) * basis_rec(n, x1, y1, z1, inumo, ixx, ideg, icompwrt)
+                     ws%stencils(k, 1:ideg) = ws%wlsqr(k) * basis_rec(n, x1, y1, z1, inumo, ixx, ideg, icompwrt)
                   else
                      icompwrt = 1
-                     stencils(ll, k, 1:ideg) = wlsqr(ll, k) * basis_rec(n, x1, y1, z1, inumo, ixx, ideg, icompwrt)
+                     ws%stencils(k, 1:ideg) = ws%wlsqr(k) * basis_rec(n, x1, y1, z1, inumo, ixx, ideg, icompwrt)
 
                   end if
                end if
@@ -349,13 +382,13 @@ contains
                         icompwrt = 0
 
                         if (itestcase .eq. 4) then
-                           rec_stencils(rec_wall(i), ll, k, 1:ideg) = wlsqr(ll, k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, &
+                           rec_stencils(rec_wall(i), ll, k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, &
                               & number_of_dog, icompwrt, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, &
                               & ilox_yyc, ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
-                           rec_weightl(rec_wall(i), ll, k) = wlsqr(ll, k)
-                           stencils(ll, k, 1:ideg) = rec_stencils(rec_wall(i), ll, k, 1:ideg)
+                           rec_weightl(rec_wall(i), ll, k) = ws%wlsqr(k)
+                           ws%stencils(k, 1:ideg) = rec_stencils(rec_wall(i), ll, k, 1:ideg)
                         else
-                           stencils(ll, k, 1:ideg) = wlsqr(ll, k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, &
+                           ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, &
                               & icompwrt, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, &
                               & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
 
@@ -364,13 +397,13 @@ contains
                      else
                         icompwrt = 1
                         if (itestcase .eq. 4) then
-!                                                                                 rec_stencilsc(ll,k,1:ideg,rec_wall(i))=wlsqr(ll,k)*compbasel(n,eltype,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
-!                                                                                 rec_weightl(ll,k,rec_wall(i))=wlsqr(ll,k)
-                           stencils(ll, k, 1:ideg) = wlsqr(ll, k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, &
+!                                                                                 rec_stencilsc(ll,k,1:ideg,rec_wall(i))=wlsqr(k)*compbasel(n,eltype,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
+!                                                                                 rec_weightl(ll,k,rec_wall(i))=wlsqr(k)
+                           ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, &
                               & icompwrt, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, &
                               & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
                         else
-                           stencils(ll, k, 1:ideg) = wlsqr(ll, k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, &
+                           ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, &
                               & icompwrt, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, &
                               & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
                         end if
@@ -379,12 +412,12 @@ contains
                   else
                      if ((ees .ne. 5) .or. (ll .eq. 1)) then
                         icompwrt = 0
-                        stencils(ll, k, 1:ideg) = wlsqr(ll, k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, &
+                        ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, &
                            & icompwrt, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, &
                            & ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
                      else
                         icompwrt = 1
-                        stencils(ll, k, 1:ideg) = wlsqr(ll, k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, &
+                        ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, &
                            & icompwrt, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, &
                            & ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
 
@@ -393,12 +426,12 @@ contains
                else
                   if ((ees .ne. 5) .or. (ll .eq. 1)) then
                      icompwrt = 0
-                     stencils(ll, k, 1:ideg) = wlsqr(ll, k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, &
+                     ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, &
                         & ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, ilox_volume, &
                         & ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
                   else
                      icompwrt = 1
-                     stencils(ll, k, 1:ideg) = wlsqr(ll, k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, &
+                     ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, &
                         & ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, ilox_volume, &
                         & ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
 
@@ -412,83 +445,70 @@ contains
 
          if ((greengo .eq. 0)) then
             if (idum .eq. 1) then
-               invmat = zero; lscqm = zero
+               ws%invmat = zero; ws%lscqm = zero
                do iq = 1, ideg; do jq = 1, ideg; do lq = 1, imax
                         if ((ees .ne. 5) .or. (ll .eq. 1)) then
-                           lscqm(jq, iq) = lscqm(jq, iq) &
-                              & + ((stencils(ll, lq, jq) * stencils(ll, lq, iq)))
+                           ws%lscqm(jq, iq) = ws%lscqm(jq, iq) &
+                              & + ((ws%stencils(lq, jq) * ws%stencils(lq, iq)))
                            !                                lscqm(jq,iq)=lscqm(jq,iq)&
                            !                                +((rec_stencils(ll,lq,jq,rec_wall(i))*rec_stencils(ll,lq,iq,rec_wall(i))))
                         else
-                           lscqm(jq, iq) = lscqm(jq, iq) &
-                              & + ((stencils(ll, lq, jq) * stencils(ll, lq, iq)))
+                           ws%lscqm(jq, iq) = ws%lscqm(jq, iq) &
+                              & + ((ws%stencils(lq, jq) * ws%stencils(lq, iq)))
                            !        lscqm(jq,iq)=lscqm(jq,iq)&
                            !        +((rec_stencilsc(ll,lq,jq,rec_wall(i))*rec_stencilsc(ll,lq,iq,rec_wall(i))))
                         end if
                      end do; end do; end do
             else
-               invmat = zero; lscqm = zero
+               ws%invmat = zero; ws%lscqm = zero
                do iq = 1, ideg; do jq = 1, ideg; do lq = 1, imax
-                        lscqm(jq, iq) = lscqm(jq, iq) &
-                           & + ((stencils(ll, lq, jq) * stencils(ll, lq, iq)))
+                        ws%lscqm(jq, iq) = ws%lscqm(jq, iq) &
+                           & + ((ws%stencils(lq, jq) * ws%stencils(lq, iq)))
                      end do; end do; end do
             end if
          else
 
-            invmat = zero; lscqm = zero
+            ws%invmat = zero; ws%lscqm = zero
             do iq = 1, ideg; do jq = 1, ideg; do lq = 1, imax
-                     lscqm(jq, iq) = lscqm(jq, iq) &
-                        & + ((stencils(ll, lq, jq) * stencils(ll, lq, iq)))
+                     ws%lscqm(jq, iq) = ws%lscqm(jq, iq) &
+                        & + ((ws%stencils(lq, jq) * ws%stencils(lq, iq)))
                   end do; end do; end do
 
          end if
 
-         qff(:, :) = zero; rff(:, :) = zero; qtff(:, :) = zero; rff(:, :) = zero; invrff(:, :) = zero
-         call qrdecomposition(lscqm, qff, rff, ideg)
-         call transposematrix(qff, qtff, ideg)
+         ws%qff(:, :) = zero; ws%rff(:, :) = zero; ws%qtff(:, :) = zero; ws%rff(:, :) = zero; ws%invrff(:, :) = zero
+         call qrdecomposition(ws%lscqm, ws%qff, ws%rff, ideg, ws%qr_vec)
+         call transposematrix(ws%qff, ws%qtff, ideg)
          ivgt = ideg + 1
-         call invert(rff, invrff, ivgt)
+         call invert(ws%rff, ws%invrff, ivgt)
          do mm_i = 1, ideg
             do mm_j = 1, ideg
-               invmat(mm_i, mm_j) = zero
+               ws%invmat(mm_i, mm_j) = zero
                do mm_k = 1, ideg
-                  invmat(mm_i, mm_j) = invmat(mm_i, mm_j) + invrff(mm_i, mm_k) * qtff(mm_k, mm_j)
+                  ws%invmat(mm_i, mm_j) = ws%invmat(mm_i, mm_j) + ws%invrff(mm_i, mm_k) * ws%qtff(mm_k, mm_j)
                end do
             end do
          end do
 
-         if (greengo .eq. 0) then
-            if (idum .eq. 1) then
-               if ((ees .ne. 5) .or. (ll .eq. 1)) then
-                  stencil(1:imax, 1:ideg) = stencils(ll, 1:imax, 1:ideg) !rec_stencils(ll,1:imax,1:ideg,rec_wall(i))
-               else
-                  stencil(1:imax, 1:ideg) = stencils(ll, 1:imax, 1:ideg) !rec_stencilsc(ll,1:imax,1:ideg,rec_wall(i))
-               end if
-            else
-               stencil(1:imax, 1:ideg) = stencils(ll, 1:imax, 1:ideg)
-            end if
-         else
-            stencil(1:imax, 1:ideg) = stencils(ll, 1:imax, 1:ideg)
-         end if
 
          if ((ees .ne. 5) .or. (ll .eq. 1)) then
 
 !                 call dgemm ('n','t',ideg,imax,ideg,alpha,invmat(1:ideg,1:ideg),ideg,&
-!                 stencil(1:imax,1:ideg),imax,beta,rec_invmat_stencilt(i,1:ideg,1:imax,ll),ideg)
+!                 stencils(1:imax,1:ideg),imax,beta,rec_invmat_stencilt(i,1:ideg,1:imax,ll),ideg)
 
             do mm_i = 1, ideg
                do mm_j = 1, imax
                   rec_invmat_stencilt(i, mm_i, mm_j, ll) = zero
                   do mm_k = 1, ideg
-                     rec_invmat_stencilt(i, mm_i, mm_j, ll) = rec_invmat_stencilt(i, mm_i, mm_j, ll) + invmat(mm_i, &
-                        & mm_k) * stencil(mm_j, mm_k)
+                     rec_invmat_stencilt(i, mm_i, mm_j, ll) = rec_invmat_stencilt(i, mm_i, mm_j, ll) + ws%invmat(mm_i, &
+                        & mm_k) * ws%stencils(mm_j, mm_k)
                   end do
                end do
             end do
 
             do iq = 1, imax
                rec_invmat_stencilt(i, :, iq, ll) = rec_invmat_stencilt(i, :, iq, ll) &
-                  & * ilox_volume(ll, iq + 1) * wlsqr(ll, iq)
+                  & * ilox_volume(ll, iq + 1) * ws%wlsqr(iq)
             end do
 
             !prevents non-invertible nan stencils from being deployed
@@ -499,14 +519,14 @@ contains
 
          else
 !                                         call dgemm ('n','t',ideg,imax,ideg,alpha,invmat(1:ideg,1:ideg),ideg,&
-!                                 stencil(1:imax,1:ideg),imax,beta,rec_invmat_stenciltc(i,1:ideg,1:imax,ll),ideg)
+!                                 stencils(1:imax,1:ideg),imax,beta,rec_invmat_stenciltc(i,1:ideg,1:imax,ll),ideg)
 
             do mm_i = 1, ideg
                do mm_j = 1, imax
                   rec_invmat_stenciltc(i, mm_i, mm_j, ll) = zero
                   do mm_k = 1, ideg
-                     rec_invmat_stenciltc(i, mm_i, mm_j, ll) = rec_invmat_stenciltc(i, mm_i, mm_j, ll) + invmat(mm_i, &
-                        & mm_k) * stencil(mm_j, mm_k)
+                     rec_invmat_stenciltc(i, mm_i, mm_j, ll) = rec_invmat_stenciltc(i, mm_i, mm_j, ll) + ws%invmat(mm_i, &
+                        & mm_k) * ws%stencils(mm_j, mm_k)
                   end do
                end do
             end do
@@ -519,7 +539,7 @@ contains
 
             do iq = 1, imax
                rec_invmat_stenciltc(i, :, iq, ll) = rec_invmat_stenciltc(i, :, iq, ll) &
-                  & * ilox_volume(ll, iq + 1) * wlsqr(ll, iq)
+                  & * ilox_volume(ll, iq + 1) * ws%wlsqr(iq)
             end do
          end if
 
@@ -527,7 +547,7 @@ contains
 
             if (itestcase .eq. 4) then !test
 
-               if (ll .eq. 1) then !stencils
+               if (ll .eq. 1) then !ws%stencils
 !
 
                   if (idum .eq. 1) then !for wall only
@@ -539,10 +559,10 @@ contains
 
                      idum2 = 0
 
-                     basefaceval = zero
-                     basefacgval = zero
-                     permutation = zero
-                     permutationg = zero
+                     ws%basefaceval = zero
+                     ws%basefacgval = zero
+                     ws%permutation = zero
+                     ws%permutationg = zero
 
                      do j = 1, ielem_ifca(i) !for all faces
                         if (ielem_ibounds(i, j) .gt. 0) then !for bounded only
@@ -589,15 +609,18 @@ contains
 
                               do iq = 1, ideg
                                  if (poly .eq. 1) then
-                                    xder(iq) = dfx(ax, ay, az, iq, i); yder(iq) = dfy(ax, ay, az, iq, i); zder(iq) = dfz(ax, ay, &
+                                    ws%xder(iq) = dfx(ax, ay, az, iq, i); ws%yder(iq) = dfy(ax, ay, az, iq, &
+         & i); ws%zder(iq) = dfz(ax, ay, &
                                        & az, iq, i)
                                  end if
                                  if (poly .eq. 2) then
-                                    xder(iq) = dlx(ax, ay, az, iq, i); yder(iq) = dly(ax, ay, az, iq, i); zder(iq) = dlz(ax, ay, &
+                                    ws%xder(iq) = dlx(ax, ay, az, iq, i); ws%yder(iq) = dly(ax, ay, az, iq, &
+         & i); ws%zder(iq) = dlz(ax, ay, &
                                        & az, iq, i)
                                  end if
                                  if (poly .eq. 4) then
-                                    xder(iq) = tl3dx(ax, ay, az, iq, i); yder(iq) = tl3dy(ax, ay, az, iq, i); zder(iq) = tl3dz(ax, &
+                                    ws%xder(iq) = tl3dx(ax, ay, az, iq, i); ws%yder(iq) = tl3dy(ax, ay, az, iq, &
+         & i); ws%zder(iq) = tl3dz(ax, &
                                        & ay, az, iq, i)
                                  end if
 
@@ -605,12 +628,13 @@ contains
 
                               icompwrt = 0
 
-                              basefaceval(1:ielem_idegfree(i)) = basis_rec(n, ax, ay, az, ielem_iorder(i), i, ielem_idegfree(i), &
+                              ws%basefaceval(1:ielem_idegfree(i)) = basis_rec(n, ax, ay, az, ielem_iorder(i), i, &
+         & ielem_idegfree(i), &
                                  & icompwrt)
 
                               !if (thermal.eq.0)then
-                              basefacgval(1:ielem_idegfree(i)) = ((nnx * xder(1:ielem_idegfree(i))) + (nny * &
-                                 & yder(1:ielem_idegfree(i))) + (nnz * zder(1:ielem_idegfree(i))))
+                              ws%basefacgval(1:ielem_idegfree(i)) = ((nnx * ws%xder(1:ielem_idegfree(i))) + (nny * &
+                                 & ws%yder(1:ielem_idegfree(i))) + (nnz * ws%zder(1:ielem_idegfree(i))))
                               !else
                               !icompwrt=0
                               !basefacgval(1:ielem_idegfree(i))=basis_rec(n,ax,ay,az,ielem_iorder(i),i,ielem_idegfree(i),icompwrt)
@@ -618,10 +642,10 @@ contains
 !                                 end if
 
                               do iq = 1, ideg
-                                 rec_wallcoeff(rec_wall(i), iq) = basefaceval(iq)
-                                 rec_wallcoefg(rec_wall(i), iq) = basefacgval(iq)
-                                 permutation(iq) = iq
-                                 permutationg(iq) = iq
+                                 rec_wallcoeff(rec_wall(i), iq) = ws%basefaceval(iq)
+                                 rec_wallcoefg(rec_wall(i), iq) = ws%basefacgval(iq)
+                                 ws%permutation(iq) = iq
+                                 ws%permutationg(iq) = iq
                               end do
 
                            end if !for bounded only 2
@@ -631,8 +655,8 @@ contains
                      gggg = -tolbig
                      g0 = 0
                      do iq = 1, ideg
-                        if (abs(basefacgval(iq)) > gggg) then
-                           gggg = abs(basefacgval(iq))
+                        if (abs(ws%basefacgval(iq)) > gggg) then
+                           gggg = abs(ws%basefacgval(iq))
                            g0 = iq
                         end if
                      end do
@@ -640,8 +664,8 @@ contains
                      ssss = -tolbig
                      k0 = 0
                      do iq = 1, ideg
-                        if (abs(basefaceval(iq)) > ssss) then
-                           ssss = abs(basefaceval(iq))
+                        if (abs(ws%basefaceval(iq)) > ssss) then
+                           ssss = abs(ws%basefaceval(iq))
                            k0 = iq
                         end if
                      end do
@@ -649,112 +673,104 @@ contains
 !
 
 ! now swap basis functions and thus coefficients
-                     permutation(1) = k0; permutation(k0) = 1; ssss = basefaceval(1)
-                     basefaceval(1) = basefaceval(k0); basefaceval(k0) = ssss
-                     permutationg(1) = g0; permutation(g0) = 1; gggg = basefacgval(1)
-                     basefacgval(1) = basefacgval(g0); basefacgval(g0) = gggg
+                     ws%permutation(1) = k0; ws%permutation(k0) = 1; ssss = ws%basefaceval(1)
+                     ws%basefaceval(1) = ws%basefaceval(k0); ws%basefaceval(k0) = ssss
+                     ws%permutationg(1) = g0; ws%permutation(g0) = 1; gggg = ws%basefacgval(1)
+                     ws%basefacgval(1) = ws%basefacgval(g0); ws%basefacgval(g0) = gggg
                      rec_k0(rec_wall(i)) = k0
                      rec_g0(rec_wall(i)) = g0
 
-                     lsqm = zero
+                     ws%lsqm = zero
                      do lq = 1, imax
                         lcou = 0
                         do iq = 1, ideg
                            if (iq .eq. g0) cycle
                            lcou = lcou + 1
-                           lsqm(lq, lcou) = rec_stencils(rec_wall(i), ll, lq, iq) - rec_stencils(rec_wall(i), ll, lq, &
+                           ws%lsqm(lq, lcou) = rec_stencils(rec_wall(i), ll, lq, iq) - rec_stencils(rec_wall(i), ll, lq, &
                               & g0) * rec_wallcoefg(rec_wall(i), iq) / rec_wallcoefg(rec_wall(i), g0)
                         end do
                      end do
-                     rec_tempsq(rec_wall(i), 1:imax, 1:ideg - 1) = lsqm(1:imax, 1:ideg - 1)
+                     rec_tempsq(rec_wall(i), 1:imax, 1:ideg - 1) = ws%lsqm(1:imax, 1:ideg - 1)
 
-                     vellsqmat = zero
+                     ws%vellsqmat = zero
                      do iq = 1, ideg - 1; do jq = 1, ideg - 1; do lcc = 1, imax
 !now store the least square matrix
-                              vellsqmat(jq, iq) = vellsqmat(jq, iq) + (lsqm(lcc, jq) * lsqm(lcc, iq))
+                              ws%vellsqmat(jq, iq) = ws%vellsqmat(jq, iq) + (ws%lsqm(lcc, jq) * ws%lsqm(lcc, iq))
                            end do; end do; end do
 
-                     lscqm = zero
-                     lscqm(1:ideg - 1, 1:ideg - 1) = vellsqmat(1:ideg - 1, 1:ideg - 1)
-                     qff = zero; rff = zero; qtff = zero; invrff = zero
+                     ws%lscqm = zero
+                     ws%lscqm(1:ideg - 1, 1:ideg - 1) = ws%vellsqmat(1:ideg - 1, 1:ideg - 1)
+                     ws%qff = zero; ws%rff = zero; ws%qtff = zero; ws%invrff = zero
                      ivgt = ideg
 
-                     call qrdecomposition(lscqm, qff, rff, ivgt - 1)
-                     call transposematrix(qff, qtff, ivgt - 1)
+                     call qrdecomposition(ws%lscqm, ws%qff, ws%rff, ivgt - 1, ws%qr_vec)
+                     call transposematrix(ws%qff, ws%qtff, ivgt - 1)
 
-                     call invert(rff, invrff, ivgt)
+                     call invert(ws%rff, ws%invrff, ivgt)
 !   final inverted r^(-1)*q^(-1)
                      do mm_i = 1, ideg - 1
                         do mm_j = 1, ideg - 1
                            rec_tempsqmat(rec_wall(i), mm_i, mm_j) = zero
                            do mm_k = 1, ideg - 1
-                              rec_tempsqmat(rec_wall(i), mm_i, mm_j) = rec_tempsqmat(rec_wall(i), mm_i, mm_j) + invrff(mm_i, &
-                                 & mm_k) * qtff(mm_k, mm_j)
+                              rec_tempsqmat(rec_wall(i), mm_i, mm_j) = rec_tempsqmat(rec_wall(i), mm_i, mm_j) + ws%invrff(mm_i, &
+                                 & mm_k) * ws%qtff(mm_k, mm_j)
                            end do
                         end do
                      end do
 
 ! definy the matrix defining the least-square reconstruction in this case for velocity
-                     lsqm = zero
+                     ws%lsqm = zero
                      do lq = 1, imax
                         lcou = 0
                         do iq = 1, ideg
                            if (iq .eq. k0) cycle
                            lcou = lcou + 1
-                           lsqm(lq, lcou) = rec_stencils(rec_wall(i), ll, lq, iq) - rec_stencils(rec_wall(i), ll, lq, &
+                           ws%lsqm(lq, lcou) = rec_stencils(rec_wall(i), ll, lq, iq) - rec_stencils(rec_wall(i), ll, lq, &
                               & k0) * rec_wallcoeff(rec_wall(i), iq) / rec_wallcoeff(rec_wall(i), k0)
                         end do
                      end do
-                     rec_vellsq(rec_wall(i), 1:imax, 1:ideg - 1) = lsqm(1:imax, 1:ideg - 1)
+                     rec_vellsq(rec_wall(i), 1:imax, 1:ideg - 1) = ws%lsqm(1:imax, 1:ideg - 1)
 
-                     vellsqmat = zero
+                     ws%vellsqmat = zero
                      do iq = 1, ideg - 1; do jq = 1, ideg - 1; do lcc = 1, imax
                               !now store the least square matrix
-                              vellsqmat(jq, iq) = vellsqmat(jq, iq) + (lsqm(lcc, jq) * lsqm(lcc, iq))
+                              ws%vellsqmat(jq, iq) = ws%vellsqmat(jq, iq) + (ws%lsqm(lcc, jq) * ws%lsqm(lcc, iq))
                            end do; end do; end do
 
-                     lscqm = zero
-                     lscqm(1:ideg - 1, 1:ideg - 1) = vellsqmat(1:ideg - 1, 1:ideg - 1)
+                     ws%lscqm = zero
+                     ws%lscqm(1:ideg - 1, 1:ideg - 1) = ws%vellsqmat(1:ideg - 1, 1:ideg - 1)
 
-                     qff = zero; rff = zero; qtff = zero; invrff = zero
+                     ws%qff = zero; ws%rff = zero; ws%qtff = zero; ws%invrff = zero
                      ivgt = ideg
-                     call qrdecomposition(lscqm, qff, rff, ivgt - 1)
-                     call transposematrix(qff, qtff, ivgt - 1)
+                     call qrdecomposition(ws%lscqm, ws%qff, ws%rff, ivgt - 1, ws%qr_vec)
+                     call transposematrix(ws%qff, ws%qtff, ivgt - 1)
 
-                     call invert(rff, invrff, ivgt)
+                     call invert(ws%rff, ws%invrff, ivgt)
                      !   final inverted r^(-1)*q^(-1)
                      do mm_i = 1, ideg - 1
                         do mm_j = 1, ideg - 1
                            rec_velinvlsqmat(rec_wall(i), mm_i, mm_j) = zero
                            do mm_k = 1, ideg - 1
                               rec_velinvlsqmat(rec_wall(i), mm_i, mm_j) = rec_velinvlsqmat(rec_wall(i), mm_i, &
-                                 & mm_j) + invrff(mm_i, mm_k) * qtff(mm_k, mm_j)
+                                 & mm_j) + ws%invrff(mm_i, mm_k) * ws%qtff(mm_k, mm_j)
                            end do
                         end do
                      end do
 
                   end if !for wall only
-               end if !stencils
+               end if !ws%stencils
             end if !for test
          end if !ggs
-      end do !for all stencils
-
-      deallocate (lsqm, qff, rff, qtff, invrff)
-      deallocate (vellsqmat)
-      deallocate (lscqm)
-      deallocate (intbs, basefaceval, basefacgval, permutation, permutationg, xder, yder, zder)
-      deallocate (wlsqr)
-      deallocate (stencil)
-      deallocate (invmat)
-      deallocate (stencils)
+      end do !for all ws%stencils
 
    end subroutine prestore_reconstruction3
 
    subroutine prestore_reconstruction2(n, iconsi, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, &
-      & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
+      & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, ws)
 !> @brief
 !> this subroutine prestores the pseudoinverse reconstruction least square matrices in 2d
       implicit none
+      type(prestore_workspace), intent(inout) :: ws
       integer :: kbasis
       integer :: mm_i
       integer :: mm_j
@@ -771,9 +787,6 @@ contains
       real, dimension(1:8, 1:dimensiona) :: vext
       real, dimension(1:dims, 1:dims) :: ainvjt
       real, dimension(1:dimensiona) :: cords
-      real, allocatable, dimension(:) :: intbs, basefaceval, basefacgval, permutation, permutationg, xder, yder, zder
-      real, allocatable, dimension(:, :) :: stencil, invmat, wlsqr, lsqm, lscqm, qff, rff, qtff, invrff, vellsqmat
-      real, allocatable, dimension(:, :, :) :: stencils
       integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexg !global index of cells
       integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexl !local index of cells
       integer, allocatable, dimension(:, :), intent(inout) :: ilox_ihexb !cpu that that each cell belongs to
@@ -790,17 +803,6 @@ contains
       real, allocatable, dimension(:, :, :), intent(inout) :: ilon_y !coordinates of each node in x
       real, allocatable, dimension(:, :, :), intent(inout) :: ilon_z !coordinates of each node in x
 
-      allocate (lscqm(1:idegfree, 1:idegfree), qff(1:idegfree, 1:idegfree), rff(1:idegfree, 1:idegfree), qtff(1:idegfree, &
-         & 1:idegfree), invrff(1:idegfree, 1:idegfree))
-      allocate (vellsqmat(1:idegfree - 1, 1:idegfree - 1))
-      allocate (lsqm(1:imaxdegfree, 1:idegfree - 1))
-      allocate (intbs(1:idegfree), basefaceval(1:idegfree), basefacgval(1:idegfree), permutation(1:idegfree), &
-         & permutationg(1:idegfree), xder(1:idegfree), yder(1:idegfree), zder(1:idegfree))
-      allocate (invmat(1:idegfree, 1:idegfree))
-      allocate (wlsqr(1:20, 1:numneighbours - 1))
-      allocate (stencil(1:numneighbours - 1, 1:idegfree))
-      allocate (stencils(1:20, 1:numneighbours - 1, 1:idegfree))
-
       i = iconsi
 
       idum = 0;
@@ -814,36 +816,39 @@ contains
          end do
       end if
 
-      intbs = zero; jxx = 1; ixx = i; lxx1 = 1; number_of_dog = ielem_idegfree(i); kxx = ielem_iorder(i); eltype = ielem_ishape(i)
+      ws%intbs = zero; jxx = 1; ixx = i; lxx1 = 1; number_of_dog = ielem_idegfree(i); kxx = ielem_iorder(i); eltype = &
+         & ielem_ishape(i)
       icompwrt = 0
 
-      intbs = calintbasis(n, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, eltype, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, &
+      ws%intbs(1:number_of_dog) = calintbasis(n, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, eltype, ilox_ihexg, ilox_ihexl, &
+         & ilox_ihexb, ilox_ihexn, &
          & ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
       ! store integration-basis vector intbs into all entries 1:number_of_dog for element i
 
-      integ_basis_value(i, 1:number_of_dog) = intbs(1:number_of_dog)
+      integ_basis_value(i, 1:number_of_dog) = ws%intbs(1:number_of_dog)
 
       !the indicator matrix for the large polynomial
       if (iweno .eq. 1) then
          call indicatormatrix(n, i, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, &
-            & ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
+            & ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, ws%weff)
       end if
 
       if (ees .eq. 5) then
-         intbs = zero; jxx = 1; ixx = i; lxx1 = 1
+         ws%intbs = zero; jxx = 1; ixx = i; lxx1 = 1
          number_of_dog = idegfree2; kxx = iorder2; eltype = ielem_ishape(i);
          icompwrt = 1
 
-         intbs = calintbasis(n, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, eltype, ilox_ihexg, ilox_ihexl, ilox_ihexb, &
+         ws%intbs(1:number_of_dog) = calintbasis(n, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, eltype, ilox_ihexg, &
+         & ilox_ihexl, ilox_ihexb, &
             & ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, &
             & ilon_y, ilon_z)
 
-         integ_basis_valuec(i, 1:number_of_dog) = intbs(1:number_of_dog)
+         integ_basis_valuec(i, 1:number_of_dog) = ws%intbs(1:number_of_dog)
 
          !the indicator matrix for the smaller polynomial
          if (iweno .eq. 1) then
             call indicatormatrix2(n, i, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, &
-               & ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
+               & ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, ws%weffc)
             icompwrt = 0
          end if
 
@@ -869,10 +874,10 @@ contains
             ixx = i; kxx = inumo
 
             if (weight_lsqr .eq. 1) then
-               wlsqr(ll, k) = 1.00 / ((sqrt(((ilox_xxc(ll, k + 1) - ilox_xxc(ll, 1))**2) + ((ilox_yyc(ll, k + 1) - ilox_yyc(ll, &
+               ws%wlsqr(k) = 1.00 / ((sqrt(((ilox_xxc(ll, k + 1) - ilox_xxc(ll, 1))**2) + ((ilox_yyc(ll, k + 1) - ilox_yyc(ll, &
                   & 1))**2))))
             else
-               wlsqr(ll, k) = 1.00
+               ws%wlsqr(k) = 1.00
             end if
             x_stencil = (ilox_xxc(ll, k + 1) - ilox_xxc(ll, 1))**2
             y_stencil = (ilox_yyc(ll, k + 1) - ilox_yyc(ll, 1))**2
@@ -882,9 +887,9 @@ contains
             dist_sten = max(dist_sten, dist_sten2)
 
             if (weight_lsqr .eq. 1) then
-               wlsqr(ll, k) = 1.00 / sqrt(x_stencil + y_stencil)
+               ws%wlsqr(k) = 1.00 / sqrt(x_stencil + y_stencil)
             else
-               wlsqr(ll, k) = 1.00
+               ws%wlsqr(k) = 1.00
             end if
 
 !                                                         ielem_stencil_dist(i)=dist_sten/(ilox_volume(1,1)**(1/2))
@@ -896,22 +901,22 @@ contains
                if ((ees .ne. 5) .or. (ll .eq. 1)) then
                   icompwrt = 0
                   if (itestcase .eq. 4) then
-                     rec_stencils(rec_wall(i), ll, k, 1:ielem_idegfree(i)) = wlsqr(ll, k) * basis_rec2d(n, x1, y1, &
+                     rec_stencils(rec_wall(i), ll, k, 1:ielem_idegfree(i)) = ws%wlsqr(k) * basis_rec2d(n, x1, y1, &
                         & ielem_iorder(i), ixx, ielem_idegfree(i), icompwrt)
-                     rec_weightl(rec_wall(i), ll, k) = wlsqr(ll, k)
-                     stencils(ll, k, 1:ideg) = rec_stencils(rec_wall(i), ll, k, 1:ielem_idegfree(i))
+                     rec_weightl(rec_wall(i), ll, k) = ws%wlsqr(k)
+                     ws%stencils(k, 1:ideg) = rec_stencils(rec_wall(i), ll, k, 1:ielem_idegfree(i))
                   else
-                     stencils(ll, k, 1:ideg) = wlsqr(ll, k) * basis_rec2d(n, x1, y1, ielem_iorder(i), ixx, ielem_idegfree(i), &
+                     ws%stencils(k, 1:ideg) = ws%wlsqr(k) * basis_rec2d(n, x1, y1, ielem_iorder(i), ixx, ielem_idegfree(i), &
                         & icompwrt)
                   end if
                else
                   icompwrt = 1
                   if (itestcase .eq. 4) then
-!                                                                                 rec_stencilsc(ll,k,1:ideg,rec_wall(i))=wlsqr(ll,k)*basis_rec2d(n,x1,y1,inumo,ixx,ideg,icompwrt)
-!                                                                                 rec_weightl(ll,k,rec_wall(i))=wlsqr(ll,k)
-                     stencils(ll, k, 1:ideg) = wlsqr(ll, k) * basis_rec2d(n, x1, y1, inumo, ixx, ideg, icompwrt)
+!                                                                                 rec_stencilsc(ll,k,1:ideg,rec_wall(i))=wlsqr(k)*basis_rec2d(n,x1,y1,inumo,ixx,ideg,icompwrt)
+!                                                                                 rec_weightl(ll,k,rec_wall(i))=wlsqr(k)
+                     ws%stencils(k, 1:ideg) = ws%wlsqr(k) * basis_rec2d(n, x1, y1, inumo, ixx, ideg, icompwrt)
                   else
-                     stencils(ll, k, 1:ideg) = wlsqr(ll, k) * basis_rec2d(n, x1, y1, inumo, ixx, ideg, icompwrt)
+                     ws%stencils(k, 1:ideg) = ws%wlsqr(k) * basis_rec2d(n, x1, y1, inumo, ixx, ideg, icompwrt)
                   end if
 
                end if
@@ -926,13 +931,13 @@ contains
                      if ((ees .ne. 5) .or. (ll .eq. 1)) then
                         icompwrt = 0
                         if (itestcase .eq. 4) then
-                           rec_stencils(rec_wall(i), ll, k, 1:ielem_idegfree(i)) = wlsqr(ll, k) * compbasel(n, eltype, ixx, jxx, &
+                           rec_stencils(rec_wall(i), ll, k, 1:ielem_idegfree(i)) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, &
                               & kxx, lxx1, number_of_dog, icompwrt, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, &
                               & ilox_xxc, ilox_yyc, ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
-                           rec_weightl(rec_wall(i), ll, k) = wlsqr(ll, k)
-                           stencils(ll, k, 1:ideg) = rec_stencils(rec_wall(i), ll, k, 1:ielem_idegfree(i))
+                           rec_weightl(rec_wall(i), ll, k) = ws%wlsqr(k)
+                           ws%stencils(k, 1:ideg) = rec_stencils(rec_wall(i), ll, k, 1:ielem_idegfree(i))
                         else
-                           stencils(ll, k, 1:ideg) = wlsqr(ll, k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, &
+                           ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, &
                               & icompwrt, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, &
                               & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
 
@@ -941,13 +946,13 @@ contains
                      else
                         icompwrt = 1
                         if (itestcase .eq. 4) then
-!                                                                                         rec_stencilsc(ll,k,1:ideg,rec_wall(i))=wlsqr(ll,k)*compbasel(n,eltype,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
-!                                                                                         rec_weightl(ll,k,rec_wall(i))=wlsqr(ll,k)
-                           stencils(ll, k, 1:ideg) = wlsqr(ll, k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, &
+!                                                                                         rec_stencilsc(ll,k,1:ideg,rec_wall(i))=wlsqr(k)*compbasel(n,eltype,ixx,jxx,kxx,lxx1,number_of_dog,icompwrt,ilox_ihexg,ilox_ihexl,ilox_ihexb,ilox_ihexn,ilox_ishape,ilox_xxc,ilox_yyc,ilox_zzc,ilox_volume,ilox_periodicflag,ilon_nodcount,ilon_x,ilon_y,ilon_z)
+!                                                                                         rec_weightl(ll,k,rec_wall(i))=wlsqr(k)
+                           ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, &
                               & icompwrt, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, &
                               & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
                         else
-                           stencils(ll, k, 1:ideg) = wlsqr(ll, k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, &
+                           ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, &
                               & icompwrt, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, &
                               & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
                         end if
@@ -960,7 +965,7 @@ contains
                      else
                         icompwrt = 1
                      end if
-                     stencils(ll, k, 1:ideg) = wlsqr(ll, k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, &
+                     ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, &
                         & ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, ilox_volume, &
                         & ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
                      icompwrt = 0
@@ -972,7 +977,7 @@ contains
                   else
                      icompwrt = 1
                   end if
-                  stencils(ll, k, 1:ideg) = wlsqr(ll, k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, &
+                  ws%stencils(k, 1:ideg) = ws%wlsqr(k) * compbasel(n, eltype, ixx, jxx, kxx, lxx1, number_of_dog, icompwrt, &
                      & ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, ilox_volume, &
                      & ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
                   icompwrt = 0
@@ -983,52 +988,52 @@ contains
          if ((greengo .eq. 0)) then
             if (idum .eq. 1) then
 
-               invmat = zero
-               lscqm(:, :) = zero
+               ws%invmat = zero
+               ws%lscqm(:, :) = zero
                do iq = 1, ideg; do jq = 1, ideg; do lq = 1, imax
                         if ((ees .ne. 5) .or. (ll .eq. 1)) then
-                           lscqm(jq, iq) = lscqm(jq, iq) &
-                              & + ((stencils(ll, lq, jq) * stencils(ll, lq, iq)))
+                           ws%lscqm(jq, iq) = ws%lscqm(jq, iq) &
+                              & + ((ws%stencils(lq, jq) * ws%stencils(lq, iq)))
                            !lscqm(jq,iq)=lscqm(jq,iq)&
                            !+((rec_stencils(ll,lq,jq,rec_wall(i))*rec_stencils(ll,lq,iq,rec_wall(i))))
                         else
-                           lscqm(jq, iq) = lscqm(jq, iq) &
-                              & + ((stencils(ll, lq, jq) * stencils(ll, lq, iq)))
+                           ws%lscqm(jq, iq) = ws%lscqm(jq, iq) &
+                              & + ((ws%stencils(lq, jq) * ws%stencils(lq, iq)))
                            !lscqm(jq,iq)=lscqm(jq,iq)&
                            !+((rec_stencilsc(ll,lq,jq,rec_wall(i))*rec_stencilsc(ll,lq,iq,rec_wall(i))))
                         end if
                      end do; end do; end do
             else
 
-               invmat = zero
-               lscqm(:, :) = zero
+               ws%invmat = zero
+               ws%lscqm(:, :) = zero
                do iq = 1, ideg; do jq = 1, ideg; do lq = 1, imax
-                        lscqm(jq, iq) = lscqm(jq, iq) &
-                           & + ((stencils(ll, lq, jq) * stencils(ll, lq, iq)))
+                        ws%lscqm(jq, iq) = ws%lscqm(jq, iq) &
+                           & + ((ws%stencils(lq, jq) * ws%stencils(lq, iq)))
                      end do; end do; end do
             end if
 
          else
 
-            invmat = zero
-            lscqm(:, :) = zero
+            ws%invmat = zero
+            ws%lscqm(:, :) = zero
             do iq = 1, ideg; do jq = 1, ideg; do lq = 1, imax
-                     lscqm(jq, iq) = lscqm(jq, iq) &
-                        & + ((stencils(ll, lq, jq) * stencils(ll, lq, iq)))
+                     ws%lscqm(jq, iq) = ws%lscqm(jq, iq) &
+                        & + ((ws%stencils(lq, jq) * ws%stencils(lq, iq)))
                   end do; end do; end do
 
          end if
 
-         qff(:, :) = zero; rff(:, :) = zero; qtff(:, :) = zero; rff(:, :) = zero; invrff(:, :) = zero
-         call qrdecomposition(lscqm, qff, rff, ideg)
-         call transposematrix(qff, qtff, ideg)
+         ws%qff(:, :) = zero; ws%rff(:, :) = zero; ws%qtff(:, :) = zero; ws%rff(:, :) = zero; ws%invrff(:, :) = zero
+         call qrdecomposition(ws%lscqm, ws%qff, ws%rff, ideg, ws%qr_vec)
+         call transposematrix(ws%qff, ws%qtff, ideg)
          ivgt = ideg + 1
-         call invert(rff, invrff, ivgt)
+         call invert(ws%rff, ws%invrff, ivgt)
          do mm_i = 1, ideg
             do mm_j = 1, ideg
-               invmat(mm_i, mm_j) = zero
+               ws%invmat(mm_i, mm_j) = zero
                do mm_k = 1, ideg
-                  invmat(mm_i, mm_j) = invmat(mm_i, mm_j) + invrff(mm_i, mm_k) * qtff(mm_k, mm_j)
+                  ws%invmat(mm_i, mm_j) = ws%invmat(mm_i, mm_j) + ws%invrff(mm_i, mm_k) * ws%qtff(mm_k, mm_j)
                end do
             end do
          end do
@@ -1037,50 +1042,32 @@ contains
 !
 !
 
-         if (greengo .eq. 0) then
-            if (idum .eq. 1) then
-               if ((ees .ne. 5) .or. (ll .eq. 1)) then
-
-                  stencil(1:imax, 1:ideg) = stencils(ll, 1:imax, 1:ideg) !rec_stencils(ll,1:imax,1:ideg,rec_wall(i))
-               else
-
-                  stencil(1:imax, 1:ideg) = stencils(ll, 1:imax, 1:ideg) !rec_stencilsc(ll,1:imax,1:ideg,rec_wall(i))
-
-               end if
-            else
-               stencil(1:imax, 1:ideg) = stencils(ll, 1:imax, 1:ideg)
-            end if
-         else
-
-            stencil(1:imax, 1:ideg) = stencils(ll, 1:imax, 1:ideg)
-
-         end if
 
          if ((ees .ne. 5) .or. (ll .eq. 1)) then
 ! call gemm(                                               &
 !                invmat,                                               &
-!                stencil,                                              &
+!                stencils,                                              &
 !                rec_invmat_stencilt(i,:,:,ll),             &
 !                'n',                                                  & ! transposition flag for invmat
-!                't'                                                   & ! transposition flag for stencil
+!                't'                                                   & ! transposition flag for stencils
 !             )
 
 ! call dgemm ('n','t',ideg,imax,ideg,alpha,invmat(1:ideg,1:ideg),ideg,&
-! stencil(1:imax,1:ideg),imax,beta,rec_invmat_stencilt(i,1:ideg,1:imax,ll),ideg)
+! stencils(1:imax,1:ideg),imax,beta,rec_invmat_stencilt(i,1:ideg,1:imax,ll),ideg)
 
             do mm_i = 1, ideg
                do mm_j = 1, imax
                   rec_invmat_stencilt(i, mm_i, mm_j, ll) = zero
                   do mm_k = 1, ideg
-                     rec_invmat_stencilt(i, mm_i, mm_j, ll) = rec_invmat_stencilt(i, mm_i, mm_j, ll) + invmat(mm_i, &
-                        & mm_k) * stencil(mm_j, mm_k)
+                     rec_invmat_stencilt(i, mm_i, mm_j, ll) = rec_invmat_stencilt(i, mm_i, mm_j, ll) + ws%invmat(mm_i, &
+                        & mm_k) * ws%stencils(mm_j, mm_k)
                   end do
                end do
             end do
 
             do iq = 1, imax
                rec_invmat_stencilt(i, :, iq, ll) = rec_invmat_stencilt(i, :, iq, ll) &
-                  & * ilox_volume(ll, iq + 1) * wlsqr(ll, iq)
+                  & * ilox_volume(ll, iq + 1) * ws%wlsqr(iq)
             end do
 
             !prevents non-invertible nan stencils from being deployed
@@ -1092,28 +1079,28 @@ contains
          else
 ! call gemm(                                               &
 !                invmat(1:ideg,1:ideg),                                               &
-!                stencil(1:imax,1:ideg),                                              &
+!                stencils(1:imax,1:ideg),                                              &
 !                rec_invmat_stenciltc(i,1:ideg,1:imax,ll),             &
 !                'n',                                                  & ! transposition flag for invmat
-!                't'                                                   & ! transposition flag for stencil
+!                't'                                                   & ! transposition flag for stencils
 !             )
 
 ! call dgemm ('n','t',ideg,imax,ideg,alpha,invmat(1:ideg,1:ideg),ideg,&
-! stencil(1:imax,1:ideg),imax,beta,rec_invmat_stenciltc(i,1:ideg,1:imax,ll),ideg)
+! stencils(1:imax,1:ideg),imax,beta,rec_invmat_stenciltc(i,1:ideg,1:imax,ll),ideg)
 
             do mm_i = 1, ideg
                do mm_j = 1, imax
                   rec_invmat_stenciltc(i, mm_i, mm_j, ll) = zero
                   do mm_k = 1, ideg
-                     rec_invmat_stenciltc(i, mm_i, mm_j, ll) = rec_invmat_stenciltc(i, mm_i, mm_j, ll) + invmat(mm_i, &
-                        & mm_k) * stencil(mm_j, mm_k)
+                     rec_invmat_stenciltc(i, mm_i, mm_j, ll) = rec_invmat_stenciltc(i, mm_i, mm_j, ll) + ws%invmat(mm_i, &
+                        & mm_k) * ws%stencils(mm_j, mm_k)
                   end do
                end do
             end do
 
             do iq = 1, imax
                rec_invmat_stenciltc(i, :, iq, ll) = rec_invmat_stenciltc(i, :, iq, ll) &
-                  & * ilox_volume(ll, iq + 1) * wlsqr(ll, iq)
+                  & * ilox_volume(ll, iq + 1) * ws%wlsqr(iq)
             end do
 
             !prevents non-invertible nan stencils from being deployed
@@ -1128,7 +1115,7 @@ contains
 
             if (itestcase .eq. 4) then !test
 
-               if (ll .eq. 1) then !stencils
+               if (ll .eq. 1) then !ws%stencils
 !
 
                   if (idum .eq. 1) then !for wall only
@@ -1139,10 +1126,10 @@ contains
 
                      idum2 = 0
 
-                     basefaceval = zero
-                     basefacgval = zero
-                     permutation = zero
-                     permutationg = zero
+                     ws%basefaceval = zero
+                     ws%basefacgval = zero
+                     ws%permutation = zero
+                     ws%permutationg = zero
 
                      do j = 1, ielem_ifca(i) !for all faces
                         if (ielem_ibounds(i, j) .gt. 0) then !for bounded only
@@ -1183,28 +1170,28 @@ contains
 
                                  do iq = 1, ideg
 
-                                    xder(iq) = tl2dx(ax, ay, iq, i); yder(iq) = tl2dy(ax, ay, iq, i);
+                                    ws%xder(iq) = tl2dx(ax, ay, iq, i); ws%yder(iq) = tl2dy(ax, ay, iq, i);
                                  end do
 
                               else
 
                                  do iq = 1, ideg
 
-                                    xder(iq) = df2dx(ax, ay, iq, i); yder(iq) = df2dy(ax, ay, iq, i);
+                                    ws%xder(iq) = df2dx(ax, ay, iq, i); ws%yder(iq) = df2dy(ax, ay, iq, i);
                                  end do
 
                               end if
 
                               iconsidered = i
                               icompwrt = 0
-                              basefaceval(1:ielem_idegfree(i)) = basis_rec2d(n, ax, ay, ielem_iorder(i), iconsidered, &
+                              ws%basefaceval(1:ielem_idegfree(i)) = basis_rec2d(n, ax, ay, ielem_iorder(i), iconsidered, &
                                  & ielem_idegfree(i), icompwrt)
 
                               !if (thermal.eq.0)then
                               icompwrt = 0
 
-                              basefacgval(1:ielem_idegfree(i)) = ((nnx * xder(1:ielem_idegfree(i))) + (nny * &
-                                 & yder(1:ielem_idegfree(i))))
+                              ws%basefacgval(1:ielem_idegfree(i)) = ((nnx * ws%xder(1:ielem_idegfree(i))) + (nny * &
+                                 & ws%yder(1:ielem_idegfree(i))))
                               !else
                               !icompwrt=0
                               !basefacgval(1:ielem_idegfree(i))=basis_rec2d(n,ax,ay,ielem_iorder(i),iconsidered,ielem_idegfree(i),icompwrt)
@@ -1212,10 +1199,10 @@ contains
                               !end if
 
                               do iq = 1, ideg
-                                 rec_wallcoeff(rec_wall(i), iq) = basefaceval(iq)
-                                 rec_wallcoefg(rec_wall(i), iq) = basefacgval(iq)
-                                 permutation(iq) = iq
-                                 permutationg(iq) = iq
+                                 rec_wallcoeff(rec_wall(i), iq) = ws%basefaceval(iq)
+                                 rec_wallcoefg(rec_wall(i), iq) = ws%basefacgval(iq)
+                                 ws%permutation(iq) = iq
+                                 ws%permutationg(iq) = iq
                               end do
 
                            end if !for bounded only 2
@@ -1225,8 +1212,8 @@ contains
                      gggg = -tolbig
                      g0 = 0
                      do iq = 1, ideg
-                        if (abs(basefacgval(iq)) > gggg) then
-                           gggg = abs(basefacgval(iq))
+                        if (abs(ws%basefacgval(iq)) > gggg) then
+                           gggg = abs(ws%basefacgval(iq))
                            g0 = iq
                         end if
                      end do
@@ -1234,118 +1221,109 @@ contains
                      ssss = -tolbig
                      k0 = 0
                      do iq = 1, ideg
-                        if (abs(basefaceval(iq)) > ssss) then
-                           ssss = abs(basefaceval(iq))
+                        if (abs(ws%basefaceval(iq)) > ssss) then
+                           ssss = abs(ws%basefaceval(iq))
                            k0 = iq
                         end if
                      end do
 
 ! now swap basis functions and thus coefficients
-                     permutation(1) = k0; permutation(k0) = 1; ssss = basefaceval(1)
-                     basefaceval(1) = basefaceval(k0); basefaceval(k0) = ssss
+                     ws%permutation(1) = k0; ws%permutation(k0) = 1; ssss = ws%basefaceval(1)
+                     ws%basefaceval(1) = ws%basefaceval(k0); ws%basefaceval(k0) = ssss
 
-                     permutationg(1) = g0; permutation(g0) = 1; gggg = basefacgval(1)
-                     basefacgval(1) = basefacgval(g0); basefacgval(g0) = gggg
+                     ws%permutationg(1) = g0; ws%permutation(g0) = 1; gggg = ws%basefacgval(1)
+                     ws%basefacgval(1) = ws%basefacgval(g0); ws%basefacgval(g0) = gggg
 ! rec_k0(ii)=k0
 ! rec_g0(ii)=g0
                      rec_k0(rec_wall(i)) = k0
                      rec_g0(rec_wall(i)) = g0
 
-                     lsqm = zero
+                     ws%lsqm = zero
                      do lq = 1, imax
                         lcou = 0
                         do iq = 1, ideg
                            if (iq .eq. g0) cycle
                            lcou = lcou + 1
-                           lsqm(lq, lcou) = rec_stencils(rec_wall(i), ll, lq, iq) - rec_stencils(rec_wall(i), ll, lq, &
+                           ws%lsqm(lq, lcou) = rec_stencils(rec_wall(i), ll, lq, iq) - rec_stencils(rec_wall(i), ll, lq, &
                               & g0) * rec_wallcoefg(rec_wall(i), iq) / rec_wallcoefg(rec_wall(i), g0)
                         end do
                      end do
-                     rec_tempsq(rec_wall(i), 1:imax, 1:ideg - 1) = lsqm(1:imax, 1:ideg - 1)
+                     rec_tempsq(rec_wall(i), 1:imax, 1:ideg - 1) = ws%lsqm(1:imax, 1:ideg - 1)
 
-                     vellsqmat = zero
+                     ws%vellsqmat = zero
                      do iq = 1, ideg - 1; do jq = 1, ideg - 1; do lcc = 1, imax
 !now store the least square matrix
-                              vellsqmat(jq, iq) = vellsqmat(jq, iq) + (lsqm(lcc, jq) * lsqm(lcc, iq))
+                              ws%vellsqmat(jq, iq) = ws%vellsqmat(jq, iq) + (ws%lsqm(lcc, jq) * ws%lsqm(lcc, iq))
                            end do; end do; end do
-                     lscqm = zero
-                     lscqm(1:ideg - 1, 1:ideg - 1) = vellsqmat(1:ideg - 1, 1:ideg - 1)
+                     ws%lscqm = zero
+                     ws%lscqm(1:ideg - 1, 1:ideg - 1) = ws%vellsqmat(1:ideg - 1, 1:ideg - 1)
 
-                     qff = zero; rff = zero; qtff = zero; invrff = zero
+                     ws%qff = zero; ws%rff = zero; ws%qtff = zero; ws%invrff = zero
                      ivgt = ideg
-                     call qrdecomposition(lscqm, qff, rff, ivgt - 1)
-                     call transposematrix(qff, qtff, ivgt - 1)
+                     call qrdecomposition(ws%lscqm, ws%qff, ws%rff, ivgt - 1, ws%qr_vec)
+                     call transposematrix(ws%qff, ws%qtff, ivgt - 1)
 
-                     call invert(rff, invrff, ivgt)
+                     call invert(ws%rff, ws%invrff, ivgt)
 !   final inverted r^(-1)*q^(-1)
                      do mm_i = 1, ideg - 1
                         do mm_j = 1, ideg - 1
                            rec_tempsqmat(rec_wall(i), mm_i, mm_j) = zero
                            do mm_k = 1, ideg - 1
-                              rec_tempsqmat(rec_wall(i), mm_i, mm_j) = rec_tempsqmat(rec_wall(i), mm_i, mm_j) + invrff(mm_i, &
-                                 & mm_k) * qtff(mm_k, mm_j)
+                              rec_tempsqmat(rec_wall(i), mm_i, mm_j) = rec_tempsqmat(rec_wall(i), mm_i, mm_j) + ws%invrff(mm_i, &
+                                 & mm_k) * ws%qtff(mm_k, mm_j)
                            end do
                         end do
                      end do
 
 ! definy the matrix defining the least-square reconstruction in this case for velocity
-                     lsqm = zero
+                     ws%lsqm = zero
                      do lq = 1, imax
                         lcou = 0
                         do iq = 1, ideg
                            if (iq .eq. k0) cycle
                            lcou = lcou + 1
-                           lsqm(lq, lcou) = rec_stencils(rec_wall(i), ll, lq, iq) - rec_stencils(rec_wall(i), ll, lq, &
+                           ws%lsqm(lq, lcou) = rec_stencils(rec_wall(i), ll, lq, iq) - rec_stencils(rec_wall(i), ll, lq, &
                               & k0) * rec_wallcoeff(rec_wall(i), iq) / rec_wallcoeff(rec_wall(i), k0)
                         end do
                      end do
-                     rec_vellsq(rec_wall(i), 1:imax, 1:ideg - 1) = lsqm(1:imax, 1:ideg - 1)
-                     vellsqmat = zero
+                     rec_vellsq(rec_wall(i), 1:imax, 1:ideg - 1) = ws%lsqm(1:imax, 1:ideg - 1)
+                     ws%vellsqmat = zero
 
                      do iq = 1, ideg - 1; do jq = 1, ideg - 1; do lcc = 1, imax
 !now store the least square matrix
-                              vellsqmat(jq, iq) = vellsqmat(jq, iq) + (lsqm(lcc, jq) * lsqm(lcc, iq))
+                              ws%vellsqmat(jq, iq) = ws%vellsqmat(jq, iq) + (ws%lsqm(lcc, jq) * ws%lsqm(lcc, iq))
                            end do; end do; end do
 
-                     lscqm = zero
-                     lscqm(1:ideg - 1, 1:ideg - 1) = vellsqmat(1:ideg - 1, 1:ideg - 1)
+                     ws%lscqm = zero
+                     ws%lscqm(1:ideg - 1, 1:ideg - 1) = ws%vellsqmat(1:ideg - 1, 1:ideg - 1)
 
-                     qff = zero; rff = zero; qtff = zero; invrff = zero
+                     ws%qff = zero; ws%rff = zero; ws%qtff = zero; ws%invrff = zero
                      ivgt = ideg
-                     call qrdecomposition(lscqm, qff, rff, ivgt - 1)
-                     call transposematrix(qff, qtff, ivgt - 1)
+                     call qrdecomposition(ws%lscqm, ws%qff, ws%rff, ivgt - 1, ws%qr_vec)
+                     call transposematrix(ws%qff, ws%qtff, ivgt - 1)
 
-                     call invert(rff, invrff, ivgt)
+                     call invert(ws%rff, ws%invrff, ivgt)
 !   final inverted r^(-1)*q^(-1)
                      do mm_i = 1, ideg - 1
                         do mm_j = 1, ideg - 1
                            rec_velinvlsqmat(rec_wall(i), mm_i, mm_j) = zero
                            do mm_k = 1, ideg - 1
                               rec_velinvlsqmat(rec_wall(i), mm_i, mm_j) = rec_velinvlsqmat(rec_wall(i), mm_i, &
-                                 & mm_j) + invrff(mm_i, mm_k) * qtff(mm_k, mm_j)
+                                 & mm_j) + ws%invrff(mm_i, mm_k) * ws%qtff(mm_k, mm_j)
                            end do
                         end do
                      end do
 
                   end if !for wall only
-               end if !stencils
+               end if !ws%stencils
             end if !for test
          end if !ggs
       end do
 
-      deallocate (lsqm, qff, rff, qtff, invrff)
-      deallocate (vellsqmat)
-      deallocate (lscqm)
-      deallocate (intbs, basefaceval, basefacgval, permutation, permutationg, xder, yder, zder)
-      deallocate (wlsqr)
-      deallocate (stencil)
-      deallocate (invmat)
-      deallocate (stencils)
-
    end subroutine prestore_reconstruction2
 
    subroutine indicatormatrix(n, iconsi, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, &
-      & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
+      & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, weff)
 !> @brief
 !> this subroutine computes the indicator matrices for weno reconstructions
       implicit none
@@ -1371,8 +1349,7 @@ contains
       real, allocatable, dimension(:, :, :), intent(inout) :: ilon_x !coordinates of each node in x
       real, allocatable, dimension(:, :, :), intent(inout) :: ilon_y !coordinates of each node in x
       real, allocatable, dimension(:, :, :), intent(inout) :: ilon_z !coordinates of each node in x
-      real, allocatable, dimension(:, :) :: weff
-      allocate (weff(1:idegfree, 1:idegfree))
+      real, allocatable, dimension(:, :), intent(inout) :: weff
       i = iconsi
 
       weff = zero
@@ -1476,12 +1453,11 @@ contains
 
       end if
 
-      deallocate (weff)
 
    end subroutine indicatormatrix
 
    subroutine indicatormatrix2(n, iconsi, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, &
-      & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
+      & ilox_zzc, ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, weff)
 !> @brief
 !> this subroutine computes the indicator matrices for cweno reconstructions of the lower-order polynomials
       implicit none
@@ -1507,8 +1483,7 @@ contains
       real, allocatable, dimension(:, :, :), intent(inout) :: ilon_x !coordinates of each node in x
       real, allocatable, dimension(:, :, :), intent(inout) :: ilon_y !coordinates of each node in x
       real, allocatable, dimension(:, :, :), intent(inout) :: ilon_z !coordinates of each node in x
-      real, allocatable, dimension(:, :) :: weff
-      allocate (weff(1:idegfree2, 1:idegfree2))
+      real, allocatable, dimension(:, :), intent(inout) :: weff
       i = iconsi
 
       imax = numneighbours2 - 1
@@ -1611,7 +1586,6 @@ contains
 
       end if
 
-      deallocate (weff)
 
    end subroutine indicatormatrix2
 

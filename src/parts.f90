@@ -1,4 +1,5 @@
 module partition
+   use mesh_mpi_io
    USE MPIINFO
    use DECLARATION
 
@@ -1081,6 +1082,7 @@ contains
       real(c_float), allocatable, dimension(:) :: tpwgts
       real(c_float), allocatable, dimension(:) :: UBVEC
 
+      integer :: mesh_nodes(8), mesh_nn, mesh_shape, mesh_faces, mesh_i
       WGTfLAG = 0
       imaxee = imaxe
       imaxnn = imaxn
@@ -1088,13 +1090,8 @@ contains
       tsize = isizee
       allocate (xmpiee(1:isize))
 
-      do i = 1, isize - 1
-         xmpiee(i) = (imaxee / isize)
-!
-      end do
-
-      xmpiee(isize) = imaxe - (xmpiee(isize - 1) * (isize - 1))
-!
+      xmpiee = imaxe / isize
+      xmpiee(isize) = imaxe - (imaxe / isize) * (isize - 1)
 
       allocate (elmdist(isize + 1))
 
@@ -1118,6 +1115,15 @@ contains
       counternodes2 = 1
       ePTR(counternodes2) = 1
 
+      if (mesh_enabled) then
+         do mesh_i = 1, size(mesh_cells, 2)
+            call mesh_cell_nodes(mesh_cells(:, mesh_i), mesh_nodes, mesh_nn, mesh_shape, mesh_faces)
+            ALLNODES(counternodes + 1:counternodes + mesh_nn) = mesh_nodes(1:mesh_nn)
+            counternodes = counternodes + mesh_nn
+            counternodes2 = counternodes2 + 1
+            ePTR(counternodes2) = counternodes + 1
+         end do
+      else
       IF (BINIO .EQ. 0) THEN
 
          if (dimensiona .eq. 3) then
@@ -1347,6 +1353,8 @@ contains
 
       END IF
 
+      end if
+
       allocate (eind(1:counternodes))
       eind(1:counternodes) = Allnodes(1:counternodes)
       deAllocate (ALLNODES)
@@ -1379,8 +1387,12 @@ contains
 
       CALL MPI_BARRIER(MPI_COMM_WORLD, IERROR)
 
-      Call ParMETIS_V3_PartMeshKway(elmdist, eptr, eind, vwgt, WGTFLAG, numflag, NCON, NCOMMONNODES, isize, TPWGTS, UBVEC, &
-         & OPTIONS, EDGECUT, PARTs_el, MPI_COMM_WORLD)
+      if (isize == 1) then
+         parts_el = 1
+      else
+         Call ParMETIS_V3_PartMeshKway(elmdist, eptr, eind, vwgt, WGTFLAG, numflag, NCON, NCOMMONNODES, isize, TPWGTS, UBVEC, &
+            & OPTIONS, EDGECUT, PARTs_el, MPI_COMM_WORLD)
+      end if
 
       if (n .eq. 0) then
          write (*, *) '------------------------------------------------------------------------'
@@ -1396,15 +1408,15 @@ contains
       deallocate (UBVEC)
       deallocate (options)
 
-      CALL MPI_GATHER(PARTS_EL, XMPIEE(1), MPI_INTEGER, XMPIE, XMPIEE(1), MPI_INTEGER, ISIZE - 1, MPI_COMM_WORLD, IERROR)
+      if (mesh_enabled .and. iperiodicity /= 1) then
+         if (n == 0) write(*, '(A,I0)') &
+            'MPI mesh storage: distributed cells/local vertices; periodicity flag ', iperiodicity
+         call mesh_store_partition(parts_el - 1)
+      else
+      call MPI_Allgatherv(parts_el, xmpiee(n + 1), MPI_INTEGER, xmpie, xmpiee, elmdist(1:isize) - 1, &
+         MPI_INTEGER, MPI_COMM_WORLD, ierror)
 
-      IF (N .EQ. ISIZE - 1) THEN
-
-         XMPIE(elmdist(n + 1):elmdist(n + 2) - 1) = PARTS_EL(1:XMPIEE(N + 1))
-      END IF
-      CALL MPI_BARRIER(MPI_COMM_WORLD, IERROR)
-
-      call MPI_BCAST(XMPIE, IMAXE, MPI_INTEGER, ISIZE - 1, MPI_COMM_WORLD, IERROR)
+      end if
 
       deAllocate (parts_el)
       deallocate (xmpiee)

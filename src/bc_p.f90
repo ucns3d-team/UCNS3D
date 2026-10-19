@@ -1,4 +1,6 @@
 module boundary
+   use mesh_local_nodes
+   use mesh_mpi_io
 !> @brief
 !> this module includes the subroutines for reading and establishing the boundary conditions
 !> for all the cells that need to be bounded including the periodic ones
@@ -20,6 +22,7 @@ contains
       integer :: ioy, ibid, ib1, ib2, ib3, ib4, ibx1, itl, ibgw, ibgw2, ibleed, ibdum
       integer, dimension(4) :: ib_n
       integer :: nb1, nb2, nb3, nb4
+      if (mesh_enabled) call mesh_load_boundaries(xmpie, scaler, turbulence == 1)
       kmaxe = xmpielrank(n)
 
       kkk = 0
@@ -30,27 +33,39 @@ contains
       if (dimensiona .eq. 3) then
 
          bndfile = 'GRID.bnd'
-         if (binio .eq. 0) open (10, file=bndfile, form='formatted', status='old', action='read', iostat=ioy)
-         if (binio .eq. 1) open (10, file=bndfile, form='unformatted', status='old', action='read', iostat=ioy)
+         if ((.not. mesh_enabled) .and. (binio == 0)) then
+            open (10, file=bndfile, form='formatted', status='old', action='read', iostat=ioy)
+         end if
+         if ((.not. mesh_enabled) .and. (binio == 1)) then
+            open (10, file=bndfile, form='unformatted', status='old', action='read', iostat=ioy)
+         end if
 
          itl = 0
 
          if (binio .eq. 0) then
-            do ji = 1, imaxb
+            do ji = 1, merge(mesh_boundary_count, imaxb, mesh_enabled)
                read (10, *) ibid, ib1, ib2, ib3, ib4
 
-               if ((dinoder(ib1)%itor .gt. 0) .and. (dinoder(ib2)%itor .gt. 0) .and. (dinoder(ib3)%itor .gt. 0) &
-                  & .and. (dinoder(ib4)%itor .gt. 0)) then
+               if ((node_slot(ib1) .gt. 0) .and. (node_slot(ib2) .gt. 0) .and. (node_slot(ib3) .gt. 0)   .and. &
+                  & (node_slot(ib4) .gt. 0)) then
                   itl = itl + 1
 
                end if
             end do
          else
-            do ji = 1, imaxb
-               read (10) ibid, ib1, ib2, ib3, ib4
+            do ji = 1, merge(mesh_boundary_count, imaxb, mesh_enabled)
+               if (mesh_enabled) then
+                  ibid = mesh_boundaries(1, ji)
+                  ib1 = mesh_boundaries(2, ji)
+                  ib2 = mesh_boundaries(3, ji)
+                  ib3 = mesh_boundaries(4, ji)
+                  ib4 = mesh_boundaries(5, ji)
+               else
+                  read (10) ibid, ib1, ib2, ib3, ib4
+               end if
 
-               if ((dinoder(ib1)%itor .gt. 0) .and. (dinoder(ib2)%itor .gt. 0) .and. (dinoder(ib3)%itor .gt. 0) &
-                  & .and. (dinoder(ib4)%itor .gt. 0)) then
+               if ((node_slot(ib1) .gt. 0) .and. (node_slot(ib2) .gt. 0) .and. (node_slot(ib3) .gt. 0)   .and. &
+                  & (node_slot(ib4) .gt. 0)) then
                   itl = itl + 1
 
                end if
@@ -75,25 +90,30 @@ contains
 
          end if
 
-         close (10)
+         if (.not. mesh_enabled) close (10)
 
          itl = 0
-         if (binio .eq. 0) open (10, file=bndfile, form='formatted', status='old', action='read', iostat=ioy)
-         if (binio .eq. 1) open (10, file=bndfile, form='unformatted', status='old', action='read', iostat=ioy)
+         if ((.not. mesh_enabled) .and. (binio == 0)) then
+            open (10, file=bndfile, form='formatted', status='old', action='read', iostat=ioy)
+         end if
+         if ((.not. mesh_enabled) .and. (binio == 1)) then
+            open (10, file=bndfile, form='unformatted', status='old', action='read', iostat=ioy)
+         end if
 
          if (binio .eq. 0) then
-            do ji = 1, imaxb
+            do ji = 1, merge(mesh_boundary_count, imaxb, mesh_enabled)
                read (10, *) ibid, ib_n(1), ib_n(2), ib_n(3), ib_n(4), ibx1
 
                if (ibx1 .eq. 4) then
                   ibgw = ibgw + 1
                end if
 
-               if ((dinoder(ib_n(1))%itor .gt. 0) .and. (dinoder(ib_n(2))%itor .gt. 0) .and. (dinoder(ib_n(3))%itor .gt. 0) &
-                  & .and. (dinoder(ib_n(4))%itor .gt. 0)) then
+               if ((node_slot(ib_n(1)) .gt. 0) .and. (node_slot(ib_n(2)) .gt. 0) .and. (node_slot(ib_n(3)) .gt. 0) &
+                  & .and. (node_slot(ib_n(4)) .gt. 0)) then
                   itl = itl + 1
                   if (ibx1 .eq. 4) then
                      ibound_inum(itl) = ibgw
+                     if (mesh_enabled) ibound_inum(itl) = mesh_boundaries(7, ji)
                      totiw = totiw + 1
                   end if
 
@@ -116,18 +136,28 @@ contains
 
          else
 
-            do ji = 1, imaxb
-               read (10) ibid, ib_n(1), ib_n(2), ib_n(3), ib_n(4), ibx1
+            do ji = 1, merge(mesh_boundary_count, imaxb, mesh_enabled)
+               if (mesh_enabled) then
+                  ibid = mesh_boundaries(1, ji)
+                  ib_n(1) = mesh_boundaries(2, ji)
+                  ib_n(2) = mesh_boundaries(3, ji)
+                  ib_n(3) = mesh_boundaries(4, ji)
+                  ib_n(4) = mesh_boundaries(5, ji)
+                  ibx1 = mesh_boundaries(6, ji)
+               else
+                  read (10) ibid, ib_n(1), ib_n(2), ib_n(3), ib_n(4), ibx1
+               end if
 
                if (ibx1 .eq. 4) then
                   ibgw = ibgw + 1
                end if
 
-               if ((dinoder(ib_n(1))%itor .gt. 0) .and. (dinoder(ib_n(2))%itor .gt. 0) .and. (dinoder(ib_n(3))%itor .gt. 0) &
-                  & .and. (dinoder(ib_n(4))%itor .gt. 0)) then
+               if ((node_slot(ib_n(1)) .gt. 0) .and. (node_slot(ib_n(2)) .gt. 0) .and. (node_slot(ib_n(3)) .gt. 0) &
+                  & .and. (node_slot(ib_n(4)) .gt. 0)) then
                   itl = itl + 1
                   if (ibx1 .eq. 4) then
                      ibound_inum(itl) = ibgw
+                     if (mesh_enabled) ibound_inum(itl) = mesh_boundaries(7, ji)
                      totiw = totiw + 1
                   end if
 
@@ -149,7 +179,7 @@ contains
             end do
 
          end if
-         close (10)
+         if (.not. mesh_enabled) close (10)
          n_boundaries = itl
 
          itl = 0
@@ -172,8 +202,8 @@ contains
          itl = 0
          jj1 = 0
          do ji = 1, n_boundaries
-            do jfx = 1, dinoder2(ibound_ibl(1, ji))%numberofneib
-               j = dinoder2(ibound_ibl(1, ji))%neibids(jfx)
+            do jfx = 1, node_degree(ibound_ibl(1, ji))
+               j = node_cell(ibound_ibl(1, ji), jfx)
                if (ielem_interior(j) .eq. 1) then
                   do jj = 1, ielem_ifca(j)
                      if (ielem_ineighg(j, jj) .eq. 0) then
@@ -239,25 +269,35 @@ contains
       if (dimensiona .eq. 2) then
 
          bndfile = 'GRID.bnd'
-         if (binio .eq. 0) open (10, file=bndfile, form='formatted', status='old', action='read', iostat=ioy)
-         if (binio .eq. 1) open (10, file=bndfile, form='unformatted', status='old', action='read', iostat=ioy)
+         if ((.not. mesh_enabled) .and. (binio == 0)) then
+            open (10, file=bndfile, form='formatted', status='old', action='read', iostat=ioy)
+         end if
+         if ((.not. mesh_enabled) .and. (binio == 1)) then
+            open (10, file=bndfile, form='unformatted', status='old', action='read', iostat=ioy)
+         end if
 
          itl = 0
 
          if (binio .eq. 0) then
-            do ji = 1, imaxb
+            do ji = 1, merge(mesh_boundary_count, imaxb, mesh_enabled)
                read (10, *) ibid, ib1, ib2
 
-               if ((dinoder(ib1)%itor .gt. 0) .and. (dinoder(ib2)%itor .gt. 0)) then
+               if ((node_slot(ib1) .gt. 0) .and. (node_slot(ib2) .gt. 0)) then
                   itl = itl + 1
 
                end if
             end do
          else
-            do ji = 1, imaxb
-               read (10) ibid, ib1, ib2
+            do ji = 1, merge(mesh_boundary_count, imaxb, mesh_enabled)
+               if (mesh_enabled) then
+                  ibid = mesh_boundaries(1, ji)
+                  ib1 = mesh_boundaries(2, ji)
+                  ib2 = mesh_boundaries(3, ji)
+               else
+                  read (10) ibid, ib1, ib2
+               end if
 
-               if ((dinoder(ib1)%itor .gt. 0) .and. (dinoder(ib2)%itor .gt. 0)) then
+               if ((node_slot(ib1) .gt. 0) .and. (node_slot(ib2) .gt. 0)) then
                   itl = itl + 1
 
                end if
@@ -283,29 +323,33 @@ contains
 
          end if
 
-         close (10)
+         if (.not. mesh_enabled) close (10)
 
          itl = 0
-         if (binio .eq. 0) open (10, file=bndfile, form='formatted', status='old', action='read', iostat=ioy)
-         if (binio .eq. 1) open (10, file=bndfile, form='unformatted', status='old', action='read', iostat=ioy)
+         if ((.not. mesh_enabled) .and. (binio == 0)) then
+            open (10, file=bndfile, form='formatted', status='old', action='read', iostat=ioy)
+         end if
+         if ((.not. mesh_enabled) .and. (binio == 1)) then
+            open (10, file=bndfile, form='unformatted', status='old', action='read', iostat=ioy)
+         end if
 
          if (binio .eq. 0) then
-            do ji = 1, imaxb
+            do ji = 1, merge(mesh_boundary_count, imaxb, mesh_enabled)
                read (10, *) ibid, ib_n(1), ib_n(2), ib_n(3), ib_n(4), ibx1
                if (bleed .eq. 1) then
                   ibdum = ibx1
                   if (ibx1 .eq. 4) then
 
-                     if ((dinoder(ib_n(1))%itor .gt. 0) .and. (dinoder(ib_n(2))%itor .gt. 0)) then
+                     if ((node_slot(ib_n(1)) .gt. 0) .and. (node_slot(ib_n(2)) .gt. 0)) then
 
                         !now check if this is in a bleed zone
 
                         do ibleed = 1, bleed_number
-                           if (((dinoder(ib_n(1))%cord(1) .ge. bleed_start(ibleed, 1)) .and. (dinoder(ib_n(1))%cord(1) .le. &
-                              & bleed_end(ibleed, 1))) .and. ((dinoder(ib_n(2))%cord(1) .ge. bleed_start(ibleed, &
-                              & 1)) .and. (dinoder(ib_n(2))%cord(1) .le. bleed_end(ibleed, 1))) .and. ((dinoder(ib_n(1))%cord(2) &
-                              & .ge. bleed_start(ibleed, 2)) .and. (dinoder(ib_n(1))%cord(2) .le. bleed_end(ibleed, &
-                              & 2))) .and. ((dinoder(ib_n(2))%cord(2) .ge. bleed_start(ibleed, 2)) .and. (dinoder(ib_n(2))%cord(2) &
+                           if (((node_coord(ib_n(1), 1) .ge. bleed_start(ibleed, 1)) .and. (node_coord(ib_n(1), 1) &
+                              & .le.   bleed_end(ibleed, 1))) .and. ((node_coord(ib_n(2), 1) .ge. bleed_start(ibleed,   1)) &
+                              & .and. (node_coord(ib_n(2), 1) .le. bleed_end(ibleed, 1))) .and. ((node_coord(ib_n(1), 2) &
+                              & .ge. bleed_start(ibleed, 2)) .and. (node_coord(ib_n(1), 2) .le. bleed_end(ibleed,   2))) &
+                              & .and. ((node_coord(ib_n(2), 2) .ge. bleed_start(ibleed, 2)) .and. (node_coord(ib_n(2), 2) &
                               & .le. bleed_end(ibleed, 2)))) then
                               ibdum = 99
 
@@ -322,10 +366,11 @@ contains
                if ((ibx1 .eq. 4) .or. (ibx1 .eq. 99)) then
                   ibgw = ibgw + 1
                end if
-               if ((dinoder(ib_n(1))%itor .gt. 0) .and. (dinoder(ib_n(2))%itor .gt. 0)) then
+               if ((node_slot(ib_n(1)) .gt. 0) .and. (node_slot(ib_n(2)) .gt. 0)) then
                   itl = itl + 1
                   if ((ibx1 .eq. 4) .or. (ibx1 .eq. 99)) then
                      ibound_inum(itl) = ibgw; totiw = totiw + 1
+                     if (mesh_enabled) ibound_inum(itl) = mesh_boundaries(7, ji)
                   end if
                   ibound_icode(itl) = ibx1
                   ibound_ibid(itl) = ibid
@@ -337,21 +382,30 @@ contains
                end if
             end do
          else
-            do ji = 1, imaxb
-               read (10) ibid, ib_n(1), ib_n(2), ib_n(3), ib_n(4), ibx1
+            do ji = 1, merge(mesh_boundary_count, imaxb, mesh_enabled)
+               if (mesh_enabled) then
+                  ibid = mesh_boundaries(1, ji)
+                  ib_n(1) = mesh_boundaries(2, ji)
+                  ib_n(2) = mesh_boundaries(3, ji)
+                  ib_n(3) = mesh_boundaries(4, ji)
+                  ib_n(4) = mesh_boundaries(5, ji)
+                  ibx1 = mesh_boundaries(6, ji)
+               else
+                  read (10) ibid, ib_n(1), ib_n(2), ib_n(3), ib_n(4), ibx1
+               end if
                if (bleed .eq. 1) then
                   ibdum = ibx1
                   if (ibx1 .eq. 4) then
-                     if ((dinoder(ib_n(1))%itor .gt. 0) .and. (dinoder(ib_n(2))%itor .gt. 0)) then
+                     if ((node_slot(ib_n(1)) .gt. 0) .and. (node_slot(ib_n(2)) .gt. 0)) then
 
                         !now check if this is in a bleed zone
 
                         do ibleed = 1, bleed_number
-                           if (((dinoder(ib_n(1))%cord(1) .ge. bleed_start(ibleed, 1)) .and. (dinoder(ib_n(1))%cord(1) .le. &
-                              & bleed_end(ibleed, 1))) .and. ((dinoder(ib_n(2))%cord(1) .ge. bleed_start(ibleed, &
-                              & 1)) .and. (dinoder(ib_n(2))%cord(1) .le. bleed_end(ibleed, 1))) .and. ((dinoder(ib_n(1))%cord(2) &
-                              & .ge. bleed_start(ibleed, 2)) .and. (dinoder(ib_n(1))%cord(2) .le. bleed_end(ibleed, &
-                              & 2))) .and. ((dinoder(ib_n(2))%cord(2) .ge. bleed_start(ibleed, 2)) .and. (dinoder(ib_n(2))%cord(2) &
+                           if (((node_coord(ib_n(1), 1) .ge. bleed_start(ibleed, 1)) .and. (node_coord(ib_n(1), 1) &
+                              & .le.   bleed_end(ibleed, 1))) .and. ((node_coord(ib_n(2), 1) .ge. bleed_start(ibleed,   1)) &
+                              & .and. (node_coord(ib_n(2), 1) .le. bleed_end(ibleed, 1))) .and. ((node_coord(ib_n(1), 2) &
+                              & .ge. bleed_start(ibleed, 2)) .and. (node_coord(ib_n(1), 2) .le. bleed_end(ibleed,   2))) &
+                              & .and. ((node_coord(ib_n(2), 2) .ge. bleed_start(ibleed, 2)) .and. (node_coord(ib_n(2), 2) &
                               & .le. bleed_end(ibleed, 2)))) then
                               ibdum = 99
 
@@ -368,10 +422,11 @@ contains
                if ((ibx1 .eq. 4) .or. (ibx1 .eq. 99)) then
                   ibgw = ibgw + 1
                end if
-               if ((dinoder(ib_n(1))%itor .gt. 0) .and. (dinoder(ib_n(2))%itor .gt. 0)) then
+               if ((node_slot(ib_n(1)) .gt. 0) .and. (node_slot(ib_n(2)) .gt. 0)) then
                   itl = itl + 1
                   if ((ibx1 .eq. 4) .or. (ibx1 .eq. 99)) then
                      ibound_inum(itl) = ibgw; totiw = totiw + 1
+                     if (mesh_enabled) ibound_inum(itl) = mesh_boundaries(7, ji)
                   end if
                   ibound_icode(itl) = ibx1
                   ibound_ibid(itl) = ibid
@@ -385,7 +440,7 @@ contains
 
          end if
 
-         close (10)
+         if (.not. mesh_enabled) close (10)
 
          n_boundaries = itl
 
@@ -410,8 +465,8 @@ contains
          itl = 0
 
          do ji = 1, n_boundaries
-            do jfx = 1, dinoder2(ibound_ibl(1, ji))%numberofneib
-               j = dinoder2(ibound_ibl(1, ji))%neibids(jfx)
+            do jfx = 1, node_degree(ibound_ibl(1, ji))
+               j = node_cell(ibound_ibl(1, ji), jfx)
                if (ielem_interior(j) .eq. 1) then
                   do jj = 1, ielem_ifca(j)
                      if (ielem_ineighg(j, jj) .eq. 0) then
@@ -444,6 +499,8 @@ contains
       end if
 
       totwalls = ibgw
+      ! ibgw is only a routed subset with MPI input; wall output needs the global count.
+      if (mesh_enabled) totwalls = mesh_wall_count
 
       if (totiw .gt. 0) then
          allocate (ibound_t(totiw))
@@ -467,6 +524,10 @@ contains
       end if
 
       call mpi_barrier(mpi_comm_world, ierror)
+      if (mesh_enabled) then
+         call mesh_release_boundaries()
+         if (iperiodicity /= 1) call mesh_release_vertices()
+      end if
    end subroutine read_bound
 !
 ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -514,7 +575,7 @@ contains
                               n_node = 3
                            end if
                            do kk = 1, n_node
-                              nodes_list(kk, 1:3) = dinoder(ibound_ibl(kk, ielem_ibounds(i, j)))%cord(1:3)
+                              nodes_list(kk, 1:3) = node_coords(ibound_ibl(kk, ielem_ibounds(i, j)))
                            end do
                            call cordinates3(n, nodes_list, n_node, cords(1:3))
                            vext(1, 1:3) = cords(1:3)
@@ -527,7 +588,7 @@ contains
                                     if (ielem_ihexgl(ibound_localn(1, ii)) .ne. ielem_ihexgl(i)) then
 !
                                        do kk = 1, n_node
-                                          nodes_list(kk, 1:3) = dinoder(ibound_ibl(kk, ii))%cord(1:3)
+                                          nodes_list(kk, 1:3) = node_coords(ibound_ibl(kk, ii))
                                        end do
                                        call cordinates3(n, nodes_list, n_node, cords(1:3))
                                        vext(2, 1:3) = cords(1:3)
@@ -629,7 +690,7 @@ contains
                               !assign the bleed zone
                               n_node = 2
                               do kk = 1, n_node
-                                 nodes_list(kk, 1:2) = dinoder(ibound_ibl(kk, ielem_ibounds(i, j)))%cord(1:2)
+                                 nodes_list(kk, 1:2) = node_coords(ibound_ibl(kk, ielem_ibounds(i, j)))
                               end do
                               call cordinates2(n, nodes_list, n_node, cords(1:2))
                               vext(1, 1:2) = cords(1:2)
@@ -650,7 +711,7 @@ contains
 
                            n_node = 2
                            do kk = 1, n_node
-                              nodes_list(kk, 1:2) = dinoder(ibound_ibl(kk, ielem_ibounds(i, j)))%cord(1:2)
+                              nodes_list(kk, 1:2) = node_coords(ibound_ibl(kk, ielem_ibounds(i, j)))
                            end do
                            call cordinates2(n, nodes_list, n_node, cords(1:2))
                            vext(1, 1:2) = cords(1:2)
@@ -659,7 +720,7 @@ contains
                                  if (ibound_localn(1, ii) .gt. 0) then ! excluding itself, and of same shape type
                                     if (ielem_ihexgl(ibound_localn(1, ii)) .ne. ielem_ihexgl(i)) then
                                        do kk = 1, n_node
-                                          nodes_list(kk, 1:2) = dinoder(ibound_ibl(kk, ii))%cord(1:2)
+                                          nodes_list(kk, 1:2) = node_coords(ibound_ibl(kk, ii))
                                        end do
                                        call cordinates2(n, nodes_list, n_node, cords(1:2))
                                        vext(2, 1:2) = cords(1:2)

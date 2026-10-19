@@ -1,4 +1,11 @@
 module io
+   use checkpoint_mpi_io
+   use vtk_ghost_output, only: vtk_ghost_initialize, vtk_ghost_write
+   use vtk_surface_ghost_output, only: vtk_surface_initialize => vtk_ghost_initialize, &
+      vtk_surface_write => vtk_ghost_write
+   use mesh_local_cells
+   use mesh_local_nodes
+   use mesh_mpi_io
    use mpiinfo
    use declaration
    use flow_operations
@@ -523,7 +530,13 @@ contains
 !         xbin(icella(i))=valuesa(i)
 !         end if
 !     end do
-         xbin(1:imaxe) = xmpie(1:imaxe)
+         if (mesh_distributed) then
+            do i = 0, isize - 1
+               xbin(xmpi_re(offset(i) + 1:offset(i) + xmpiall(i))) = i
+            end do
+         else
+            xbin(1:imaxe) = xmpie(1:imaxe)
+         end if
 
          ierr = tecdat112(imaxe, xbin, 1)
 
@@ -3446,6 +3459,8 @@ contains
       character(len=12) :: proc, vrtfile, celfile, bndfile
       integer, allocatable, dimension(:) :: isent
       integer, intent(in) :: n
+      call mesh_start(dimensiona, binio, emetis, imaxe, imaxn, imaxb)
+      if (mesh_enabled) return
       write (proc, fmt='(i10)') n
       celfile = 'GRID.cel'
       vrtfile = 'GRID.vrt'
@@ -3632,6 +3647,114 @@ contains
 
    end subroutine close_input
 
+   subroutine read_input_mpi(rank, scale)
+      integer, intent(in) :: rank
+      real, intent(in) :: scale
+      integer :: i, j, k, nn, shape, faces, nodes(8), needed, id, remote, count_remote
+      integer, allocatable :: ids(:), ptr(:), cells(:)
+      real, allocatable :: xyz(:, :)
+      real :: lo(3), hi(3), glo(3), ghi(3), started, elapsed, slowest
+      started = MPI_Wtime()
+      call mesh_prepare(xmpie)
+      if (size(mesh_cells, 2) /= xmpielrank(rank)) call mesh_fail('redistributed cell count mismatch')
+      needed = 0
+      do i = 1, size(mesh_cells, 2)
+         call mesh_cell_nodes(mesh_cells(:, i), nodes, nn, shape, faces)
+         ielem_ihexgl(i) = mesh_cells(1, i)
+         ielem_ishape(i) = shape
+         ielem_nonodes(i) = nn
+         ielem_ifca(i) = faces
+         ielem_nodes(1:nn, i) = nodes(1:nn)
+      end do
+      if (iperiodicity /= 1) then
+         call local_nodes_init(ielem_nodes, ielem_nonodes, scale)
+         ids = node_ids; needed = size(ids); xyz = node_xyz
+         call local_nodes_remote(xmpie)
+      else
+      allocate(dinoder(imaxn), dinoder2(imaxn))
+      dinoder%itor = 0; dinoder2%numberofneib = 0
+      do i = 1, size(mesh_cells, 2)
+         nn = ielem_nonodes(i); nodes = 0; nodes(1:nn) = ielem_nodes(1:nn, i)
+         do j = 1, nn
+            id = nodes(j)
+            if (dinoder(id)%itor == 0) needed = needed + 1
+            dinoder(id)%itor = id
+         end do
+      end do
+      allocate(ids(needed)); k = 0
+      do i = 1, imaxn
+         if (dinoder(i)%itor == 0) cycle
+         k = k + 1; ids(k) = i
+      end do
+      call mesh_vertices(ids, xyz)
+      xyz = xyz / scale
+      end if
+      lo = tolbig; hi = -tolbig
+      do i = 1, needed
+         id = ids(i)
+         if (.not. local_nodes_enabled) then
+            allocate(dinoder(id)%cord(dimensiona))
+            dinoder(id)%cord = xyz(1:dimensiona, i)
+         end if
+         lo(1:dimensiona) = min(lo(1:dimensiona), xyz(1:dimensiona, i))
+         hi(1:dimensiona) = max(hi(1:dimensiona), xyz(1:dimensiona, i))
+      end do
+      call MPI_Allreduce(lo, glo, 3, MPI_DOUBLE_PRECISION, MPI_MIN, MPI_COMM_WORLD, ierror)
+      call MPI_Allreduce(hi, ghi, 3, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ierror)
+      xmin(rank) = glo(1); ymin(rank) = glo(2); zmin(rank) = glo(3)
+      xmax(rank) = ghi(1); ymax(rank) = ghi(2); zmax(rank) = ghi(3)
+      if (dimensiona == 3 .and. .not. local_nodes_enabled) then
+         call mesh_incidence(ids, ptr, cells)
+         do i = 1, needed
+            id = ids(i); count_remote = 0
+            do j = ptr(i), ptr(i + 1) - 1
+               if (xmpie(cells(j)) /= rank) count_remote = count_remote + 1
+            end do
+            allocate(dinoder2(id)%xne(1)); dinoder2(id)%xne(1) = count_remote
+            if (count_remote == 0) cycle
+            allocate(dinoder2(id)%xneib(count_remote)); remote = 0
+            do j = ptr(i), ptr(i + 1) - 1
+               if (xmpie(cells(j)) == rank) cycle
+               remote = remote + 1
+               dinoder2(id)%xneib(remote) = cells(j)
+            end do
+         end do
+      end if
+      if (mesh_distributed) call cells_seed()
+      xper = xmax(rank) - xmin(rank); yper = ymax(rank) - ymin(rank); zper = zmax(rank) - zmin(rank)
+      elapsed = MPI_Wtime() - started
+      call MPI_Allreduce(elapsed, slowest, 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ierror)
+      if (rank == 0) then
+         open(63, file='history.txt', form='formatted', action='write', position='append')
+         write(63, *) xper, yper, zper, 'periodics'
+         write(63, *) 'min', xmin(rank), ymin(rank), zmin(rank)
+         write(63, *) 'max', xmax(rank), ymax(rank), zmax(rank)
+         write(63, *) 'MPI mesh redistribution + vertex/adjacency loading seconds', slowest
+         close(63)
+      end if
+   end subroutine read_input_mpi
+
+   subroutine read_input_period_mpi(scale)
+      real, intent(in) :: scale
+      integer, allocatable :: ids(:)
+      real, allocatable :: xyz(:, :)
+      integer :: i, k, needed
+      needed = 0
+      do i = 1, imaxn
+         if (dinoder(i)%itor > 0 .and. dinoder2(i)%numberofneib == 0) needed = needed + 1
+      end do
+      allocate(ids(needed)); k = 0
+      do i = 1, imaxn
+         if (dinoder(i)%itor <= 0 .or. dinoder2(i)%numberofneib /= 0) cycle
+         k = k + 1; ids(k) = i
+      end do
+      call mesh_vertices(ids, xyz)
+      do i = 1, needed
+         allocate(dinoder(ids(i))%cord(dimensiona))
+         dinoder(ids(i))%cord = xyz(1:dimensiona, i) / scale
+      end do
+   end subroutine read_input_period_mpi
+
    subroutine read_input(n, xmpielrank, xmpinrank, xmpie, xmpin, dinode, imaxn, imaxe, imaxb, xmpinnumber, scaler, dinoder)
 !> @brief
 !> this subroutine reads all the data from the grid files
@@ -3650,6 +3773,10 @@ contains
       integer :: it1, it2, it3, it4, it5, it6, it7, it8, itx, inx, it55, in, out
       real :: x, y, z
 
+      if (mesh_enabled) then
+         call read_input_mpi(n, scaler)
+         return
+      end if
       kk = 0; i = 0; j = 0; lm = 0; kk2 = 1
       xmin(n) = tolbig; ymin(n) = tolbig; zmin(n) = tolbig
       xmax(n) = -tolbig; ymax(n) = -tolbig; zmax(n) = -tolbig
@@ -4077,6 +4204,10 @@ contains
       integer :: it1, it2, it3, it4, it5, it6, it7, it8, itx, inx, it55, in, out
       real :: x, y, z
 
+      if (mesh_enabled) then
+         call read_input_period_mpi(scaler)
+         return
+      end if
       call open_input(n, itt)
 
       if (binio .eq. 0) then
@@ -4788,6 +4919,26 @@ contains
 !------------------------------------------------------------
 ! allocate flat arrays
 !------------------------------------------------------------
+      if (countwallglobal == 0) then
+         ielem_walldist = tolbig
+         ielem_walltrans = 0.0
+         return
+      end if
+      if (mesh_enabled) then
+         if (size(mesh_wallxyz, 2) /= countwallglobal) call mesh_fail('wall count differs from local mesh')
+         allocate(wallx(countwallglobal), wally(countwallglobal), wallz(countwallglobal), walltr(countwallglobal))
+         wallx = mesh_wallxyz(1, :); wally = mesh_wallxyz(2, :); wallz = mesh_wallxyz(3, :)
+         walltr = 0.0
+         if (transition_model == 1) then
+            if (transition_axis == 2) then
+               walltr = wally - transition_location
+            else if (transition_axis == 3) then
+               walltr = wallz - transition_location
+            else
+               walltr = wallx - transition_location
+            end if
+         end if
+      else
       allocate (wbid(countwallglobal))
       allocate (wb1(countwallglobal))
       allocate (wb2(countwallglobal))
@@ -4925,6 +5076,7 @@ contains
       end do
 
 !------------------------------------------------------------
+      end if
 ! build 3D spatial bins for wall centers
 !------------------------------------------------------------
       xminw = minval(wallx)
@@ -5187,9 +5339,9 @@ contains
 !------------------------------------------------------------
 ! cleanup
 !------------------------------------------------------------
-      deallocate (wbid, wb1, wb2, wb3, wb4)
+      if (allocated(wbid)) deallocate (wbid, wb1, wb2, wb3, wb4)
       deallocate (wallx, wally, wallz, walltr)
-      deallocate (vid, vx, vy, vz)
+      if (allocated(vid)) deallocate (vid, vx, vy, vz)
       deallocate (bincount, binstart, binfill, binlist)
 
    end subroutine
@@ -5240,6 +5392,21 @@ contains
 !  print*,countwallglobal,'total wall elements',n
       allocate (dwallbnd(countwallglobal))
 
+      if (mesh_enabled) then
+         if (size(mesh_wallxyz, 2) /= countwallglobal) call mesh_fail('2D wall count differs from local mesh')
+         do i = 1, countwallglobal
+            dwallbnd(i)%wallx = mesh_wallxyz(1, i)
+            dwallbnd(i)%wally = mesh_wallxyz(2, i)
+            dwallbnd(i)%walltrans = 0.0
+            if (transition_model == 1) then
+               if (transition_axis == 2) then
+                  dwallbnd(i)%walltrans = dwallbnd(i)%wally - transition_location
+               else
+                  dwallbnd(i)%walltrans = dwallbnd(i)%wallx - transition_location
+               end if
+            end if
+         end do
+      else
       countwall = 0
       bndfile = 'GRID.bnd'
       vrtfile = 'GRID.vrt'
@@ -5302,6 +5469,7 @@ contains
 
       end do
 
+      end if
 ! find distance from element barycenter to the nearest wall for this block.
       kmaxe = xmpielrank(n)
       do i = 1, kmaxe
@@ -5325,7 +5493,7 @@ contains
       end do
 
       deallocate (dwallbnd)
-      deallocate (dwallvrt)
+      if (allocated(dwallvrt)) deallocate (dwallvrt)
 
    end subroutine
 
@@ -11607,6 +11775,9 @@ contains
       if (allocated(u_ct_val)) then
 !$omp target update from(u_ct_val)
       end if
+      if (allocated(u_c_valdg)) then
+!$omp target update from(u_c_valdg)
+      end if
 #endif
 
       if (dimensiona .eq. 3) then
@@ -11665,161 +11836,141 @@ contains
 
    end subroutine
 
-   subroutine checkpoint(n)
-!> @brief
-!> this subroutine uses mpi-io for writing the checkpointing files
-      implicit none
+   subroutine checkpoint3d_state(n, reading, averaged)
+      ! Preserve the legacy byte layout; pack bounded batches in global-ID order.
       integer, intent(in) :: n
-      integer, allocatable, dimension(:) :: dispt
-      real, allocatable, dimension(:) :: array2
-      integer :: i, k, kmaxe, j, jk, icpuid, nvar, imaxp, dumg, duml, jj, fh, size_of_real, size_of_int, dip, n_end, datatype, ifg
-      character(len=20) :: proc, restfile, proc3
-      real, allocatable, dimension(:) :: array
-      logical :: here1
-      real :: in1, iocpt1, iocpt2, iocpt3, iocpt4
-      integer(kind=mpi_offset_kind) :: disp_in_file, tmp, disp_init
-      disp_in_file = 0
-      tmp = 0
-      disp_init = 0
+      logical, intent(in) :: reading, averaged
+      type(checkpoint_file) :: cp
+      integer :: nt, np, width, ncoeff, stage, nh, iter, round, first, count, q, i, j, k, stat
+      integer(kind=MPI_OFFSET_KIND) :: header_bytes
+      real, allocatable :: buffer(:), header(:)
+      character(len=:), allocatable :: filename
+      logical :: steady_header
 
-      kmaxe = xmpielrank(n)
-
-      size_of_int = 4
-      size_of_real = 8
-      icpuid = n
-      call mpi_barrier(mpi_comm_world, ierror)
-!  iocpt1=mpi_wtime()
-
-      if (dg .eq. 1) then
-         allocate (dispt(kmaxe), array2(kmaxe * (nof_variables + turbulenceequations + passivescalar) * (idegfree + 1)))
-      else
-         allocate (dispt(kmaxe), array2(kmaxe * (nof_variables + turbulenceequations + passivescalar)))
+      nt = turbulenceequations
+      np = passivescalar
+      if (reading) then
+         nt = 0
+         if (prev_turbmodel == 1) nt = 1
+         if (prev_turbmodel == 2) nt = 2
+         np = lamps
       end if
-
-      if (dg .eq. 1) then
-         do i = 1, kmaxe
-            dispt(i) = (xgo(i) - 1) * ((nof_variables + turbulenceequations + passivescalar) * (idegfree + 1))
-         end do
-
-         n_end = (nof_variables + turbulenceequations + passivescalar) * (idegfree + 1)
-
-      else
-
-         do i = 1, kmaxe
-            dispt(i) = (xgo(i) - 1) * ((nof_variables + turbulenceequations + passivescalar))
-         end do
-
-         n_end = nof_variables + turbulenceequations + passivescalar
+      if (np < 0 .or. nt < 0) call checkpoint_fail('negative auxiliary variable count')
+      ncoeff = 1
+      if (dg == 1 .and. .not. averaged) then
+         ! The old DG+auxiliary writer reserved coefficient records but only packed means.
+         ! Do not silently write/read incomplete DG state using that undefined layout.
+         if (nt + np > 0) call checkpoint_fail('DG restart with auxiliary fields needs a defined coefficient layout')
+         ncoeff = idegfree + 1
       end if
-
-      if (dg .eq. 1) then
-         if ((turbulence .gt. 0) .or. (passivescalar .gt. 0)) then
-            k = 1
-            do i = 1, kmaxe
-               array2(k:k + nof_variables - 1) = u_c_val(i, 1, 1:nof_variables)
-               k = k + nof_variables
-               array2(k:k + turbulenceequations + passivescalar - 1) = u_ct_val(i, 1, 1:turbulenceequations + passivescalar)
-               k = k + turbulenceequations + passivescalar
-            end do
+      width = nof_variables * ncoeff + nt + np
+      stage = 1
+      filename = 'RESTART.dat'
+      header_bytes = 0_MPI_OFFSET_KIND
+      if (averaged) then
+         width = width + 6 + np
+         stage = ind1
+         filename = 'RESTARTAV.dat'
+      else
+         if (reading) then
+            steady_header = ires_unsteady == 0
          else
-            k = 1
-            do i = 1, kmaxe
+            steady_header = rungekutta >= 5 .and. rungekutta < 11
+         end if
+         nh = 1
+         if (initcond == 95 .and. .not. steady_header) nh = 2
+         if (steady_header) nh = nof_variables + nt
+         allocate(header(nh), stat=stat)
+         if (stat /= 0) call checkpoint_fail('allocating checkpoint header')
+         header_bytes = 4_MPI_OFFSET_KIND + 8_MPI_OFFSET_KIND * nh
+         header = 0.0
+         if (.not. reading) then
+            if (steady_header) then
+               header = initialres(1:nh)
+            else
+               header(1) = t
+               if (nh == 2) header(2) = taylor
+            end if
+         end if
+      end if
+      call checkpoint_begin(cp, filename, xgo(1:xmpielrank(n)), width, int(imaxe,selected_int_kind(18)), &
+         header_bytes, .not. reading)
+      if (.not. averaged) then
+         iter = it
+         call checkpoint_header(cp, iter, header)
+         if (reading) then
+            it = iter
+            if (steady_header) then
+               initialres(1:min(size(initialres),nh)) = header(1:min(size(initialres),nh))
+               if (realgas == 1) initialres = zero
+            else
+               t = header(1)
+               if (nh == 2) taylor = header(2)
+            end if
+         end if
+      end if
+      allocate(buffer(max(1,min(cp%local_count,cp%capacity)*width)), stat=stat)
+      if (stat /= 0) call checkpoint_fail('allocating checkpoint staging buffer')
+      do round = 1, cp%rounds
+         first = min((round-1)*cp%capacity,cp%local_count) + 1
+         count = min(cp%capacity, cp%local_count-first+1)
+         if (reading) call checkpoint_transfer(cp, first, count, buffer)
+         k = 1
+         do q = first, first+count-1
+            i = cp%order(q)
+            if (dg == 1 .and. .not. averaged) then
                do j = 1, nof_variables
-                  array2(k:k + idegfree) = u_c_valdg(i, 1, j, 1:idegfree + 1)
-                  k = k + (idegfree + 1)
+                  if (reading) then
+                     u_c_valdg(i,1,j,1:ncoeff) = buffer(k:k+ncoeff-1)
+                     u_c_val(i,1,j) = buffer(k)
+                  else
+                     buffer(k:k+ncoeff-1) = u_c_valdg(i,1,j,1:ncoeff)
+                  end if
+                  k = k+ncoeff
                end do
-            end do
-         end if
-
-      else
-
-         if ((turbulence .gt. 0) .or. (passivescalar .gt. 0)) then
-            k = 1
-            do i = 1, kmaxe
-               array2(k:k + nof_variables - 1) = u_c_val(i, 1, 1:nof_variables)
-               k = k + nof_variables
-               array2(k:k + turbulenceequations + passivescalar - 1) = u_ct_val(i, 1, 1:turbulenceequations + passivescalar)
-               k = k + turbulenceequations + passivescalar
-            end do
-         else
-            k = 1
-            do i = 1, kmaxe
-               array2(k:k + nof_variables - 1) = u_c_val(i, 1, 1:nof_variables)
-               k = k + nof_variables
-            end do
-         end if
-      end if
-
-      restfile = 'RESTART.dat'
-
-      if (n .eq. 0) then
-         inquire (file=restfile, exist=here1)
-         call mpi_file_delete(restfile, mpi_info_null, ierror)
-      end if
-
-      call mpi_barrier(mpi_comm_world, ierror)
-
-      !create type first of indexed block
-
-      call mpi_type_create_indexed_block(kmaxe, n_end, dispt, mpi_double_precision, datatype, ierror)
-      call mpi_type_commit(datatype, ierror)
-
-      allocate (array(1:nof_variables + turbulenceequations + passivescalar))
-
-      !call mpi_barrier(mpi_comm_world,ierror)
-
-      call mpi_file_open(mpi_comm_world, restfile, mpi_mode_wronly + mpi_mode_create, mpi_info_null, fh, ierror)
-
-      if (n .eq. 0) then
-
-         if ((rungekutta .ge. 5) .and. (rungekutta .lt. 11)) then
-            call mpi_file_seek(fh, disp_in_file, mpi_seek_set, ierror)
-            call mpi_file_write(fh, it, 1, mpi_integer, mpi_status_ignore, ierror)
-            disp_in_file = disp_in_file + size_of_int !1
-            call mpi_file_seek(fh, disp_in_file, mpi_seek_set, ierror)
-            call mpi_file_write(fh, initialres(1:nof_variables + turbulenceequations), nof_variables + turbulenceequations, &
-               & mpi_double_precision, mpi_status_ignore, ierror)
-            disp_in_file = disp_in_file + size_of_real * (nof_variables + turbulenceequations) !3
-         else
-            call mpi_file_seek(fh, disp_in_file, mpi_seek_set, ierror)
-
-            call mpi_file_write(fh, it, 1, mpi_integer, mpi_status_ignore, ierror)
-            disp_in_file = disp_in_file + size_of_int !4
-
-            call mpi_file_seek(fh, disp_in_file, mpi_seek_set, ierror)
-
-            call mpi_file_write(fh, t, 1, mpi_double_precision, mpi_status_ignore, ierror)
-            disp_in_file = disp_in_file + size_of_real !5
-            if (initcond .eq. 95) then
-               call mpi_file_seek(fh, disp_in_file, mpi_seek_set, ierror)
-               call mpi_file_write(fh, taylor, 1, mpi_double_precision, mpi_status_ignore, ierror)
-               disp_in_file = disp_in_file + size_of_real !6
+            else
+               if (reading) then
+                  u_c_val(i,stage,1:nof_variables) = buffer(k:k+nof_variables-1)
+               else
+                  buffer(k:k+nof_variables-1) = u_c_val(i,stage,1:nof_variables)
+               end if
+               k = k+nof_variables
             end if
-         end if
-      else
-         if ((rungekutta .ge. 5) .and. (rungekutta .lt. 11)) then
-            disp_in_file = disp_in_file + size_of_int
-            disp_in_file = disp_in_file + size_of_real * (nof_variables + turbulenceequations)
-         else
-            disp_in_file = disp_in_file + size_of_int
-            disp_in_file = disp_in_file + size_of_real
-            if (initcond .eq. 95) then
-               disp_in_file = disp_in_file + size_of_real
+            if (reading) then
+               ! Previous counts describe the FILE. Map turbulence and passives separately;
+               ! keep the initialized state of newly enabled fields.
+               if (allocated(u_ct_val)) then
+                  do j = 1, min(nt,turbulenceequations)
+                     u_ct_val(i,stage,j) = buffer(k+j-1)
+                  end do
+                  do j = 1, min(np,passivescalar)
+                     u_ct_val(i,stage,turbulenceequations+j) = buffer(k+nt+j-1)
+                  end do
+               end if
+            else if (nt+np > 0) then
+               buffer(k:k+nt+np-1) = u_ct_val(i,stage,1:nt+np)
             end if
-         end if
+            k = k+nt+np
+            if (averaged) then
+               if (reading) then
+                  u_c_rms(i,1:6) = buffer(k:k+5)
+                  do j = 1, min(np,passivescalar)
+                     u_c_rms(i,6+j) = buffer(k+5+j)
+                  end do
+               else
+                  buffer(k:k+5+np) = u_c_rms(i,1:6+np)
+               end if
+               k = k+6+np
+            end if
+         end do
+         if (.not. reading) call checkpoint_transfer(cp, first, count, buffer)
+      end do
+      call checkpoint_finish(cp)
+   end subroutine checkpoint3d_state
 
-      end if
-
-      call mpi_barrier(mpi_comm_world, ierror)
-      call mpi_file_set_view(fh, disp_in_file, mpi_double_precision, datatype, 'native', mpi_info_null, ierror)
-      call mpi_file_write_all(fh, array2, kmaxe * n_end, mpi_double_precision, mpi_status_ignore, ierror)
-
-      call mpi_file_close(fh, ierror)
-      call mpi_type_free(datatype, ierror)
-
-      deallocate (array, dispt, array2)
-      call mpi_barrier(mpi_comm_world, ierror)
-
+   subroutine checkpoint(n)
+      integer, intent(in) :: n
+      call checkpoint3d_state(n, .false., .false.)
    end subroutine checkpoint
 
    subroutine prepare_surfaces_v(n)
@@ -12319,110 +12470,23 @@ contains
    subroutine partition_preparation_p(n)
       implicit none
       integer, intent(in) :: n
-      integer :: i, j, k, kmaxe, kmaxn_p, temp_cord, varg_max
-      integer, dimension(8) :: temp_part_n
+      integer :: kmaxe, varg_max
       kmaxe = xmpielrank(n)
-
-      temp_cord = 3
-
       varg_max = max(write_variables, write_variables_av)
-      allocate (sol_vtu(1:kmaxe, 1:varg_max)); sol_vtu = 0 !
-
-      allocate (typ_nodesn(1:kmaxe)); typ_nodesn(:) = 0
-      typ_countn = 0
-      do i = 1, kmaxe
-         if (ielem_ishape(i) .eq. 1) then !hexa
-            typ_countn = typ_countn + 8
-            typ_nodesn(i) = 8
-
-         end if
-         if (ielem_ishape(i) .eq. 2) then !tetra
-            typ_countn = typ_countn + 4
-            typ_nodesn(i) = 4
-
-         end if
-         if (ielem_ishape(i) .eq. 3) then !pyramid
-            typ_countn = typ_countn + 5
-            typ_nodesn(i) = 5
-
-         end if
-         if (ielem_ishape(i) .eq. 4) then !prism
-            typ_countn = typ_countn + 6
-            typ_nodesn(i) = 6
-
-         end if
-         if (ielem_ishape(i) .eq. 5) then !quad
-            typ_countn = typ_countn + 4
-            typ_nodesn(i) = 4
-         end if
-         if (ielem_ishape(i) .eq. 6) then !triangular
-            typ_countn = typ_countn + 3
-            typ_nodesn(i) = 3
-
-         end if
-      end do
-
-      allocate (offset_vtu(1:kmaxe), connect_vtu(1:typ_countn))
-      !
-      k = 0
-      do i = 1, kmaxe
-         k = k + typ_nodesn(i)
-         offset_vtu(i) = k
-      end do
-
-      k = 1
-      do i = 1, kmaxe
-         temp_part_n(1:typ_nodesn(i)) = ielem_nodes(1:typ_nodesn(i), i)
-
-         do j = 1, typ_nodesn(i)
-            temp_part_n(j) = temp_part_n(j) - 1
-         end do
-
-         connect_vtu(k:k + typ_nodesn(i) - 1) = temp_part_n(1:typ_nodesn(i))
-         k = k + typ_nodesn(i)
-      end do
-
-      allocate (type_vtu(1:kmaxe))
-      do i = 1, kmaxe
-         if (ielem_ishape(i) .eq. 1) then !hexa
-            type_vtu(i) = 12
-         end if
-         if (ielem_ishape(i) .eq. 2) then !tetra
-            type_vtu(i) = 10
-         end if
-         if (ielem_ishape(i) .eq. 3) then !pyramid
-            type_vtu(i) = 14
-         end if
-         if (ielem_ishape(i) .eq. 4) then !prism
-            type_vtu(i) = 13
-         end if
-         if (ielem_ishape(i) .eq. 5) then !quad
-            type_vtu(i) = 9
-         end if
-         if (ielem_ishape(i) .eq. 6) then !triangular
-            type_vtu(i) = 5
-         end if
-
-      end do
-
-      allocate (nodes_vtu(1:kmaxn * temp_cord))
-
-      k = 1
-      do i = 1, kmaxn
-         nodes_vtu(k:k + dims - 1) = inoder4_cord(1:dims, i)
-         if (dimensiona .eq. 2) then
-            nodes_vtu(k + temp_cord - 1:k + temp_cord - 1) = 0.00
-         end if
-         k = k + temp_cord
-      end do
-
+      allocate(sol_vtu(kmaxe, varg_max)); sol_vtu = 0.0
+      typ_countn = sum(ielem_nonodes)
+      ! Connectivity already uses final local vertex indices here. Build a
+      ! separate output halo; keep the solver's cell counts and halos unchanged.
+      call vtk_ghost_initialize(ielem_ihexgl, ielem_ishape, ielem_nonodes, ielem_nodes, inoder4_itor, &
+         inoder4_cord, varg_max, mpi_comm_world)
    end subroutine partition_preparation_p
 
    subroutine partition_preparation_p_wall(n)
       implicit none
       integer, intent(in) :: n
       integer :: i, j, k, kmaxe, kmaxn_p, temp_cord, varg_max, iloop, kloop, zloop, kloopf, temp_loop, kn, kkd
-      integer, dimension(8) :: temp_part_n
+      integer, allocatable :: surface_ids(:), surface_shapes(:), surface_counts(:), surface_nodes(:, :)
+      integer :: cell, face
       kmaxe = xmpielrank(n)
 
       temp_cord = 3
@@ -12484,90 +12548,26 @@ contains
       end do
 
       varg_max = max(write_variables_w, write_variables_av_w)
-      if (iloopx .gt. 0) then
-         allocate (sol_vtu_w(1:iloopx, 1:varg_max)); sol_vtu_w = 0 !
-      else
-         allocate (sol_vtu_w(0:0, 1:varg_max)); sol_vtu_w = 0 !
-      end if
-
-      if (iloopx .gt. 0) then
-         allocate (typ_nodesn_w(1:iloopx), type_vtu_w(1:iloopx)); typ_nodesn_w(:) = 0; type_vtu_w = 0
-      else
-         allocate (typ_nodesn_w(0:0), type_vtu_w(0:0)); typ_nodesn_w(:) = 0; type_vtu_w = 0
-      end if
-
-      typ_countn_w = 0
-      if (iloopx .gt. 0) then
-
-         do i = 1, iloopx
-            if (wall_l(i, 3) .eq. 4) then !quad
-               typ_countn_w = typ_countn_w + 4
-               typ_nodesn_w(i) = 4
-               type_vtu_w(i) = 9
-            end if
-
-            if (wall_l(i, 3) .eq. 3) then !tri
-               typ_countn_w = typ_countn_w + 3
-               typ_nodesn_w(i) = 3
-               type_vtu_w(i) = 5
-            end if
-
-            if (wall_l(i, 3) .eq. 2) then !line
-               typ_countn_w = typ_countn_w + 2
-               typ_nodesn_w(i) = 2
-               type_vtu_w(i) = 3
-            end if
-         end do
-
-      end if
-
-      if (iloopx .gt. 0) then
-         allocate (offset_vtu_w(1:iloopx), connect_vtu_w(1:typ_countn_w))
-      else
-         allocate (offset_vtu_w(0:0), connect_vtu_w(0:0))
-      end if
-      !
-
-      if (iloopx .gt. 0) then
-         k = 0
-         do i = 1, iloopx
-            k = k + typ_nodesn_w(i)
-            offset_vtu_w(i) = k
-         end do
-
-         k = 1
-         do i = 1, iloopx
-            temp_part_n(1:typ_nodesn_w(i)) = ielem_nodes_faces(wall_l(i, 1), wall_l(i, 2), 1:typ_nodesn_w(i))
-
-            do j = 1, typ_nodesn_w(i)
-               temp_part_n(j) = temp_part_n(j) - 1
-            end do
-
-            connect_vtu_w(k:k + typ_nodesn_w(i) - 1) = temp_part_n(1:typ_nodesn_w(i))
-            k = k + typ_nodesn_w(i)
-         end do
-
-      end if
-
-      if (iloopx .gt. 0) then
-         allocate (nodes_vtu_w(1:kmaxn * temp_cord))
-
-      else
-         allocate (nodes_vtu_w(0:0))
-      end if
-
-      if (iloopx .gt. 0) then
-
-         k = 1
-         do i = 1, kmaxn
-            nodes_vtu_w(k:k + dims - 1) = inoder4_cord(1:dims, i)
-            if (dimensiona .eq. 2) then
-               nodes_vtu_w(k + temp_cord - 1:k + temp_cord - 1) = 0.00
-            end if
-            k = k + temp_cord
-         end do
-      end if
-
+      allocate(sol_vtu_w(iloopx, varg_max)); sol_vtu_w = 0.0
+      allocate(surface_ids(iloopx), surface_shapes(iloopx), surface_counts(iloopx), surface_nodes(4, iloopx))
+      surface_nodes = 0
+      do i = 1, iloopx
+         cell = wall_l(i, 1); face = wall_l(i, 2)
+         surface_ids(i) = ibound_ibid(ielem_ibounds(cell, face))
+         surface_counts(i) = wall_l(i, 3)
+         select case(surface_counts(i))
+         case(4)
+            surface_shapes(i) = 5
+         case(3)
+            surface_shapes(i) = 6
+         case(2)
+            surface_shapes(i) = 7
+         end select
+         surface_nodes(1:surface_counts(i), i) = ielem_nodes_faces(cell, face, 1:surface_counts(i))
+      end do
+      typ_countn_w = sum(surface_counts)
+      call vtk_surface_initialize(surface_ids, surface_shapes, surface_counts, surface_nodes, inoder4_itor, &
+         inoder4_cord, varg_max, mpi_comm_world)
    end subroutine partition_preparation_p_wall
 
    subroutine specify_write_variables(n)
@@ -13588,63 +13588,13 @@ contains
    end subroutine parallel_vtk_combine_av
 
    subroutine parallel_vtk_combine_partitioned(n)
-!> @brief
-!> this subroutine uses mpi-io for writing the vtk files
+      ! Build the owner's usual fields, then exchange those exact output values.
       implicit none
       integer, intent(in) :: n
-      real, allocatable, dimension(:) :: array2, array3, array4
-      integer :: i, k, kmaxe, j, jk, icpuid, nvar, imaxp, dumg, duml, jj, fh, dip, n_end, ifg, kmaxn_p, itrimm, temp_cord
-      character(len=20) :: proc, proc3, proc5, proc6, proc7
-      character(len=90) :: filex, filev
-      real, allocatable, dimension(:) :: array
-      logical :: here1
-      real :: in1, iocpt1, iocpt2, iocpt3, iocpt4, ptemp
-      integer :: disp_in_file, procx, tmp, disp_init, offset_temp, bytes, temp_imaxe, temp_imaxn, temp_node, temp_dims, &
-         & size_of_real, size_of_int
-      integer :: nbytes, eight
-      character(len=35) :: offset_stamp, tempstamp1, tempstamp2
-      character(len=200) :: buffer
-      character(len=1) :: lf
-      character(len=:), allocatable :: vtu
-      real, dimension(1:nof_variables) :: leftv, vectco
-      real :: mp_pinfl, gammal
-      real, dimension(1:nof_variables) :: rightv
-      real :: mp_pinfr, gammar
-      nbytes = 1
-
-      temp_cord = 3
-      size_of_int = 4
-      size_of_real = 8
-
-      offset_temp = 0
-      disp_in_file = 0
-      tmp = 0
-      disp_init = 0
+      integer :: i, j, kmaxe
+      real :: ptemp, mp_pinfl, gammal
+      real :: leftv(nof_variables), vectco(nof_variables)
       kmaxe = xmpielrank(n)
-
-      temp_cord = 3
-
-!                                                 if (n.eq.0)then
-      write (proc3, fmt='(i10)') it
-      write (proc5, fmt='(i10)') n
-      filex = "OUT_"//trim(adjustl(proc3))//"_"//trim(adjustl(proc5))//".vtu"
-      itrimm = len_trim(filex)
-      allocate (character(len=itrimm) :: vtu)
-      vtu = filex(1:itrimm)
-!                             end if
-
-      if (movement .eq. 1) then
-         k = 1
-         do i = 1, kmaxn
-            nodes_vtu(k:k + dims - 1) = inoder4_cord(1:dims, i)
-            if (dimensiona .eq. 2) then
-               nodes_vtu(k + temp_cord - 1:k + temp_cord - 1) = 0.00
-            end if
-            k = k + temp_cord
-         end do
-
-      end if
-
       if (dimensiona .eq. 3) then
          do i = 1, kmaxe
             leftv(1:nof_variables) = u_c_val(i, 1, 1:nof_variables)
@@ -13682,7 +13632,6 @@ contains
             end if
          end do
 
-         temp_node = 8; temp_dims = 3
 
       end if
 
@@ -13727,259 +13676,28 @@ contains
             end if
 
          end do
-         temp_node = 4; temp_dims = 3
       end if
 
-      temp_imaxe = kmaxe
-      temp_imaxn = kmaxn
-
-      !first write the header xml file from one mpi process
-
-      lf = char(10)
-      ! write file name
-      open (300, file=vtu, access='stream')
-      ! write header
-      buffer = '<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf; write (300) &
-         & trim(buffer)
-      ! write unstructured grid type
-      buffer = '  <UnstructuredGrid>'//lf; write (300) trim(buffer)
-      ! write solution time type
-      buffer = '    <FieldData>'//lf; write (300) trim(buffer)
-      offset_temp = 0
-      write (offset_stamp, '(i16)') offset_temp
-      buffer = '      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="appended" '// &
-         & 'offset="'//trim(adjustl(offset_stamp))//'"/>'//lf; write (300) trim(buffer)
-      buffer = '    </FieldData>'//lf; write (300) trim(buffer)
-      ! specify field pieces
-      write (tempstamp1, '(i16)') kmaxn
-      write (tempstamp2, '(i16)') kmaxe
-      buffer = '    <Piece NumberOfPoints="'//trim(adjustl(tempstamp1))//'" &
-             &NumberOfCells="'//trim(adjustl(tempstamp2))//'">'//lf; write (300) trim(buffer)
-      ! specify point data
-      buffer = '     <PointData>'//lf; write (300) trim(buffer)
-      buffer = '     </PointData>'//lf; write (300) trim(buffer)
-      buffer = '     <CellData>'//lf; write (300) trim(buffer)
-      offset_temp = offset_temp + size_of_int + size_of_real
-      write (offset_stamp, '(i16)') offset_temp
-      do i = 1, write_variables
-         buffer = '        <DataArray type="Float64" Name="'//trim(variable_names(i))//'" '// &
-            & 'format="appended" offset="'//trim(adjustl(offset_stamp))//'"/>'//lf; write (300) trim(buffer)
-         offset_temp = offset_temp + size_of_int + temp_imaxe * size_of_real
-         write (offset_stamp, '(i16)') offset_temp
-      end do
-      buffer = '     </CellData>'//lf; write (300) trim(buffer)
-      buffer = '     <Points>'//lf; write (300) trim(buffer)
-      buffer = '        <DataArray type="Float64" Name="Coordinates" NumberOfComponents="3" format="appended" '// &
-         & 'offset="'//trim(adjustl(offset_stamp))//'"/>'//lf; write (300) trim(buffer)
-      ! buffer='        </DataArray>'//lf;write(300) trim(buffer)
-      offset_temp = offset_temp + size_of_int + temp_dims * temp_imaxn * size_of_real
-      write (offset_stamp, '(i16)') offset_temp
-      buffer = '     </Points>'//lf; write (300) trim(buffer)
-      ! specify necessary cell data
-      buffer = '      <Cells>'//lf; write (300) trim(buffer)
-      ! connectivity
-      buffer = '        <DataArray type="Int32" Name="connectivity" format="appended" '// &
-         & 'offset="'//trim(adjustl(offset_stamp))//'"/>'//lf; write (300) trim(buffer)
-      offset_temp = offset_temp + size_of_int + (typ_countn) * size_of_int
-      write (offset_stamp, '(i16)') offset_temp
-      ! offsets
-      buffer = '        <DataArray type="Int32" Name="offsets" format="appended" '// &
-         & 'offset="'//trim(adjustl(offset_stamp))//'"/>'//lf; write (300) trim(buffer)
-      offset_temp = offset_temp + size_of_int + temp_imaxe * size_of_int
-      write (offset_stamp, '(i16)') offset_temp
-      ! elem types
-      buffer = '        <DataArray type="Int32" Name="types" format="appended" '// &
-         & 'offset="'//trim(adjustl(offset_stamp))//'"/>'//lf; write (300) trim(buffer)
-      ! buffer='        </DataArray>'//lf;write(300) trim(buffer)
-      buffer = '      </Cells>'//lf; write (300) trim(buffer)
-      buffer = '    </Piece>'//lf; write (300) trim(buffer)
-      buffer = '  </UnstructuredGrid>'//lf; write (300) trim(buffer)
-      ! prepare append section
-      buffer = '  <AppendedData encoding="raw">'//lf; write (300) trim(buffer)
-      ! write leading data underscore
-      buffer = '_'; write (300) trim(buffer)
-      bytes = size_of_real
-
-      !----write time stamp----!
-      bytes = size_of_real
-      write (300) bytes, t
-
-      !end time stamp
-
-      !----write variables----!
-      do j = 1, write_variables
-         bytes = temp_imaxe * size_of_real
-         write (300) bytes, sol_vtu(1:kmaxe, j)
-
-      end do
-      !end----write variables----!
-
-      !write nodes now!
-      bytes = kmaxn * 3 * size_of_real
-      write (300) bytes, nodes_vtu(1:kmaxn * 3)
-
-      !end write nodes now!
-
-      !write connectivity now!
-      bytes = typ_countn * size_of_int
-      write (300) bytes, connect_vtu(1:typ_countn)
-
-      !end write connectivity now!
-
-      !write offsets now!
-      bytes = kmaxe * size_of_int
-      write (300) bytes, offset_vtu(1:kmaxe)
-
-      !end write nodes now!
-
-      !write types now!
-      bytes = kmaxe * size_of_int
-      write (300) bytes, type_vtu(1:kmaxe)
-
-      !end write nodes now!
-
-      lf = char(10)
-      buffer = lf//'  </AppendedData>'//lf; write (300) trim(buffer)
-      buffer = '</VTKFile>'//lf; write (300) trim(buffer)
-      close (300)
-
-      deallocate (vtu)
-
-      call mpi_barrier(mpi_comm_world, ierror)
-
-      if (n .eq. 0) then
-
-         write (proc3, fmt='(i10)') it
-         write (proc5, fmt='(i10)') n
-         filex = "PAR_"//trim(adjustl(proc3))//".pvtu"
-         itrimm = len_trim(filex)
-         allocate (character(len=itrimm) :: vtu)
-         vtu = filex(1:itrimm)
-
-         lf = char(10)
-         ! write file name
-         open (300, file=vtu, access='stream')
-         ! write header
-         buffer = '<VTKFile type="PUnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt64">'//lf; write &
-            & (300) trim(buffer)
-         ! write unstructured grid type
-         buffer = '  <PUnstructuredGrid GhostLevel="0">'//lf; write (300) trim(buffer)
-         ! write solution time type
-         buffer = '    <FieldData>'//lf; write (300) trim(buffer)
-         buffer = '      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="ascii">'//lf; write (300) &
-            & trim(buffer)
-!     buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1">'//lf;write(300) trim(buffer)
-         write (tempstamp1, '(f17.9)') t
-         buffer = '        '//trim(adjustl(tempstamp1))//lf; write (300) trim(buffer)
-         buffer = '      </DataArray>'//lf; write (300) trim(buffer)
-         buffer = '    </FieldData>'//lf; write (300) trim(buffer)
-         ! specify point data
-         buffer = '    <PCellData>'//lf; write (300) trim(buffer)
-         do i = 1, write_variables
-            buffer = '        <PDataArray type="Float64" Name="'//trim(variable_names(i))//'" '// &
-               & 'format="appended"/>'//lf; write (300) trim(buffer)
-            offset_temp = offset_temp + size_of_int + temp_imaxe * size_of_real
-         end do
-         buffer = '    </PCellData>'//lf; write (300) trim(buffer)
-         buffer = '    <PPoints>'//lf; write (300) trim(buffer)
-
-         buffer = '        <PDataArray type="Float64" Name="Coordinates" NumberOfComponents="3"/>'//lf; write (300) trim(buffer)
-         buffer = '    </PPoints>'//lf; write (300) trim(buffer)
-         buffer = '    <PCells>'//lf; write (300) trim(buffer)
-         buffer = '        <PDataArray type="Int32" Name="connectivity"/>'//lf; write (300) trim(buffer)
-         buffer = '        <PDataArray type="Int32" Name="offsets"/>'//lf; write (300) trim(buffer)
-         buffer = '        <PDataArray type="Int32" Name="types"/>'//lf; write (300) trim(buffer)
-         buffer = '    </PCells>'//lf; write (300) trim(buffer)
-         do procx = 0, isize - 1
-
-            write (proc6, fmt='(i10)') it
-            write (proc7, fmt='(i10)') procx
-            buffer = '    <Piece Source="OUT_'//trim(adjustl(proc6))//"_"//trim(adjustl(proc7))//'.vtu"/>'//lf; write (300) &
-               & trim(buffer)
-         end do
-         buffer = '  </PUnstructuredGrid>'//lf; write (300) trim(buffer)
-         buffer = '</VTKFile>'//lf; write (300) trim(buffer)
-         close (300)
-
-         deallocate (vtu)
-
-      end if
-
-      call mpi_barrier(mpi_comm_world, ierror)
-
+      call vtk_ghost_write('OUT_', 'PAR_', it, t, variable_names(1:write_variables), &
+         sol_vtu(1:kmaxe, 1:write_variables), inoder4_cord, movement == 1)
    end subroutine parallel_vtk_combine_partitioned
 
    subroutine parallel_vtk_combine_partitioned_wall(n)
-!> @brief
-!> this subroutine uses mpi-io for writing the vtk files
+      ! Surface faces use their own vertex-connected halo and owner-computed fields.
       implicit none
       integer, intent(in) :: n
-      real, allocatable, dimension(:) :: array2, array3, array4
-      integer :: i, k, kmaxe, j, jk, icpuid, nvar, imaxp, dumg, duml, jj, fh, dip, n_end, ifg, kmaxn_p, itrimm, temp_cord, kkd_i, &
-         & kkd
-      character(len=20) :: proc, proc3, proc5, proc6, proc7
-      character(len=90) :: filex, filev
-      real, allocatable, dimension(:) :: array
-      logical :: here1
-      real :: in1, iocpt1, iocpt2, iocpt3, iocpt4, ptemp
-      integer :: disp_in_file, procx, tmp, disp_init, offset_temp, bytes, temp_imaxe, temp_imaxn, temp_node, temp_dims, &
-         & size_of_real, size_of_int
-      integer :: nbytes, eight
-      character(len=35) :: offset_stamp, tempstamp1, tempstamp2
-      character(len=200) :: buffer
-      character(len=1) :: lf
-      character(len=:), allocatable :: vtu
-      real, dimension(1:nof_variables) :: leftv, vectco
-      real :: mp_pinfl, gammal
-      real, dimension(1:nof_variables) :: rightv
-      real :: mp_pinfr, gammar
-      real :: shear_temp
-      integer :: iconsidered, facex
-      nbytes = 1
-
-      temp_cord = 3
-      size_of_int = 4
-      size_of_real = 8
-
-      offset_temp = 0
-      disp_in_file = 0
-      tmp = 0
-      disp_init = 0
-
-      if (iloopx .gt. 0) then
-
-         temp_cord = 3
-
-         write (proc3, fmt='(i10)') it
-         write (proc5, fmt='(i10)') n
-         filex = "SURF_"//trim(adjustl(proc3))//"_"//trim(adjustl(proc5))//".vtu"
-         itrimm = len_trim(filex)
-         allocate (character(len=itrimm) :: vtu)
-         vtu = filex(1:itrimm)
-
-         if (movement .eq. 1) then
-            k = 1
-            do i = 1, kmaxn
-               nodes_vtu_w(k:k + dims - 1) = inoder4_cord(1:dims, i)
-               if (dimensiona .eq. 2) then
-                  nodes_vtu_w(k + temp_cord - 1:k + temp_cord - 1) = 0.00
-               end if
-               k = k + temp_cord
-            end do
-
-         end if
-
+      integer :: i, facex, iconsidered, kkd_i, kkd
+      real :: leftv(nof_variables), vectco(nof_variables)
+      real :: mp_pinfl, gammal, ptemp, shear_temp
          do i = 1, iloopx
             facex = wall_l(i, 2)
             iconsidered = wall_l(i, 1)
             leftv(1:nof_variables) = u_c_val(iconsidered, 1, 1:nof_variables)
             if (dimensiona .eq. 3) then
                call cons2prim(n, leftv, mp_pinfl, gammal)
-               temp_node = 3; temp_dims = 3
 
             else
                call cons2prim(n, leftv, mp_pinfl, gammal)
-               temp_node = 2; temp_dims = 2
             end if
 
             if (realgas .eq. 1) then
@@ -14054,260 +13772,26 @@ contains
 
          end do
 
-         temp_imaxe = iloopx
-         temp_imaxn = kmaxn
-
-         !first write the header xml file from one mpi process
-
-         lf = char(10)
-         ! write file name
-         open (300, file=vtu, access='stream')
-         ! write header
-         buffer = '<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf; write &
-            & (300) trim(buffer)
-         ! write unstructured grid type
-         buffer = '  <UnstructuredGrid>'//lf; write (300) trim(buffer)
-         ! write solution time type
-         buffer = '    <FieldData>'//lf; write (300) trim(buffer)
-         offset_temp = 0
-         write (offset_stamp, '(i16)') offset_temp
-         buffer = '      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="appended" '// &
-            & 'offset="'//trim(adjustl(offset_stamp))//'"/>'//lf; write (300) trim(buffer)
-         buffer = '    </FieldData>'//lf; write (300) trim(buffer)
-         ! specify field pieces
-         write (tempstamp1, '(i16)') kmaxn
-         write (tempstamp2, '(i16)') iloopx
-         buffer = '    <Piece NumberOfPoints="'//trim(adjustl(tempstamp1))//'" &
-                &NumberOfCells="'//trim(adjustl(tempstamp2))//'">'//lf; write (300) trim(buffer)
-         ! specify point data
-         buffer = '     <PointData>'//lf; write (300) trim(buffer)
-         buffer = '     </PointData>'//lf; write (300) trim(buffer)
-         buffer = '     <CellData>'//lf; write (300) trim(buffer)
-         offset_temp = offset_temp + size_of_int + size_of_real
-         write (offset_stamp, '(i16)') offset_temp
-         do i = 1, write_variables_w
-            buffer = '        <DataArray type="Float64" Name="'//trim(variable_names_w(i))//'" '// &
-               & 'format="appended" offset="'//trim(adjustl(offset_stamp))//'"/>'//lf; write (300) trim(buffer)
-            offset_temp = offset_temp + size_of_int + temp_imaxe * size_of_real
-            write (offset_stamp, '(i16)') offset_temp
-         end do
-         buffer = '     </CellData>'//lf; write (300) trim(buffer)
-         buffer = '     <Points>'//lf; write (300) trim(buffer)
-         buffer = '        <DataArray type="Float64" Name="Coordinates" NumberOfComponents="3" format="appended" '// &
-            & 'offset="'//trim(adjustl(offset_stamp))//'"/>'//lf; write (300) trim(buffer)
-         ! buffer='        </DataArray>'//lf;write(300) trim(buffer)
-         offset_temp = offset_temp + size_of_int + temp_dims * temp_imaxn * size_of_real
-         write (offset_stamp, '(i16)') offset_temp
-         buffer = '     </Points>'//lf; write (300) trim(buffer)
-         ! specify necessary cell data
-         buffer = '      <Cells>'//lf; write (300) trim(buffer)
-         ! connectivity
-         buffer = '        <DataArray type="Int32" Name="connectivity" format="appended" '// &
-            & 'offset="'//trim(adjustl(offset_stamp))//'"/>'//lf; write (300) trim(buffer)
-         offset_temp = offset_temp + size_of_int + (typ_countn_w) * size_of_int
-         write (offset_stamp, '(i16)') offset_temp
-         ! offsets
-         buffer = '        <DataArray type="Int32" Name="offsets" format="appended" '// &
-            & 'offset="'//trim(adjustl(offset_stamp))//'"/>'//lf; write (300) trim(buffer)
-         offset_temp = offset_temp + size_of_int + temp_imaxe * size_of_int
-         write (offset_stamp, '(i16)') offset_temp
-         ! elem types
-         buffer = '        <DataArray type="Int32" Name="types" format="appended" '// &
-            & 'offset="'//trim(adjustl(offset_stamp))//'"/>'//lf; write (300) trim(buffer)
-         ! buffer='        </DataArray>'//lf;write(300) trim(buffer)
-         buffer = '      </Cells>'//lf; write (300) trim(buffer)
-         buffer = '    </Piece>'//lf; write (300) trim(buffer)
-         buffer = '  </UnstructuredGrid>'//lf; write (300) trim(buffer)
-         ! prepare append section
-         buffer = '  <AppendedData encoding="raw">'//lf; write (300) trim(buffer)
-         ! write leading data underscore
-         buffer = '_'; write (300) trim(buffer)
-         bytes = size_of_real
-
-         !----write time stamp----!
-         bytes = size_of_real
-         write (300) bytes, t
-
-         !end time stamp
-
-         !----write variables----!
-
-         do j = 1, write_variables_w
-            bytes = temp_imaxe * size_of_real
-            write (300) bytes, sol_vtu_w(1:iloopx, j)
-
-         end do
-         !end----write variables----!
-
-         !write nodes now!
-         bytes = kmaxn * 3 * size_of_real
-         write (300) bytes, nodes_vtu_w(1:kmaxn * 3)
-
-         !end write nodes now!
-
-         !write connectivity now!
-         bytes = typ_countn_w * size_of_int
-         write (300) bytes, connect_vtu_w(1:typ_countn_w)
-
-         !end write connectivity now!
-
-         !write offsets now!
-         bytes = iloopx * size_of_int
-         write (300) bytes, offset_vtu_w(1:iloopx)
-
-         !end write nodes now!
-
-         !write types now!
-         bytes = iloopx * size_of_int
-         write (300) bytes, type_vtu_w(1:iloopx)
-
-         !end write nodes now!
-
-         lf = char(10)
-         buffer = lf//'  </AppendedData>'//lf; write (300) trim(buffer)
-         buffer = '</VTKFile>'//lf; write (300) trim(buffer)
-         close (300)
-
-         deallocate (vtu)
-
-      end if
-
-      call mpi_barrier(mpi_comm_world, ierror)
-
-      if (n .eq. 0) then
-
-         write (proc3, fmt='(i10)') it
-         write (proc5, fmt='(i10)') n
-         filex = "PAR_SURF_"//trim(adjustl(proc3))//".pvtu"
-         itrimm = len_trim(filex)
-         allocate (character(len=itrimm) :: vtu)
-         vtu = filex(1:itrimm)
-
-         lf = char(10)
-         ! write file name
-         open (300, file=vtu, access='stream')
-         ! write header
-         buffer = '<VTKFile type="PUnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt64">'//lf; write &
-            & (300) trim(buffer)
-         ! write unstructured grid type
-         buffer = '  <PUnstructuredGrid GhostLevel="0">'//lf; write (300) trim(buffer)
-         ! write solution time type
-         buffer = '    <FieldData>'//lf; write (300) trim(buffer)
-         buffer = '      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="ascii">'//lf; write (300) &
-            & trim(buffer)
-!     buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1">'//lf;write(300) trim(buffer)
-         write (tempstamp1, '(f17.9)') t
-         buffer = '        '//trim(adjustl(tempstamp1))//lf; write (300) trim(buffer)
-         buffer = '      </DataArray>'//lf; write (300) trim(buffer)
-         buffer = '    </FieldData>'//lf; write (300) trim(buffer)
-         ! specify point data
-         buffer = '    <PCellData>'//lf; write (300) trim(buffer)
-         do i = 1, write_variables_w
-            buffer = '        <PDataArray type="Float64" Name="'//trim(variable_names_w(i))//'" '// &
-               & 'format="appended"/>'//lf; write (300) trim(buffer)
-            offset_temp = offset_temp + size_of_int + temp_imaxe * size_of_real
-         end do
-         buffer = '    </PCellData>'//lf; write (300) trim(buffer)
-         buffer = '    <PPoints>'//lf; write (300) trim(buffer)
-
-         buffer = '        <PDataArray type="Float64" Name="Coordinates" NumberOfComponents="3"/>'//lf; write (300) trim(buffer)
-         buffer = '    </PPoints>'//lf; write (300) trim(buffer)
-         buffer = '    <PCells>'//lf; write (300) trim(buffer)
-         buffer = '        <PDataArray type="Int32" Name="connectivity"/>'//lf; write (300) trim(buffer)
-         buffer = '        <PDataArray type="Int32" Name="offsets"/>'//lf; write (300) trim(buffer)
-         buffer = '        <PDataArray type="Int32" Name="types"/>'//lf; write (300) trim(buffer)
-         buffer = '    </PCells>'//lf; write (300) trim(buffer)
-         do procx = 0, isize - 1
-            if (wallcount_cpu_g(procx) .gt. 0) then
-               write (proc6, fmt='(i10)') it
-               write (proc7, fmt='(i10)') procx
-               buffer = '    <Piece Source="SURF_'//trim(adjustl(proc6))//"_"//trim(adjustl(proc7))//'.vtu"/>'//lf; write (300) &
-                  & trim(buffer)
-            end if
-         end do
-         buffer = '  </PUnstructuredGrid>'//lf; write (300) trim(buffer)
-         buffer = '</VTKFile>'//lf; write (300) trim(buffer)
-         close (300)
-
-         deallocate (vtu)
-
-      end if
-
-      call mpi_barrier(mpi_comm_world, ierror)
-
+      call vtk_surface_write('SURF_', 'PAR_SURF_', it, t, variable_names_w(1:write_variables_w), &
+         sol_vtu_w(1:iloopx, 1:write_variables_w), inoder4_cord, movement == 1)
    end subroutine parallel_vtk_combine_partitioned_wall
 
    subroutine parallel_vtk_combine_partitioned_wall_av(n)
-!> @brief
-!> this subroutine uses mpi-io for writing the vtk files
+      ! Surface faces use their own vertex-connected halo and owner-computed fields.
       implicit none
       integer, intent(in) :: n
-      real, allocatable, dimension(:) :: array2, array3, array4
-      integer :: i, k, kmaxe, j, jk, icpuid, nvar, imaxp, dumg, duml, jj, fh, dip, n_end, ifg, kmaxn_p, itrimm, temp_cord, kkd_i, &
-         & kkd
-      character(len=20) :: proc, proc3, proc5, proc6, proc7
-      character(len=90) :: filex, filev
-      real, allocatable, dimension(:) :: array
-      logical :: here1
-      real :: in1, iocpt1, iocpt2, iocpt3, iocpt4
-      integer :: disp_in_file, procx, tmp, disp_init, offset_temp, bytes, temp_imaxe, temp_imaxn, temp_node, temp_dims, &
-         & size_of_real, size_of_int
-      integer :: nbytes, eight
-      character(len=35) :: offset_stamp, tempstamp1, tempstamp2
-      character(len=200) :: buffer
-      character(len=1) :: lf
-      character(len=:), allocatable :: vtu
-      real, dimension(1:nof_variables) :: leftv, vectco
-      real :: mp_pinfl, gammal, ptemp
-      real, dimension(1:nof_variables) :: rightv
-      real :: mp_pinfr, gammar
-      real :: shear_temp
-      integer :: iconsidered, facex
-      nbytes = 1
-
-      temp_cord = 3
-      size_of_int = 4
-      size_of_real = 8
-
-      offset_temp = 0
-      disp_in_file = 0
-      tmp = 0
-      disp_init = 0
-
-      if (iloopx .gt. 0) then
-
-         temp_cord = 3
-
-         write (proc3, fmt='(i10)') it
-         write (proc5, fmt='(i10)') n
-         filex = "SURF_AV_"//trim(adjustl(proc3))//"_"//trim(adjustl(proc5))//".vtu"
-         itrimm = len_trim(filex)
-         allocate (character(len=itrimm) :: vtu)
-         vtu = filex(1:itrimm)
-
-         if (movement .eq. 1) then
-            k = 1
-            do i = 1, kmaxn
-               nodes_vtu_w(k:k + dims - 1) = inoder4_cord(1:dims, i)
-               if (dimensiona .eq. 2) then
-                  nodes_vtu_w(k + temp_cord - 1:k + temp_cord - 1) = 0.00
-               end if
-               k = k + temp_cord
-            end do
-
-         end if
-
+      integer :: i, facex, iconsidered, kkd_i, kkd
+      real :: leftv(nof_variables), vectco(nof_variables)
+      real :: mp_pinfl, gammal, ptemp, shear_temp
          do i = 1, iloopx
             facex = wall_l(i, 2)
             iconsidered = wall_l(i, 1)
             leftv(1:nof_variables) = u_c_val(iconsidered, ind1, 1:nof_variables)
             if (dimensiona .eq. 3) then
                call cons2prim(n, leftv, mp_pinfl, gammal)
-               temp_node = 3; temp_dims = 3
 
             else
                call cons2prim(n, leftv, mp_pinfl, gammal)
-               temp_node = 2; temp_dims = 2
             end if
 
             if (realgas .eq. 1) then
@@ -14373,247 +13857,18 @@ contains
 
          end do
 
-         temp_imaxe = iloopx
-         temp_imaxn = kmaxn
-
-         !first write the header xml file from one mpi process
-
-         lf = char(10)
-         ! write file name
-         open (300, file=vtu, access='stream')
-         ! write header
-         buffer = '<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf; write &
-            & (300) trim(buffer)
-         ! write unstructured grid type
-         buffer = '  <UnstructuredGrid>'//lf; write (300) trim(buffer)
-         ! write solution time type
-         buffer = '    <FieldData>'//lf; write (300) trim(buffer)
-         offset_temp = 0
-         write (offset_stamp, '(i16)') offset_temp
-         buffer = '      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="appended" '// &
-            & 'offset="'//trim(adjustl(offset_stamp))//'"/>'//lf; write (300) trim(buffer)
-         buffer = '    </FieldData>'//lf; write (300) trim(buffer)
-         ! specify field pieces
-         write (tempstamp1, '(i16)') kmaxn
-         write (tempstamp2, '(i16)') iloopx
-         buffer = '    <Piece NumberOfPoints="'//trim(adjustl(tempstamp1))//'" &
-                &NumberOfCells="'//trim(adjustl(tempstamp2))//'">'//lf; write (300) trim(buffer)
-         ! specify point data
-         buffer = '     <PointData>'//lf; write (300) trim(buffer)
-         buffer = '     </PointData>'//lf; write (300) trim(buffer)
-         buffer = '     <CellData>'//lf; write (300) trim(buffer)
-         offset_temp = offset_temp + size_of_int + size_of_real
-         write (offset_stamp, '(i16)') offset_temp
-         do i = 1, write_variables_av_w
-            buffer = '        <DataArray type="Float64" Name="'//trim(variable_names_av_w(i))//'" '// &
-               & 'format="appended" offset="'//trim(adjustl(offset_stamp))//'"/>'//lf; write (300) trim(buffer)
-            offset_temp = offset_temp + size_of_int + temp_imaxe * size_of_real
-            write (offset_stamp, '(i16)') offset_temp
-         end do
-         buffer = '     </CellData>'//lf; write (300) trim(buffer)
-         buffer = '     <Points>'//lf; write (300) trim(buffer)
-         buffer = '        <DataArray type="Float64" Name="Coordinates" NumberOfComponents="3" format="appended" '// &
-            & 'offset="'//trim(adjustl(offset_stamp))//'"/>'//lf; write (300) trim(buffer)
-         ! buffer='        </DataArray>'//lf;write(300) trim(buffer)
-         offset_temp = offset_temp + size_of_int + temp_dims * temp_imaxn * size_of_real
-         write (offset_stamp, '(i16)') offset_temp
-         buffer = '     </Points>'//lf; write (300) trim(buffer)
-         ! specify necessary cell data
-         buffer = '      <Cells>'//lf; write (300) trim(buffer)
-         ! connectivity
-         buffer = '        <DataArray type="Int32" Name="connectivity" format="appended" '// &
-            & 'offset="'//trim(adjustl(offset_stamp))//'"/>'//lf; write (300) trim(buffer)
-         offset_temp = offset_temp + size_of_int + (typ_countn_w) * size_of_int
-         write (offset_stamp, '(i16)') offset_temp
-         ! offsets
-         buffer = '        <DataArray type="Int32" Name="offsets" format="appended" '// &
-            & 'offset="'//trim(adjustl(offset_stamp))//'"/>'//lf; write (300) trim(buffer)
-         offset_temp = offset_temp + size_of_int + temp_imaxe * size_of_int
-         write (offset_stamp, '(i16)') offset_temp
-         ! elem types
-         buffer = '        <DataArray type="Int32" Name="types" format="appended" '// &
-            & 'offset="'//trim(adjustl(offset_stamp))//'"/>'//lf; write (300) trim(buffer)
-         ! buffer='        </DataArray>'//lf;write(300) trim(buffer)
-         buffer = '      </Cells>'//lf; write (300) trim(buffer)
-         buffer = '    </Piece>'//lf; write (300) trim(buffer)
-         buffer = '  </UnstructuredGrid>'//lf; write (300) trim(buffer)
-         ! prepare append section
-         buffer = '  <AppendedData encoding="raw">'//lf; write (300) trim(buffer)
-         ! write leading data underscore
-         buffer = '_'; write (300) trim(buffer)
-         bytes = size_of_real
-
-         !----write time stamp----!
-         bytes = size_of_real
-         write (300) bytes, t
-
-         !end time stamp
-
-         !----write variables----!
-
-         do j = 1, write_variables_av_w
-            bytes = temp_imaxe * size_of_real
-            write (300) bytes, sol_vtu_w(1:iloopx, j)
-
-         end do
-         !end----write variables----!
-
-         !write nodes now!
-         bytes = kmaxn * 3 * size_of_real
-         write (300) bytes, nodes_vtu_w(1:kmaxn * 3)
-
-         !end write nodes now!
-
-         !write connectivity now!
-         bytes = typ_countn_w * size_of_int
-         write (300) bytes, connect_vtu_w(1:typ_countn_w)
-
-         !end write connectivity now!
-
-         !write offsets now!
-         bytes = iloopx * size_of_int
-         write (300) bytes, offset_vtu_w(1:iloopx)
-
-         !end write nodes now!
-
-         !write types now!
-         bytes = iloopx * size_of_int
-         write (300) bytes, type_vtu_w(1:iloopx)
-
-         !end write nodes now!
-
-         lf = char(10)
-         buffer = lf//'  </AppendedData>'//lf; write (300) trim(buffer)
-         buffer = '</VTKFile>'//lf; write (300) trim(buffer)
-         close (300)
-
-         deallocate (vtu)
-
-      end if
-
-      call mpi_barrier(mpi_comm_world, ierror)
-
-      if (n .eq. 0) then
-
-         write (proc3, fmt='(i10)') it
-         write (proc5, fmt='(i10)') n
-         filex = "PAR_SURF_AV_"//trim(adjustl(proc3))//".pvtu"
-         itrimm = len_trim(filex)
-         allocate (character(len=itrimm) :: vtu)
-         vtu = filex(1:itrimm)
-
-         lf = char(10)
-         ! write file name
-         open (300, file=vtu, access='stream')
-         ! write header
-         buffer = '<VTKFile type="PUnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt64">'//lf; write &
-            & (300) trim(buffer)
-         ! write unstructured grid type
-         buffer = '  <PUnstructuredGrid GhostLevel="0">'//lf; write (300) trim(buffer)
-         ! write solution time type
-         buffer = '    <FieldData>'//lf; write (300) trim(buffer)
-         buffer = '      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="ascii">'//lf; write (300) &
-            & trim(buffer)
-!     buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1">'//lf;write(300) trim(buffer)
-         write (tempstamp1, '(f17.9)') t
-         buffer = '        '//trim(adjustl(tempstamp1))//lf; write (300) trim(buffer)
-         buffer = '      </DataArray>'//lf; write (300) trim(buffer)
-         buffer = '    </FieldData>'//lf; write (300) trim(buffer)
-         ! specify point data
-         buffer = '    <PCellData>'//lf; write (300) trim(buffer)
-         do i = 1, write_variables_av_w
-            buffer = '        <PDataArray type="Float64" Name="'//trim(variable_names_av_w(i))//'" '// &
-               & 'format="appended"/>'//lf; write (300) trim(buffer)
-            offset_temp = offset_temp + size_of_int + temp_imaxe * size_of_real
-         end do
-         buffer = '    </PCellData>'//lf; write (300) trim(buffer)
-         buffer = '    <PPoints>'//lf; write (300) trim(buffer)
-
-         buffer = '        <PDataArray type="Float64" Name="Coordinates" NumberOfComponents="3"/>'//lf; write (300) trim(buffer)
-         buffer = '    </PPoints>'//lf; write (300) trim(buffer)
-         buffer = '    <PCells>'//lf; write (300) trim(buffer)
-         buffer = '        <PDataArray type="Int32" Name="connectivity"/>'//lf; write (300) trim(buffer)
-         buffer = '        <PDataArray type="Int32" Name="offsets"/>'//lf; write (300) trim(buffer)
-         buffer = '        <PDataArray type="Int32" Name="types"/>'//lf; write (300) trim(buffer)
-         buffer = '    </PCells>'//lf; write (300) trim(buffer)
-         do procx = 0, isize - 1
-            if (wallcount_cpu_g(procx) .gt. 0) then
-               write (proc6, fmt='(i10)') it
-               write (proc7, fmt='(i10)') procx
-               buffer = '    <Piece Source="SURF_AV_'//trim(adjustl(proc6))//"_"//trim(adjustl(proc7))//'.vtu"/>'//lf; write (300) &
-                  & trim(buffer)
-            end if
-         end do
-         buffer = '  </PUnstructuredGrid>'//lf; write (300) trim(buffer)
-         buffer = '</VTKFile>'//lf; write (300) trim(buffer)
-         close (300)
-
-         deallocate (vtu)
-
-      end if
-
-      call mpi_barrier(mpi_comm_world, ierror)
-
+      call vtk_surface_write('SURF_AV_', 'PAR_SURF_AV_', it, t, variable_names_av_w(1:write_variables_av_w), &
+         sol_vtu_w(1:iloopx, 1:write_variables_av_w), inoder4_cord, movement == 1)
    end subroutine parallel_vtk_combine_partitioned_wall_av
 
    subroutine parallel_vtk_combine_partitioned_av(n)
-      !> @brief
-      !> this subroutine uses mpi-io for writing the vtk files
+      ! Build the owner's usual fields, then exchange those exact output values.
       implicit none
       integer, intent(in) :: n
-      real, allocatable, dimension(:) :: array2, array3, array4
-      integer :: i, k, kmaxe, j, jk, icpuid, nvar, imaxp, dumg, duml, jj, fh, dip, n_end, ifg, kmaxn_p, itrimm, temp_cord
-      character(len=20) :: proc, proc3, proc5, proc6, proc7
-      character(len=90) :: filex, filev
-      real, allocatable, dimension(:) :: array
-      logical :: here1
-      real :: in1, iocpt1, iocpt2, iocpt3, iocpt4, ptemp
-      integer :: disp_in_file, procx, tmp, disp_init, offset_temp, bytes, temp_imaxe, temp_imaxn, temp_node, temp_dims, &
-         & size_of_real, size_of_int
-      integer :: nbytes, eight
-      character(len=35) :: offset_stamp, tempstamp1, tempstamp2
-      character(len=200) :: buffer
-      character(len=1) :: lf
-      character(len=:), allocatable :: vtu
-      real, dimension(1:nof_variables) :: leftv, vectco
-      real :: mp_pinfl, gammal
-      real, dimension(1:nof_variables) :: rightv
-      real :: mp_pinfr, gammar
-      nbytes = 1
-
-      temp_cord = 3
-      size_of_int = 4
-      size_of_real = 8
-
-      offset_temp = 0
-      disp_in_file = 0
-      tmp = 0
-      disp_init = 0
+      integer :: i, j, kmaxe
+      real :: ptemp, mp_pinfl, gammal
+      real :: leftv(nof_variables), vectco(nof_variables)
       kmaxe = xmpielrank(n)
-
-      temp_cord = 3
-
-      !                                                 if (n.eq.0)then
-      write (proc3, fmt='(i10)') it
-      write (proc5, fmt='(i10)') n
-      filex = "VOL_AVER_"//trim(adjustl(proc3))//"_"//trim(adjustl(proc5))//".vtu"
-      itrimm = len_trim(filex)
-      allocate (character(len=itrimm) :: vtu)
-      vtu = filex(1:itrimm)
-      !                             end if
-
-      if (movement .eq. 1) then
-         k = 1
-         do i = 1, kmaxn
-            nodes_vtu(k:k + dims - 1) = inoder4_cord(1:dims, i)
-            if (dimensiona .eq. 2) then
-               nodes_vtu(k + temp_cord - 1:k + temp_cord - 1) = 0.00
-            end if
-            k = k + temp_cord
-         end do
-
-      end if
-
       if (dimensiona .eq. 3) then
          do i = 1, kmaxe
             leftv(1:nof_variables) = u_c_val(i, ind1, 1:nof_variables)
@@ -14642,187 +13897,11 @@ contains
             end if
          end do
 
-         temp_node = 8; temp_dims = 3
 
       end if
 
-      temp_imaxe = kmaxe
-      temp_imaxn = kmaxn
-
-      !first write the header xml file from one mpi process
-
-      lf = char(10)
-      ! write file name
-      open (300, file=vtu, access='stream')
-      ! write header
-      buffer = '<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf; write (300) &
-         & trim(buffer)
-      ! write unstructured grid type
-      buffer = '  <UnstructuredGrid>'//lf; write (300) trim(buffer)
-      ! write solution time type
-      buffer = '    <FieldData>'//lf; write (300) trim(buffer)
-      offset_temp = 0
-      write (offset_stamp, '(i16)') offset_temp
-      buffer = '      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="appended" '// &
-         & 'offset="'//trim(adjustl(offset_stamp))//'"/>'//lf; write (300) trim(buffer)
-      buffer = '    </FieldData>'//lf; write (300) trim(buffer)
-      ! specify field pieces
-      write (tempstamp1, '(i16)') kmaxn
-      write (tempstamp2, '(i16)') kmaxe
-      buffer = '    <Piece NumberOfPoints="'//trim(adjustl(tempstamp1))//'" &
-                 &NumberOfCells="'//trim(adjustl(tempstamp2))//'">'//lf; write (300) trim(buffer)
-      ! specify point data
-      buffer = '     <PointData>'//lf; write (300) trim(buffer)
-      buffer = '     </PointData>'//lf; write (300) trim(buffer)
-      buffer = '     <CellData>'//lf; write (300) trim(buffer)
-      offset_temp = offset_temp + size_of_int + size_of_real
-      write (offset_stamp, '(i16)') offset_temp
-      do i = 1, write_variables_av
-         buffer = '        <DataArray type="Float64" Name="'//trim(variable_names_av(i))//'" '// &
-            & 'format="appended" offset="'//trim(adjustl(offset_stamp))//'"/>'//lf; write (300) trim(buffer)
-         offset_temp = offset_temp + size_of_int + temp_imaxe * size_of_real
-         write (offset_stamp, '(i16)') offset_temp
-      end do
-      buffer = '     </CellData>'//lf; write (300) trim(buffer)
-      buffer = '     <Points>'//lf; write (300) trim(buffer)
-      buffer = '        <DataArray type="Float64" Name="Coordinates" NumberOfComponents="3" format="appended" '// &
-         & 'offset="'//trim(adjustl(offset_stamp))//'"/>'//lf; write (300) trim(buffer)
-      ! buffer='        </DataArray>'//lf;write(300) trim(buffer)
-      offset_temp = offset_temp + size_of_int + temp_dims * temp_imaxn * size_of_real
-      write (offset_stamp, '(i16)') offset_temp
-      buffer = '     </Points>'//lf; write (300) trim(buffer)
-      ! specify necessary cell data
-      buffer = '      <Cells>'//lf; write (300) trim(buffer)
-      ! connectivity
-      buffer = '        <DataArray type="Int32" Name="connectivity" format="appended" '// &
-         & 'offset="'//trim(adjustl(offset_stamp))//'"/>'//lf; write (300) trim(buffer)
-      offset_temp = offset_temp + size_of_int + (typ_countn) * size_of_int
-      write (offset_stamp, '(i16)') offset_temp
-      ! offsets
-      buffer = '        <DataArray type="Int32" Name="offsets" format="appended" '// &
-         & 'offset="'//trim(adjustl(offset_stamp))//'"/>'//lf; write (300) trim(buffer)
-      offset_temp = offset_temp + size_of_int + temp_imaxe * size_of_int
-      write (offset_stamp, '(i16)') offset_temp
-      ! elem types
-      buffer = '        <DataArray type="Int32" Name="types" format="appended" '// &
-         & 'offset="'//trim(adjustl(offset_stamp))//'"/>'//lf; write (300) trim(buffer)
-      ! buffer='        </DataArray>'//lf;write(300) trim(buffer)
-      buffer = '      </Cells>'//lf; write (300) trim(buffer)
-      buffer = '    </Piece>'//lf; write (300) trim(buffer)
-      buffer = '  </UnstructuredGrid>'//lf; write (300) trim(buffer)
-      ! prepare append section
-      buffer = '  <AppendedData encoding="raw">'//lf; write (300) trim(buffer)
-      ! write leading data underscore
-      buffer = '_'; write (300) trim(buffer)
-      bytes = size_of_real
-
-      !----write time stamp----!
-      bytes = size_of_real
-      write (300) bytes, t
-
-      !end time stamp
-
-      !----write variables----!
-      do j = 1, write_variables_av
-         bytes = temp_imaxe * size_of_real
-         write (300) bytes, sol_vtu(1:kmaxe, j)
-
-      end do
-      !end----write variables----!
-
-      !write nodes now!
-      bytes = kmaxn * 3 * size_of_real
-      write (300) bytes, nodes_vtu(1:kmaxn * 3)
-
-      !end write nodes now!
-
-      !write connectivity now!
-      bytes = typ_countn * size_of_int
-      write (300) bytes, connect_vtu(1:typ_countn)
-
-      !end write connectivity now!
-
-      !write offsets now!
-      bytes = kmaxe * size_of_int
-      write (300) bytes, offset_vtu(1:kmaxe)
-
-      !end write nodes now!
-
-      !write types now!
-      bytes = kmaxe * size_of_int
-      write (300) bytes, type_vtu(1:kmaxe)
-
-      !end write nodes now!
-
-      lf = char(10)
-      buffer = lf//'  </AppendedData>'//lf; write (300) trim(buffer)
-      buffer = '</VTKFile>'//lf; write (300) trim(buffer)
-      close (300)
-
-      deallocate (vtu)
-
-      call mpi_barrier(mpi_comm_world, ierror)
-
-      if (n .eq. 0) then
-
-         write (proc3, fmt='(i10)') it
-         write (proc5, fmt='(i10)') n
-         filex = "PAR_VOL_AVER_"//trim(adjustl(proc3))//".pvtu"
-         itrimm = len_trim(filex)
-         allocate (character(len=itrimm) :: vtu)
-         vtu = filex(1:itrimm)
-
-         lf = char(10)
-         ! write file name
-         open (300, file=vtu, access='stream')
-         ! write header
-         buffer = '<VTKFile type="PUnstructuredGrid" version="1.0" byte_order="LittleEndian" header_type="UInt64">'//lf; write &
-            & (300) trim(buffer)
-         ! write unstructured grid type
-         buffer = '  <PUnstructuredGrid GhostLevel="0">'//lf; write (300) trim(buffer)
-         ! write solution time type
-         buffer = '    <FieldData>'//lf; write (300) trim(buffer)
-         buffer = '      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1" format="ascii">'//lf; write (300) &
-            & trim(buffer)
-         !     buffer='      <DataArray type="Float64" Name="TimeValue" NumberOfTuples="1">'//lf;write(300) trim(buffer)
-         write (tempstamp1, '(f17.9)') t
-         buffer = '        '//trim(adjustl(tempstamp1))//lf; write (300) trim(buffer)
-         buffer = '      </DataArray>'//lf; write (300) trim(buffer)
-         buffer = '    </FieldData>'//lf; write (300) trim(buffer)
-         ! specify point data
-         buffer = '    <PCellData>'//lf; write (300) trim(buffer)
-         do i = 1, write_variables_av
-            buffer = '        <PDataArray type="Float64" Name="'//trim(variable_names_av(i))//'" '// &
-               & 'format="appended"/>'//lf; write (300) trim(buffer)
-            offset_temp = offset_temp + size_of_int + temp_imaxe * size_of_real
-         end do
-         buffer = '    </PCellData>'//lf; write (300) trim(buffer)
-         buffer = '    <PPoints>'//lf; write (300) trim(buffer)
-
-         buffer = '        <PDataArray type="Float64" Name="Coordinates" NumberOfComponents="3"/>'//lf; write (300) trim(buffer)
-         buffer = '    </PPoints>'//lf; write (300) trim(buffer)
-         buffer = '    <PCells>'//lf; write (300) trim(buffer)
-         buffer = '        <PDataArray type="Int32" Name="connectivity"/>'//lf; write (300) trim(buffer)
-         buffer = '        <PDataArray type="Int32" Name="offsets"/>'//lf; write (300) trim(buffer)
-         buffer = '        <PDataArray type="Int32" Name="types"/>'//lf; write (300) trim(buffer)
-         buffer = '    </PCells>'//lf; write (300) trim(buffer)
-         do procx = 0, isize - 1
-
-            write (proc6, fmt='(i10)') it
-            write (proc7, fmt='(i10)') procx
-            buffer = '    <Piece Source="VOL_AVER_'//trim(adjustl(proc6))//"_"//trim(adjustl(proc7))//'.vtu"/>'//lf; write (300) &
-               & trim(buffer)
-         end do
-         buffer = '  </PUnstructuredGrid>'//lf; write (300) trim(buffer)
-         buffer = '</VTKFile>'//lf; write (300) trim(buffer)
-         close (300)
-
-         deallocate (vtu)
-
-      end if
-
-      call mpi_barrier(mpi_comm_world, ierror)
-
+      call vtk_ghost_write('VOL_AVER_', 'PAR_VOL_AVER_', it, t, variable_names_av(1:write_variables_av), &
+         sol_vtu(1:kmaxe, 1:write_variables_av), inoder4_cord, movement == 1)
    end subroutine parallel_vtk_combine_partitioned_av
 
    subroutine parallel_vtk_combine_wall(n)
@@ -15846,78 +14925,8 @@ contains
    end subroutine checkpoint2d
 
    subroutine checkpointav(n)
-!> @brief
-!> this subroutine uses mpi-io for writing the averaged checkpointing files
-      implicit none
       integer, intent(in) :: n
-      integer, allocatable, dimension(:) :: icell, icella, dispt
-      real, allocatable, dimension(:) :: valuesa, valuess, array2
-      real, allocatable, dimension(:, :) :: xbin
-      integer :: i, k, kmaxe, j, jk, icpuid, nvar, imaxp, dumg, duml, jj, fh, size_of_real, size_of_int, dip, ista, iend, n_end, &
-         & datatype
-      character(len=20) :: proc, restfile, proc3
-      real, allocatable, dimension(:) :: igint, tgint, array
-      integer(kind=mpi_offset_kind) :: disp_in_file, tmp, disp_init
-      logical :: here1
-      kmaxe = xmpielrank(n)
-      disp_in_file = 0
-      tmp = 0
-      disp_init = 0
-
-      size_of_int = 4
-      size_of_real = 8
-      icpuid = n
-      call mpi_barrier(mpi_comm_world, ierror)
-
-      allocate (dispt(kmaxe), array2(kmaxe * (nof_variables + turbulenceequations + passivescalar + 6 + passivescalar)))
-      do i = 1, kmaxe
-         dispt(i) = (xgo(i) - 1) * (nof_variables + turbulenceequations + passivescalar + 6 + passivescalar)
-      end do
-
-      restfile = 'RESTARTAV.dat'
-
-      n_end = nof_variables + turbulenceequations + passivescalar + 6 + passivescalar
-
-      if ((turbulence .gt. 0) .or. (passivescalar .gt. 0)) then
-         k = 1
-         do i = 1, kmaxe
-            array2(k:k + nof_variables - 1) = u_c_val(i, ind1, 1:nof_variables)
-            k = k + nof_variables
-            array2(k:k + turbulenceequations + passivescalar - 1) = u_ct_val(i, ind1, 1:turbulenceequations + passivescalar)
-            k = k + turbulenceequations + passivescalar
-            array2(k:k + 6 + passivescalar - 1) = u_c_rms(i, 1:6 + passivescalar)
-            k = k + 6 + passivescalar
-         end do
-      else
-         k = 1
-         do i = 1, kmaxe
-            array2(k:k + nof_variables - 1) = u_c_val(i, ind1, 1:nof_variables)
-            k = k + nof_variables
-            array2(k:k + 6 + passivescalar - 1) = u_c_rms(i, 1:6 + passivescalar)
-            k = k + 6 + passivescalar
-         end do
-      end if
-      if (n .eq. 0) then
-         inquire (file=restfile, exist=here1)
-         call mpi_file_delete(restfile, mpi_info_null, ierror)
-      end if
-
-      call mpi_barrier(mpi_comm_world, ierror)
-
-      call mpi_type_create_indexed_block(kmaxe, n_end, dispt, mpi_double_precision, datatype, ierror)
-      call mpi_type_commit(datatype, ierror)
-
-      call mpi_barrier(mpi_comm_world, ierror)
-      call mpi_file_open(mpi_comm_world, restfile, mpi_mode_wronly + mpi_mode_create, mpi_info_null, fh, ierror)
-      call mpi_file_set_view(fh, disp_in_file, mpi_double_precision, datatype, 'native', mpi_info_null, ierror)
-      call mpi_file_write_all(fh, array2, kmaxe * n_end, mpi_double_precision, mpi_status_ignore, ierror)
-      call mpi_file_close(fh, ierror)
-      call mpi_type_free(datatype, ierror)
-
-      deallocate (dispt, array2)
-
-      call mpi_barrier(mpi_comm_world, ierror)
-
+      call checkpoint3d_state(n, .false., .true.)
    end subroutine checkpointav
 
    subroutine rest_read(n)
@@ -15934,6 +14943,22 @@ contains
       real, allocatable, dimension(:) :: igint, tgint, array
       integer(kind=mpi_offset_kind) :: disp_in_file, tmp
       logical :: here
+      ! 2D keeps its existing reader. MPI calls in 3D remain on the OpenMP master.
+      if (dimensiona == 3) then
+!$omp master
+         call checkpoint3d_state(n, .true., .false.)
+         if (averaging == 1) then
+            if (average_restart == 1) then
+               call checkpoint3d_state(n, .true., .true.)
+            else
+               u_c_rms = zero
+               u_c_val(:, ind1, :) = zero
+               if (allocated(u_ct_val)) u_ct_val(:, ind1, :) = zero
+            end if
+         end if
+!$omp end master
+         return
+      end if
       disp_in_file = 0
       tmp = 0
 
@@ -19467,6 +18492,12 @@ contains
       integer, allocatable, dimension(:) :: list_nin, list_nout
 
       kmaxe = xmpielrank(n)
+      if (local_nodes_enabled) then
+         ndlc_count1 = size(node_ids)
+         ndlc_array1 = node_ids
+         countfnodes = count(node_owners == n)
+         allocate(list_nout(0))
+      else
       allocate (ndlc_array1(kmaxe * 8)); ndlc_array1(:) = 0
 
       ndlc_count1 = 0
@@ -19507,6 +18538,8 @@ contains
 
       end do
 
+      end if
+
       kmaxn = ndlc_count1
 
       allocate (inoder4_cord(1:dims, 1:kmaxn))
@@ -19518,9 +18551,9 @@ contains
       do i = 1, kmaxn
 
          inoder4_itor(i) = ndlc_array1(i)
-         inoder4_cord(1:dims, i) = dinoder(inoder4_itor(i))%cord(1:dims)
-         dinoder(inoder4_itor(i))%itor = i
-         if (list_nout(inoder4_itor(i)) .eq. n) then
+         inoder4_cord(1:dims, i) = node_coords(inoder4_itor(i))
+         if (.not. local_nodes_enabled) dinoder(inoder4_itor(i))%itor = i
+         if (node_output_owner(inoder4_itor(i), list_nout) .eq. n) then
             countfnodes = countfnodes + 1
 !     inoder4_itorm(i)=countfnodes
             my_nodesl(countfnodes) = i
@@ -19573,7 +18606,7 @@ contains
          end if
 
          do j = 1, ielem_nonodes(i)
-            ielem_nodes(j, i) = dinoder(ielem_nodes(j, i))%itor
+            ielem_nodes(j, i) = node_final_index(ielem_nodes(j, i))
          end do
 
          if (tecplot .eq. 5) then
@@ -19631,20 +18664,20 @@ contains
             do l = 1, ielem_ifca(i)
                if (dimensiona .eq. 2) then
                   do j = 1, 2
-                     indexgt = dinoder(ielem_nodes_faces(i, l, j))%itor
+                     indexgt = node_final_index(ielem_nodes_faces(i, l, j))
                      ielem_nodes_faces_v(l, j, i) = inoder4_itor(indexgt) - 1
                   end do
 
                else
                   if (ielem_types_faces(i, l) .eq. 5) then
                      do j = 1, 4
-                        indexgt = dinoder(ielem_nodes_faces(i, l, j))%itor
+                        indexgt = node_final_index(ielem_nodes_faces(i, l, j))
                         ielem_nodes_faces_v(l, j, i) = inoder4_itor(indexgt) - 1
                      end do
                   end if
                   if (ielem_types_faces(i, l) .eq. 6) then
                      do j = 1, 3
-                        indexgt = dinoder(ielem_nodes_faces(i, l, j))%itor
+                        indexgt = node_final_index(ielem_nodes_faces(i, l, j))
                         ielem_nodes_faces_v(l, j, i) = inoder4_itor(indexgt) - 1
 
                      end do
@@ -19661,19 +18694,19 @@ contains
          do l = 1, ielem_ifca(i)
             if (dimensiona .eq. 2) then
                do j = 1, 2
-                  ielem_nodes_faces(i, l, j) = dinoder(ielem_nodes_faces(i, l, j))%itor
+                  ielem_nodes_faces(i, l, j) = node_final_index(ielem_nodes_faces(i, l, j))
 
                end do
 
             else
                if (ielem_types_faces(i, l) .eq. 5) then
                   do j = 1, 4
-                     ielem_nodes_faces(i, l, j) = dinoder(ielem_nodes_faces(i, l, j))%itor
+                     ielem_nodes_faces(i, l, j) = node_final_index(ielem_nodes_faces(i, l, j))
                   end do
                end if
                if (ielem_types_faces(i, l) .eq. 6) then
                   do j = 1, 3
-                     ielem_nodes_faces(i, l, j) = dinoder(ielem_nodes_faces(i, l, j))%itor
+                     ielem_nodes_faces(i, l, j) = node_final_index(ielem_nodes_faces(i, l, j))
                   end do
                end if
 
@@ -19682,6 +18715,7 @@ contains
       end do
 
       deallocate (dinoder, ndlc_array1, list_nout)
+      call local_nodes_release()
 
       if (tecplot .eq. 3) then
 

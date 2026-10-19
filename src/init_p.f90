@@ -1,4 +1,5 @@
 MODULE INITIALISATION
+   use mesh_local_nodes
    USE DECLARATION
    USE LIBRARY
    USE TRANSFORM
@@ -136,7 +137,7 @@ CONTAINS
 !
                do K = 1, jx
                   JX2 = IELEM_NODES(k, I)
-                  NODES_LIST(k, :) = dinoder(JX2)%CORD(:)
+                  NODES_LIST(k, :) = node_coords(JX2)
                   VEXT(K, :) = NODES_LIST(k, :)
                END DO
 
