@@ -235,8 +235,9 @@ contains
       if (shape == 0) call mesh_fail('unsupported cell connectivity')
    end subroutine
 
-   subroutine mesh_shapes(shapes, global_counts)
+   subroutine mesh_shapes(shapes, global_counts, global_offsets_required)
       integer, intent(out) :: shapes(:), global_counts(6)
+      logical, intent(in), optional :: global_offsets_required
       integer :: i, nn, faces, nodes(8), counts(6), ierr
       integer(int64) :: local_nodes, offset, total_nodes
       counts = 0; local_nodes = 0
@@ -247,6 +248,16 @@ contains
       end do
       call MPI_Allreduce(counts, global_counts, 6, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
       call checked(ierr, 'reducing shape counts')
+      ! Only single-file VTU output consumes global connectivity offsets.
+      ! Partitioned output uses per-piece offsets; its global connectivity may
+      ! exceed int32 even when every local index and mesh ID is representable.
+      ! Keep the two-argument interface compatible with existing offset users.
+      if (present(global_offsets_required)) then
+         if (.not. global_offsets_required) then
+            mesh_cells(10:11, :) = 0
+            return
+         end if
+      end if
       call MPI_Exscan(local_nodes, offset, 1, MPI_INTEGER8, MPI_SUM, MPI_COMM_WORLD, ierr)
       call checked(ierr, 'computing connectivity offsets')
       if (rank_id == 0) offset = 0
