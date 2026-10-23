@@ -1415,7 +1415,7 @@ contains
       integer, intent(in) :: n
       integer :: mesh_shape_counts(6)
       if (mesh_enabled) then
-         call mesh_shapes(ieshape, mesh_shape_counts)
+         call mesh_shapes(ieshape, mesh_shape_counts, global_offsets_required=(tecplot == 5))
          num_hexas = mesh_shape_counts(1); num_tetras = mesh_shape_counts(2)
          num_pyramids = mesh_shape_counts(3); num_prisms = mesh_shape_counts(4)
          if (n == 0) then
