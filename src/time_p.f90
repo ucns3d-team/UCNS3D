@@ -43,8 +43,10 @@ contains
       real, intent(inout) :: mu(4), conductivity(4)
       real :: chi, chi3, mut, omega
       mut = 0.0e0
+      mu(4) = 0.0e0
       if (turbulence == 1) then
          if (turbulencemodel == 1) then
+            mu(4) = (mu(1)+max(u_ct_val(i,1,1),0.0))/sigma
             chi = abs(max(u_ct_val(i, 1, 1), 1.0e-15) / max(mu(1), 1.0e-15))
             chi3 = chi * chi * chi
             mut = u_ct_val(i, 1, 1) * chi3 / (chi3 + cv1**3)
@@ -74,12 +76,13 @@ contains
       if (realgas == 1) then
          timestep_viscous_diffusivity = realgas_diffusion_radius(qcons, viscl(3), &
             & viscl(3) * translational_cp(qcons) / prtu)
+         timestep_viscous_diffusivity = max(timestep_viscous_diffusivity,viscl(4)/rho)
          return
       end if
       cv = r_gas / (gamma - 1.0e0)
       if (multispecies == 1) call multispecies_thermo(qcons, temp, y, rmix, cp, cv, energy)
       timestep_viscous_diffusivity = max((4.0e0 / 3.0e0) * max(viscl(1), 0.0e0) / rho, &
-         & max(laml(1), 0.0e0) / (rho * max(cv, tolsmall)))
+         & max(laml(1), 0.0e0) / (rho * max(cv, tolsmall)), viscl(4)/rho)
 
    end function timestep_viscous_diffusivity
 
@@ -637,6 +640,7 @@ contains
                   agrt = sqrt(leftv(4) * gamma / leftv(1))
                end if
                veln = max(abs(leftv(2)), abs(leftv(3))) + agrt
+               if(axisymmetric_enabled==1) veln=veln+ielem_minedge(i)*(abs(leftv(3))+agrt)/axis_radius(i)
 
                if (dg .eq. 1) then
 
@@ -698,9 +702,11 @@ contains
                end if
 
                veln = max(abs(leftv(2)), abs(leftv(3))) + agrt
+               if(axisymmetric_enabled==1) veln=veln+ielem_minedge(i)*(abs(leftv(3))+agrt)/axis_radius(i)
                call timestep_turbulent_transport(i, rightv, viscl, laml)
 
                diff_scale = timestep_viscous_diffusivity(rightv, leftv, viscl, laml)
+               if(axisymmetric_enabled==1) veln=veln+ielem_minedge(i)*2.0*diff_scale/axis_radius(i)**2
 
                if (dg .eq. 1) then
 
@@ -793,6 +799,7 @@ contains
 
                !        agrt=sqrt(leftv(4)*gamma/leftv(1))
                veln = max(abs(leftv(2)), abs(leftv(3))) + agrt
+               if(axisymmetric_enabled==1) veln=veln+ielem_minedge(i)*(abs(leftv(3))+agrt)/axis_radius(i)
 
                if (dg .eq. 1) then
 
@@ -852,9 +859,11 @@ contains
                end if
 
                veln = max(abs(leftv(2)), abs(leftv(3))) + agrt
+               if(axisymmetric_enabled==1) veln=veln+ielem_minedge(i)*(abs(leftv(3))+agrt)/axis_radius(i)
                call timestep_turbulent_transport(i, rightv, viscl, laml)
 
                diff_scale = timestep_viscous_diffusivity(rightv, leftv, viscl, laml)
+               if(axisymmetric_enabled==1) veln=veln+ielem_minedge(i)*2.0*diff_scale/axis_radius(i)**2
 
                if (dg .eq. 1) then
 
@@ -2802,35 +2811,13 @@ contains
          call arbitrary_order(n)
          call exhboundhigher(n)
 
-         select case (itestcase)
-         case (1, 2)
-            call calculate_fluxeshi2d(n)
-         case (3)
-            call calculate_fluxeshi_convective2d(n)
-         case (4)
-            call calculate_fluxeshi_convective2d(n)
-            call calculate_fluxeshi_diffusive2d(n)
-            if (turbulence .eq. 1) then
-               call sources_computation2d(n)
-            end if
-         end select
+         call assemble_flux_residual_2d(n)
 
       else
          call exchange_higher(n)
          call arbitrary_order(n)
          call exhboundhigher(n)
-         select case (itestcase)
-         case (1, 2)
-            call calculate_fluxeshi2d(n)
-         case (3)
-            call calculate_fluxeshi_convective2d(n)
-         case (4)
-            call calculate_fluxeshi_convective2d(n)
-            call calculate_fluxeshi_diffusive2d(n)
-            if (turbulence .eq. 1) then
-               call sources_computation2d(n)
-            end if
-         end select
+         call assemble_flux_residual_2d(n)
       end if
 
 #ifdef xpu
@@ -2942,34 +2929,12 @@ contains
          call exchange_lower(n)
          call arbitrary_order(n)
          call exhboundhigher(n)
-         select case (itestcase)
-         case (1, 2)
-            call calculate_fluxeshi2d(n)
-         case (3)
-            call calculate_fluxeshi_convective2d(n)
-         case (4)
-            call calculate_fluxeshi_convective2d(n)
-            call calculate_fluxeshi_diffusive2d(n)
-            if (turbulence .eq. 1) then
-               call sources_computation2d(n)
-            end if
-         end select
+         call assemble_flux_residual_2d(n)
       else
          call exchange_higher(n)
          call arbitrary_order(n)
          call exhboundhigher(n)
-         select case (itestcase)
-         case (1, 2)
-            call calculate_fluxeshi2d(n)
-         case (3)
-            call calculate_fluxeshi_convective2d(n)
-         case (4)
-            call calculate_fluxeshi_convective2d(n)
-            call calculate_fluxeshi_diffusive2d(n)
-            if (turbulence .eq. 1) then
-               call sources_computation2d(n)
-            end if
-         end select
+         call assemble_flux_residual_2d(n)
       end if
 
 #ifdef xpu
@@ -3087,35 +3052,12 @@ contains
          call exchange_lower(n)
          call arbitrary_order(n)
          call exhboundhigher(n)
-         select case (itestcase)
-         case (1, 2)
-            call calculate_fluxeshi2d(n)
-         case (3)
-            call calculate_fluxeshi_convective2d(n)
-         case (4)
-            call calculate_fluxeshi_convective2d(n)
-            call calculate_fluxeshi_diffusive2d(n)
-            if (turbulence .eq. 1) then
-               call sources_computation2d(n)
-            end if
-         end select
+         call assemble_flux_residual_2d(n)
       else
          call exchange_higher(n)
          call arbitrary_order(n)
          call exhboundhigher(n)
-         select case (itestcase)
-         case (1, 2)
-            call calculate_fluxeshi2d(n)
-         case (3)
-            call calculate_fluxeshi_convective2d(n)
-         case (4)
-            call calculate_fluxeshi_convective2d(n)
-            call calculate_fluxeshi_diffusive2d(n)
-            if (turbulence .eq. 1) then
-               call sources_computation2d(n)
-            end if
-            call vortexcalc2d(n)
-         end select
+         call assemble_flux_residual_2d(n)
       end if
 #ifdef xpu
 !$omp target teams distribute parallel do &
@@ -4044,6 +3986,24 @@ contains
 
    end subroutine normalise_species
 
+   subroutine assemble_flux_residual_2d(n)
+      implicit none
+      integer,intent(in) :: n
+      select case(itestcase)
+      case(1,2)
+         call calculate_fluxeshi2d(n)
+      case(3)
+         call calculate_fluxeshi_convective2d(n)
+      case(4)
+         call calculate_fluxeshi_convective2d(n)
+         call calculate_fluxeshi_diffusive2d(n)
+      end select
+      ! One dispatch per assembled residual; frozen real gas alone has no source.
+      if (itestcase == 3 .or. itestcase == 4) then
+         if (sources_required_2d()) call sources_computation2d(n)
+      end if
+   end subroutine assemble_flux_residual_2d
+
    subroutine call_flux_subroutines_2d
       implicit none
       integer :: i, iconsidered
@@ -4103,24 +4063,7 @@ contains
       end if
 
       !modifies rhs
-      select case (itestcase)
-      case (1, 2)
-         call calculate_fluxeshi2d(n)
-      case (3)
-         call calculate_fluxeshi_convective2d(n)
-         if (realgas .eq. 1) then
-            if (rg_relax .eq. 2) then
-               call sources_computation2d(n)
-            end if
-         end if
-      case (4)
-         call calculate_fluxeshi_convective2d(n)
-         call calculate_fluxeshi_diffusive2d(n)
-         if ((turbulence .eq. 1) .or. (realgas .eq. 1)) then
-            call sources_computation2d(n)
-         end if
-
-      end select
+      call assemble_flux_residual_2d(n)
 
    end subroutine call_flux_subroutines_2d
 
@@ -4798,46 +4741,13 @@ contains
          call arbitrary_order(n)
          call exhboundhigher(n)
 
-         select case (itestcase)
-         case (1, 2)
-            call calculate_fluxeshi2d(n)
-         case (3)
-            call calculate_fluxeshi_convective2d(n)
-            if (realgas .eq. 1) then
-               call sources_computation2d(n)
-
-            end if
-         case (4)
-            call calculate_fluxeshi_convective2d(n)
-            call calculate_fluxeshi_diffusive2d(n)
-
-            ! call vortexcalc2d(n)
-            if ((turbulence .eq. 1) .or. (realgas .eq. 1)) then
-               call sources_computation2d(n)
-            end if
-         end select
+         call assemble_flux_residual_2d(n)
 
       else
          call exchange_higher(n)
          call arbitrary_order(n)
          call exhboundhigher(n)
-         select case (itestcase)
-         case (1, 2)
-            call calculate_fluxeshi2d(n)
-         case (3)
-            call calculate_fluxeshi_convective2d(n)
-            if (realgas .eq. 1) then
-               call sources_computation2d(n)
-            end if
-         case (4)
-            call calculate_fluxeshi_convective2d(n)
-            call calculate_fluxeshi_diffusive2d(n)
-
-            !call vortexcalc2d(n)
-            if ((turbulence .eq. 1) .or. (realgas .eq. 1)) then
-               call sources_computation2d(n)
-            end if
-         end select
+         call assemble_flux_residual_2d(n)
       end if
 
       if (relax .eq. 3) then
@@ -5716,37 +5626,13 @@ contains
             call arbitrary_order(n)
             call exhboundhigher(n)
 
-            select case (itestcase)
-            case (1, 2)
-               call calculate_fluxeshi2d(n)
-            case (3)
-               call calculate_fluxeshi_convective2d(n)
-            case (4)
-               call calculate_fluxeshi_convective2d(n)
-               call calculate_fluxeshi_diffusive2d(n)
-               call vortexcalc2d(n)
-               if (turbulence .eq. 1) then
-                  call sources_computation2d(n)
-               end if
-            end select
+            call assemble_flux_residual_2d(n)
 
          else
             call exchange_higher(n)
             call arbitrary_order(n)
             call exhboundhigher(n)
-            select case (itestcase)
-            case (1, 2)
-               call calculate_fluxeshi2d(n)
-            case (3)
-               call calculate_fluxeshi_convective2d(n)
-            case (4)
-               call calculate_fluxeshi_convective2d(n)
-               call calculate_fluxeshi_diffusive2d(n)
-               call vortexcalc2d(n)
-               if (turbulence .eq. 1) then
-                  call sources_computation2d(n)
-               end if
-            end select
+            call assemble_flux_residual_2d(n)
          end if
 
          call relaxation_ex(n)
@@ -7755,6 +7641,7 @@ contains
 
    subroutine fv_state_density_pressure(q, rho, pressure, state_ok)
 !> Extract density and pressure from an FV conservative state.
+      use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
       implicit none
 #ifdef xpu
 !$omp declare target
@@ -7838,6 +7725,10 @@ contains
          idxe = dimensiona + 2
          idxev = dimensiona + 3
          if ((idxev + nof_species) .le. nof_variables) then
+            ! Negative vibrational energy can still give positive recovered pressure.
+            ! Reject the trial so the caller backtracks the entire conservative update.
+            if (.not. ieee_is_finite(q(idxev))) return
+            if (q(idxev) < zero .or. q(idxev) > fv_update_max_abs) return
             etot = q(idxe) / rho
             evib = q(idxev) / rho
             echem = zero

@@ -1,11 +1,124 @@
 module flow_operations
    use declaration
+   use axisymmetric_support
    use mpiinfo
    use transform
 
    implicit none
 
 contains
+
+   subroutine sst_blending(rho, mu, kin, omega, distance, cross, f1, f2)
+#ifdef xpu
+!$omp declare target
+#endif
+      real, intent(in) :: rho, mu, kin, omega, distance, cross
+      real, intent(out) :: f1, f2
+      real :: k0, om, d, rr, argk, argmu, cd, arg1, arg2
+      rr = max(rho, 1.0e-30); k0 = max(kin, 1.0e-15)
+      om = max(omega, 1.0e-6); d = max(distance, 1.0e-15)
+      argk = sqrt(k0) / (beta_starinf * om * d)
+      argmu = 500.0 * max(mu, 0.0) / (rr * d * d * om)
+      cd = max(2.0 * rr * cross / (sigma_om2 * om), 1.0e-10)
+      arg1 = min(max(argk, argmu), 4.0 * rr * k0 / (sigma_om2 * cd * d * d))
+      arg2 = max(2.0 * argk, argmu)
+      ! Saturate before taking powers: tanh is already one at these arguments.
+      f1 = tanh(min(arg1, 10.0)**4)
+      f2 = tanh(min(arg2, 10.0)**2)
+   end subroutine sst_blending
+
+   real function sst_neighbour_wall(n, i, face) result(distance)
+#ifdef xpu
+!$omp declare target
+#endif
+      integer, intent(in) :: n, i, face
+      integer :: bc, group, row
+      distance = ielem_walldist(i)
+      if (ielem_ibounds(i,face) > 0) then
+         bc = ibound_icode(ielem_ibounds(i,face))
+         if (bc /= 5 .and. bc /= 50) return
+      end if
+      if (ielem_ineighb(i,face) == n) then
+         distance = ielem_walldist(ielem_ineigh(i,face))
+      else
+         group = rec_ihexn(rec_local(i),1,ielem_indexi(i,face))
+         row = halo_offset(group) + rec_ihexl(i,1,ielem_indexi(i,face)) - 1
+         distance = sst_halo_wall(row)
+      end if
+   end function sst_neighbour_wall
+
+   subroutine sst_inflow_transport(n, q, transport, reference_speed)
+#ifdef xpu
+!$omp declare target
+#endif
+      integer, intent(in) :: n
+      real, intent(in) :: q(nof_variables)
+      real, intent(out) :: transport(2)
+      real, intent(in), optional :: reference_speed
+      real :: speed, kin, omega, rho, mu, conductivity
+      rho = max(q(1), 1.0e-30)
+      speed = sqrt(sum((q(2:dimensiona+1)/rho)**2))
+      if (present(reference_speed)) speed = abs(reference_speed)
+      kin = 1.5 * (max(i_turb_inlet,0.0) * speed)**2
+      if (l_turb_inlet > 0.0) then
+         omega = sqrt(kin) / (c_mu_inlet**0.25 * l_turb_inlet)
+      else
+         call molecular_transport(n, q, mu, conductivity)
+         omega = rho * kin / max(init_mu_ratio * mu, 1.0e-30)
+      end if
+      transport = rho * [kin, max(omega,1.0e-6)]
+   end subroutine sst_inflow_transport
+
+   subroutine sst_wall_transport(n, q, mu, conductivity)
+#ifdef xpu
+!$omp declare target
+#endif
+      integer, intent(in) :: n
+      real, intent(in) :: q(nof_variables)
+      real, intent(out) :: mu, conductivity
+      real :: qw(gpu_max_nvar), qt(gpu_max_nvar), pinf, gm, temperature
+      qw(1:nof_variables) = q
+      if (thermal == 1) then
+         if (wall_temp > 0.0) then
+            qt(1:nof_variables) = q
+            call cons2div(n, qt, pinf, gm)
+            temperature = max(qt(dimensiona+2),1.0e-15)
+            call cons2prim(n, qw, pinf, gm)
+            qw(dimensiona+2) = (qw(dimensiona+2)+pinf)*wall_temp/temperature-pinf
+            call prim2cons(n, qw)
+         end if
+      end if
+      call molecular_transport(n, qw, mu, conductivity)
+   end subroutine sst_wall_transport
+
+   real function sst_wall_omega(n, q, distance) result(omega_wall)
+#ifdef xpu
+!$omp declare target
+#endif
+      integer, intent(in) :: n
+      real, intent(in) :: q(nof_variables), distance
+      real :: mu, conductivity
+      call sst_wall_transport(n, q, mu, conductivity)
+      omega_wall = 60.0 * mu / (max(q(1),1.0e-30) * beta_i1 * max(distance,1.0e-15)**2)
+   end function sst_wall_omega
+
+   subroutine sst_diffusion_flux(nd, el, er, gl, gr, normal, flux)
+#ifdef xpu
+!$omp declare target
+#endif
+      integer, intent(in) :: nd
+      real, intent(in) :: el(20), er(20), gl(gpu_max_extra_transport,nd), gr(gpu_max_extra_transport,nd), normal(nd)
+      real, intent(out) :: flux(2)
+      integer :: v, d
+      do v=1,2
+         flux(v) = 0.0
+         do d=1,nd
+            flux(v) = flux(v) + 0.5*(gl(v,d)+gr(v,d))*normal(d)
+         end do
+         flux(v) = 0.5*(el(18+v)+er(18+v))*flux(v)
+      end do
+   end subroutine sst_diffusion_flux
+
 
    subroutine fill_turbulence_gradients(nd, i, packed)
       implicit none
@@ -20,6 +133,8 @@ contains
             packed(3 + (v - 1) * nd + d) = rec_grads(i, v, d)
          end do
       end do
+      if (nd==2 .and. axisymmetric_enabled==1) &
+         packed(12)=u_c_val(i,1,3)/(u_c_val(i,1,1)*axis_radius(i))
       base = 3 + nd * nd
       do v = 1, 2
          do d = 1, nd
@@ -60,11 +175,7 @@ contains
       if (turbulence == 0) return
       turbmv = [el(2), er(2)]
       call eddy_viscosity_state(nd, ql(1), mu(1), el, .true., mu(3), skl, swl)
-      if (turbulencemodel == 2 .and. er(1) <= 0.0e0) then
-         mu(4) = 0.0e0; skr = skl; swr = swl
-      else
-         call eddy_viscosity_state(nd, qr(1), mu(2), er, .false., mu(4), skr, swr)
-      end if
+      call eddy_viscosity_state(nd, qr(1), mu(2), er, .false., mu(4), skr, swr)
       if (turbulencemodel == 1 .and. min(turbmv(1), turbmv(2)) < 0.0e0) mu(3:4) = 0.0e0
       ! Slots 3:4 contain total conductivity, with the EOS-specific molecular
       ! values preserved. Vibrational conduction is handled by the real-gas flux.
@@ -86,7 +197,8 @@ contains
       real, intent(in) :: rho, mu, e(20)
       logical, intent(in) :: left_side
       real, intent(out) :: mut, sigk, sigw
-      real :: chi, chi3, k0, om, wall, strain, sij, cross, dplus, phi1, phi2, f1, f2, ret, beta0, astar
+      ! left_side is retained for call compatibility; SST floors are side-independent.
+      real :: chi, chi3, k0, om, wall, strain, sij, cross, f1, f2
       integer :: i, j, kg, wg
       mut = 0.0e0; sigk = 1.0e0; sigw = 1.0e0
       select case(turbulencemodel)
@@ -102,26 +214,22 @@ contains
                strain = strain + sij * sij
             end do
          end do
+         if (nd==2 .and. axisymmetric_enabled==1) strain=strain+e(12)**2
          strain = sqrt(2.0e0 * strain)
          k0 = max(e(2) / rho, 1.0e-15)
          om = max(e(3) / rho, 1.0e-6)
-         if (left_side) om = max(e(3) / rho, ufreestream / charlength / 10.0e0, 1.0e-6)
          wall = max(e(1), 1.0e-15)
          kg = 3 + nd * nd; wg = kg + nd
          cross = 0.0e0
          do j = 1, nd
             cross = cross + e(kg + j) * e(wg + j)
          end do
-         dplus = max(2.0e0 * rho / sigma_om2 / om * cross, 1.0e-10)
-         phi2 = max(sqrt(k0) / (0.09e0 * om * wall), 500.0e0 * mu / (rho * wall * wall * om))
-         phi1 = min(phi2, 4.0e0 * rho * k0 / (sigma_om2 * dplus * wall * wall))
-         f1 = tanh(phi1**4); f2 = tanh(phi2**2)
-         ret = rho * k0 / (max(mu, 1.0e-30) * om)
-         beta0 = f1 * beta_i1 + (1.0e0 - f1) * beta_i2
-         astar = alpha_starinf * (beta0 / 3.0e0 + ret / r_k_sst) / (1.0e0 + ret / r_k_sst)
-         mut = rho * k0 / om / max(1.0e0 / astar, strain * f2 / (aa_1 * om))
-         sigk = sigma_k1 / max(f1, 1.0e-30) + sigma_k2 / max(f2, 1.0e-30)
-         sigw = sigma_om1 / max(f1, 1.0e-30) + sigma_om2 / max(f2, 1.0e-30)
+         call sst_blending(rho, mu, k0, om, wall, cross, f1, f2)
+         mut = rho * aa_1 * k0 / max(aa_1 * om, strain * f2)
+         ! Return reciprocal blended coefficients to retain the existing interface.
+         sigk = 1.0 / (f1 / sigma_k1 + (1.0-f1) / sigma_k2)
+         sigw = 1.0 / (f1 / sigma_om1 + (1.0-f1) / sigma_om2)
+         if (e(1) <= 0.0 .or. e(2) <= 0.0) mut = 0.0
       end select
       mut = max(0.0e0, min(10000000.0e0 * visc, mut))
    end subroutine eddy_viscosity_state
@@ -365,13 +473,15 @@ contains
       call mason_saxena_ktr_mixture(x, conductivity, ktr)
    end subroutine realgas_mu_ktr
 
-   subroutine realgas_transport(q, mu, ktr, kv, diff, htr, hv, gm, tv)
+   subroutine realgas_transport(q, mu, ktr, kv, diff, htr, hv, gm, tv, cv_vib)
       implicit none
 #ifdef xpu
 !$omp declare target
 #endif
       real, intent(in) :: q(nof_variables)
       real, intent(out) :: mu, ktr, kv, gm, tv
+      real, intent(out), optional :: cv_vib
+      integer :: k
       real, intent(out) :: diff(nof_species), htr(nof_species), hv(nof_species)
       real :: rho, ev, etr, rmix, cv, ttr, pressure
       real :: y(gpu_max_species), x(gpu_max_species), species(gpu_max_species), conductivity(gpu_max_species)
@@ -392,6 +502,13 @@ contains
       call htr_air5(ttr, ht)
       call hvib_air5(tv, hvib)
       diff = deff(1:nof_species); htr = ht(1:nof_species); hv = hvib(1:nof_species)
+      if (present(cv_vib)) then
+         cv_vib = 0.0
+         do k=1,nof_species
+            if (rg_thetag(k) > 0.0) cv_vib = cv_vib + &
+               y(k)*rgs_cv_vibrational_diatomic(tv,rg_thetag(k))/rg_molm(k)
+         end do
+      end if
    end subroutine realgas_transport
 
    subroutine effective_diffusion_direct(temp, pressure, x, diff)
@@ -551,8 +668,13 @@ contains
       end do
       radius = max((4.0e0 / 3.0e0) * (mu + max(mu_t, 0.0e0)) / rho, &
          & (ktr + max(ktr_t, 0.0e0)) / (rho * max(cvtr, tolsmall)))
-      if (cvv .gt. 1.0e-30) radius = max(radius, kv / (rho * cvv))
+      if (cvv .gt. 1.0e-30) radius = max(radius, kv/(rho*cvv))
       if (nof_species .gt. 0) radius = max(radius, maxval(diff(1:nof_species)))
+      ! Laminar calls do not require turbulent transport parameters.
+      if (mu_t > 0.0) then
+         if (cvv > 1.0e-30) radius = max(radius, kv/(rho*cvv) + mu_t/(rho*prtu))
+         if (nof_species > 0) radius = max(radius, maxval(diff(1:nof_species)) + mu_t/(rho*schmidt_turb))
+      end if
    end function realgas_diffusion_radius
 
    real function realgas_face_diffusion_speed(ql, qr, distance, viscl, laml) result(speed)
@@ -839,16 +961,17 @@ contains
 
    end subroutine fix_conservative_state
 
-   subroutine multispecies_mixtures_rg(leftv, mp_mu_mix, mp_ktr_mix, mp_kve, mp_d_eff, mp_htr, mp_hvib, gammal)
+   subroutine multispecies_mixtures_rg(leftv, mp_mu_mix, mp_ktr_mix, mp_kve, mp_d_eff, mp_htr, mp_hvib, gammal, cv_vib)
       implicit none
 #ifdef xpu
 !$omp declare target
 #endif
       real, intent(in) :: leftv(nof_variables)
       real, intent(out) :: mp_mu_mix, mp_ktr_mix, mp_kve, gammal
+      real, intent(out), optional :: cv_vib
       real, intent(out) :: mp_d_eff(nof_species), mp_htr(nof_species), mp_hvib(nof_species)
       real :: tv
-      call realgas_transport(leftv, mp_mu_mix, mp_ktr_mix, mp_kve, mp_d_eff, mp_htr, mp_hvib, gammal, tv)
+      call realgas_transport(leftv, mp_mu_mix, mp_ktr_mix, mp_kve, mp_d_eff, mp_htr, mp_hvib, gammal, tv, cv_vib)
    end subroutine multispecies_mixtures_rg
 
    subroutine compute_real_gas_diffusion(rgs_ttr, rgs_tv, rgs_p_pa, rgs_rho, rgs_x, rgs_y, &
@@ -1694,38 +1817,35 @@ contains
       real :: mp_pinfl, gammal
       real, dimension(1:nof_variables), intent(inout) :: rightv
       real :: mp_pinfr, gammar
-      real :: q2l, q2r, uul, uur, vvl, vvr, wwr, wwl, rhol, rhor, etal, etar, duu, dvv, dww
-      real :: mach2, mach, cma, dus, dvs, dws, diff, c1o2, ssl, ssr, ppl, ppr, eel, eer, tole, mlm
+      real :: priml(nof_variables), primr(nof_variables)
+      real :: q2l, q2r, uul, uur, vvl, vvr, wwr, wwl, rhol, rhor, duu, dvv, dww
+      real :: mach2, mach, cma, dus, dvs, dws, diff, c1o2, ssl, ssr, ppl, ppr
 
-      tole = zero
-
-      eel = leftv(5)
-      eer = rightv(5)
-
-      call cons2prim2(n, leftv, rightv, mp_pinfl, mp_pinfr, gammal, gammar)
+      ! Only face momenta are corrected. Keep total energy and every other
+      ! conservative component (including rho*ev and rho*Ys) unchanged.
+      priml = leftv
+      primr = rightv
+      call cons2prim2(n, priml, primr, mp_pinfl, mp_pinfr, gammal, gammar)
 
       c1o2 = 0.500
-      rhol = leftv(1)
-      uul = leftv(2)
-      vvl = leftv(3)
-      wwl = leftv(4)
-      ppl = leftv(5)
-      rhor = rightv(1)
-      uur = rightv(2)
-      vvr = rightv(3)
-      wwr = rightv(4)
-      ppr = rightv(5)
+      rhol = priml(1)
+      uul = priml(2)
+      vvl = priml(3)
+      wwl = priml(4)
+      ppl = priml(5)
+      rhor = primr(1)
+      uur = primr(2)
+      vvr = primr(3)
+      wwr = primr(4)
+      ppr = primr(5)
 
       q2l = (uul * uul) + (vvl * vvl) + (wwl * wwl)
       q2r = (uur * uur) + (vvr * vvr) + (wwr * wwr)
 
-!        ssl=((gamma*ppl)/(rhol)); ssr=((gamma*ppr)/(rhor))
-
-!        mlm=((abs(ppr-ppl))/(0.5*rres*((gamma*pres/rres))))
-
+      ! ssl/ssr are squared sound speeds; mach2 below is |u|^2 / a^2.
       if ((multispecies .eq. 1) .or. (realgas .eq. 1)) then
-         ssl = sqrt((leftv(5) + mp_pinfl) * gammal / leftv(1))
-         ssr = sqrt((rightv(5) + mp_pinfr) * gammar / rightv(1))
+         ssl = (ppl + mp_pinfl) * gammal / rhol
+         ssr = (ppr + mp_pinfr) * gammar / rhor
       else
 
          ssl = ((gamma * ppl) / (rhol))
@@ -1738,11 +1858,11 @@ contains
       dvv = vvr - vvl
       dww = wwr - wwl
 
-!       if(lmach.eq.1) then !standard proportional to du^2
       mach2 = max(q2l / ssl, q2r / ssr)
       mach = sqrt(mach2)
       mach = min(cma * mach, 1.00)
-!       end if
+      ! Avoid conversion/roundoff changes when no correction is needed.
+      if (mach >= 1.00) return
 
       dus = uur + uul
       dvs = vvr + vvl
@@ -1769,17 +1889,13 @@ contains
          wwr = (dws * c1o2 + diff)
       end if
 
-      leftv(1) = rhol
       leftv(2) = uul * rhol
       leftv(3) = vvl * rhol
       leftv(4) = wwl * rhol
-      leftv(5) = eel
 
-      rightv(1) = rhor
       rightv(2) = uur * rhor
       rightv(3) = vvr * rhor
       rightv(4) = wwr * rhor
-      rightv(5) = eer
 
    end subroutine lmacht
 
@@ -1795,33 +1911,34 @@ contains
       real :: mp_pinfl, gammal
       real, dimension(1:nof_variables), intent(inout) :: rightv
       real :: mp_pinfr, gammar
-      real :: q2l, q2r, uul, uur, vvl, vvr, wwr, wwl, rhol, rhor, etal, etar, duu, dvv, dww
-      real :: mach2, mach, cma, dus, dvs, dws, diff, c1o2, ssl, ssr, ppl, ppr, eel, eer, tole, mlm
+      real :: priml(nof_variables), primr(nof_variables)
+      real :: q2l, q2r, uul, uur, vvl, vvr, rhol, rhor, duu, dvv
+      real :: mach2, mach, cma, dus, dvs, diff, c1o2, ssl, ssr, ppl, ppr
 
-      tole = tolsmall
-
-      eel = leftv(4)
-      eer = rightv(4)
-
-      call cons2prim2(n, leftv, rightv, mp_pinfl, mp_pinfr, gammal, gammar)
+      ! Only face momenta are corrected. Keep total energy and every other
+      ! conservative component (including rho*ev and rho*Ys) unchanged.
+      priml = leftv
+      primr = rightv
+      call cons2prim2(n, priml, primr, mp_pinfl, mp_pinfr, gammal, gammar)
 
       c1o2 = 0.50
-      rhol = leftv(1)
-      uul = leftv(2)
-      vvl = leftv(3)
-      ppl = leftv(4)
+      rhol = priml(1)
+      uul = priml(2)
+      vvl = priml(3)
+      ppl = priml(4)
 
-      rhor = rightv(1)
-      uur = rightv(2)
-      vvr = rightv(3)
-      ppr = rightv(4)
+      rhor = primr(1)
+      uur = primr(2)
+      vvr = primr(3)
+      ppr = primr(4)
 
       q2l = (uul * uul) + (vvl * vvl)
       q2r = (uur * uur) + (vvr * vvr)
 
+      ! ssl/ssr are squared sound speeds; mach2 below is |u|^2 / a^2.
       if ((multispecies .eq. 1) .or. (realgas .eq. 1)) then
-         ssl = sqrt((leftv(4) + mp_pinfl) * gammal / leftv(1))
-         ssr = sqrt((rightv(4) + mp_pinfr) * gammar / rightv(1))
+         ssl = (ppl + mp_pinfl) * gammal / rhol
+         ssr = (ppr + mp_pinfr) * gammar / rhor
       else
 
          ssl = ((gamma * ppl) / (rhol))
@@ -1833,11 +1950,11 @@ contains
       duu = uur - uul
       dvv = vvr - vvl
 
-!       if(lmach.eq.1) then !standard proportional to du^2
       mach2 = max(q2l / ssl, q2r / ssr)
       mach = sqrt(mach2)
       mach = min(cma * mach, 1.00)
-!       end if
+      ! Avoid conversion/roundoff changes when no correction is needed.
+      if (mach >= 1.00) return
 
       dus = uur + uul
       dvs = vvr + vvl
@@ -1847,7 +1964,6 @@ contains
       dvv = mach * dvv
 
       diff = c1o2 * duu
-      !if (uul*uur.gt.tole)then
 
       uul = (dus * c1o2) - diff
       uur = (dus * c1o2) + diff
@@ -1858,15 +1974,11 @@ contains
          vvr = (dvs * c1o2 + diff)
       end if
 
-      leftv(1) = rhol
       leftv(2) = uul * rhol
       leftv(3) = vvl * rhol
-      leftv(4) = eel
 
-      rightv(1) = rhor
       rightv(2) = uur * rhor
       rightv(3) = vvr * rhor
-      rightv(4) = eer
 
    end subroutine lmacht2d
 
@@ -1988,6 +2100,23 @@ contains
       flux(dimensiona + 2) = flux(dimensiona + 2) + velocity * pressure
    end subroutine primitive_euler_flux
 
+   real function realgas_inlet_density(pressure, temperature) result(rho)
+      ! Shared by initial conditions and prescribed boundaries in 2D and 3D.
+      ! The input reader validates p, T and composition before this is called.
+      implicit none
+#ifdef xpu
+!$omp declare target
+#endif
+      real, intent(in) :: pressure, temperature
+      real :: rmix
+      integer :: k
+      rmix = 0.0e0
+      do k = 1, nof_species
+         rmix = rmix + rg_vf(k) / rg_molm(k)
+      end do
+      rho = pressure / ((rgs_ru * rmix) * temperature)
+   end function realgas_inlet_density
+
    subroutine inflow(initcond, pox, poy, poz, inflow_out)
       implicit none
 !> @brief
@@ -2108,6 +2237,7 @@ contains
 
          rg_ttr0 = rg_ttr
          rg_tve0 = rg_tve
+         r = realgas_inlet_density(p, rg_ttr0)
 
 ! translational-rotational internal energy
          rg_tr = 0.00
@@ -2248,7 +2378,7 @@ contains
       if (realgas .eq. 1) then
          u = uvel
          v = vvel
-         p = max(pres, tolsmall)
+         p = pres
 
 !first build mixture gas constant
          rg_rmix = zero
@@ -2258,13 +2388,9 @@ contains
 
          rg_rmix = rgs_ru * rg_rmix
 
-         rg_ttr0 = max(rg_ttr, tolsmall)
-         rg_tve0 = max(rg_tve, tolsmall)
-         if (rg_rmix .gt. tolsmall) then
-            r = p / (rg_rmix * rg_ttr0)
-         else
-            r = rres
-         end if
+         rg_ttr0 = rg_ttr
+         rg_tve0 = rg_tve
+         r = realgas_inlet_density(p, rg_ttr0)
 
 ! translational-rotational internal energy
          rg_tr = 0.00
@@ -2852,6 +2978,10 @@ contains
       real, dimension(1:gpu_max_dim, 1:gpu_max_qp_face) :: qpoints2d
       real, dimension(1:gpu_max_qp_face) :: wequa2d
 
+      if (thermal /= 1) then
+         shear_temp = 0.0
+         return
+      end if
       i = iconsidered
       ssx = zero; ssy = zero; ssz = zero
       j = facex
@@ -2912,21 +3042,11 @@ contains
          else
             call get_visc_conduct(n, leftv, rightv, viscl, laml)
 
-            if ((turbulence .eq. 1) .and. (turbulencemodel .eq. 1)) then
-
-               turbmv(1) = rec_uleftturb(i, 1, j, im)
-
-               turbmv(2) = rec_uleftturb(i, 1, j, im)
-               eddyfl(2) = turbmv(1);
-               eddyfr(2) = turbmv(2)
-               call eddyvisco(n, viscl, laml, turbmv, etvm, eddyfl, eddyfr, leftv, rightv)
+            if (turbulence == 1 .and. turbulencemodel == 2) then
+               call sst_wall_transport(n,u_c_val(i,1,1:nof_variables),viscl(1),laml(1))
             end if
-
-            if (turbulence .eq. 1) then
-               lam_qflux = laml(3)
-            else
-               lam_qflux = laml(1)
-            end if
+            ! A resolved no-slip wall has zero eddy viscosity for SA, SA-RC and SST.
+            lam_qflux = laml(1)
 
             ssx = ssx + lam_qflux * temp_grad(1) * wequa2d(im) * nx !*surface_temp
             ssy = ssy + lam_qflux * temp_grad(2) * wequa2d(im) * ny !*surface_temp
@@ -2964,6 +3084,14 @@ contains
       real, dimension(1) :: etvm
       real, dimension(1:20) :: eddyfl, eddyfr
 
+      if(axisymmetric_enabled==1) then
+         call axisymmetric_wall_heat(iconsidered,facex,shear_temp)
+         return
+      end if
+      if (thermal /= 1) then
+         shear_temp = 0.0
+         return
+      end if
       i = iconsidered
       ssx = zero; ssy = zero
       j = facex
@@ -3003,21 +3131,11 @@ contains
          else
             call get_visc_conduct(n, leftv, rightv, viscl, laml)
 
-            if ((turbulence .eq. 1) .and. (turbulencemodel .eq. 1)) then
-
-               turbmv(1) = rec_uleftturb(i, 1, j, im)
-
-               turbmv(2) = rec_uleftturb(i, 1, j, im)
-               eddyfl(2) = turbmv(1);
-               eddyfr(2) = turbmv(2)
-               call eddyvisco(n, viscl, laml, turbmv, etvm, eddyfl, eddyfr, leftv, rightv)
+            if (turbulence == 1 .and. turbulencemodel == 2) then
+               call sst_wall_transport(n,u_c_val(i,1,1:nof_variables),viscl(1),laml(1))
             end if
-
-            if (turbulence .eq. 1) then
-               lam_qflux = laml(3)
-            else
-               lam_qflux = laml(1)
-            end if
+            ! A resolved no-slip wall has zero eddy viscosity for SA, SA-RC and SST.
+            lam_qflux = laml(1)
 
             ssx = ssx + lam_qflux * temp_grad(1) * wequa2d(im) * nx !*surface_temp
             ssy = ssy + lam_qflux * temp_grad(2) * wequa2d(im) * ny !*surface_temp
@@ -3243,6 +3361,66 @@ contains
 
    end subroutine shear_z_av
 
+   subroutine axisymmetric_wall_heat(i,f,heat)
+#ifdef xpu
+!$omp declare target
+#endif
+      integer,intent(in) :: i,f
+      real,intent(out) :: heat
+      integer :: j
+      real :: q(gpu_max_nvar),mu,ktr,kve,nx,ny,gradt(2),gradv(2)
+      heat=0.0
+      if(itestcase/=4.or.thermal/=1) return
+      nx=ielem_faceanglex(i,f);ny=ielem_faceangley(i,f)
+      do j=1,qp_line_n
+         q(1:nof_variables)=rec_uleft(i,1:nof_variables,f,j)
+         ! Initial surface output precedes reconstruction; its face states are zero.
+         if(q(1)<=0.0) q(1:nof_variables)=u_c_val(i,1,1:nof_variables)
+         gradt=rec_uleftv(i,1:2,3,f,j);gradv=0.0;kve=0.0
+         if(realgas==1) then
+            gradv=rec_uleftv(i,1:2,4,f,j)
+            call realgas_wall_heat_transport(n,q(1:nof_variables),ktr,kve)
+         else
+            call molecular_transport(n,q(1:nof_variables),mu,ktr)
+            if(turbulence==1.and.turbulencemodel==2) &
+               call sst_wall_transport(n,u_c_val(i,1,1:nof_variables),mu,ktr)
+         end if
+         heat=heat-weights_l(j)*(ktr*(gradt(1)*nx+gradt(2)*ny)+kve*(gradv(1)*nx+gradv(2)*ny))
+      end do
+   end subroutine axisymmetric_wall_heat
+
+   subroutine axisymmetric_wall_shear(i,f,component,shear)
+#ifdef xpu
+!$omp declare target
+#endif
+      integer,intent(in) :: i,f,component
+      real,intent(out) :: shear
+      integer :: j
+      real :: q(gpu_max_nvar),mu,conductivity,txx,txr,trr,ttt,nx,ny
+      real :: ux,ur,vx,vr
+      shear=0.0
+      if(itestcase/=4) return
+      nx=ielem_faceanglex(i,f);ny=ielem_faceangley(i,f)
+      do j=1,qp_line_n
+         q(1:nof_variables)=rec_uleft(i,1:nof_variables,f,j)
+         if(q(1)<=0.0) q(1:nof_variables)=u_c_val(i,1,1:nof_variables)
+         call molecular_transport(n,q(1:nof_variables),mu,conductivity)
+         if(turbulence==1.and.turbulencemodel==2) &
+            call sst_wall_transport(n,u_c_val(i,1,1:nof_variables),mu,conductivity)
+         if(ielem_ggs(i)==1) then
+            ux=rec_grads(i,1,1);ur=rec_grads(i,1,2)
+            vx=rec_grads(i,2,1);vr=rec_grads(i,2,2)
+         else
+            ux=rec_uleftv(i,1,1,f,j);ur=rec_uleftv(i,2,1,f,j)
+            vx=rec_uleftv(i,1,2,f,j);vr=rec_uleftv(i,2,2,f,j)
+         end if
+         call axis_stress(mu,ux,ur,vx,vr,0.0,txx,txr,trr,ttt)
+         if(component==1) shear=shear-(txx*nx+txr*ny)*weights_l(j)
+         if(component==2) shear=shear-(txr*nx+trr*ny)*weights_l(j)
+      end do
+      shear=shear/(0.5*rres*ufreestream**2)
+   end subroutine axisymmetric_wall_shear
+
    subroutine shear_x2d(iconsidered, facex, shear_temp)
       implicit none
 !> @brief
@@ -3266,6 +3444,10 @@ contains
       real, dimension(1:8, 1:gpu_max_dim) :: vext
       real, dimension(1:gpu_max_dim, 1:gpu_max_qp_face) :: qpoints2d
       real, dimension(1:gpu_max_qp_face) :: wequa2d
+      if(axisymmetric_enabled==1) then
+         call axisymmetric_wall_shear(iconsidered,facex,1,shear_temp)
+         return
+      end if
       ssx = zero; ssp = zero; ssy = zero;
       gqi_points = qp_line_n
       call quadratureline(n, igqrules, vext, qpoints2d, wequa2d)
@@ -3329,6 +3511,10 @@ contains
       real, dimension(1:8, 1:gpu_max_dim) :: vext
       real, dimension(1:gpu_max_dim, 1:gpu_max_qp_face) :: qpoints2d
       real, dimension(1:gpu_max_qp_face) :: wequa2d
+      if(axisymmetric_enabled==1) then
+         call axisymmetric_wall_shear(iconsidered,facex,2,shear_temp)
+         return
+      end if
       ssx = zero; ssp = zero; ssy = zero;
       gqi_points = qp_line_n
       call quadratureline(n, igqrules, vext, qpoints2d, wequa2d)
@@ -3615,6 +3801,7 @@ contains
             onorm = sqrt((ovort(1, 1) * ovort(1, 1)) + (ovort(1, 2) * ovort(1, 2)) + &
                & (ovort(2, 1) * ovort(2, 1)) + (ovort(2, 2) * ovort(2, 2)))
 
+            if(axisymmetric_enabled==1) snorm=sqrt(snorm**2+(u_c_val(i,1,3)/(u_c_val(i,1,1)*axis_radius(i)))**2)
             ielem_vortex(i, 1) = (0.50 * ((onorm**2) - (snorm**2)))
 
          end block
@@ -3995,18 +4182,12 @@ contains
       integer, intent(in) :: n
       real, intent(in) :: qright(nof_variables)
       real, intent(out) :: transport(turbulenceequations + passivescalar)
-      real :: sa_bc
       transport = 0.0e0
       if (turbulence .eq. 1) then
          if (turbulencemodel .eq. 1) then
-            transport(1) = visc * turbinit * qright(1)
-            if ((initcond .eq. 4440) .and. (realgas .eq. 0) .and. (multispecies .eq. 0)) then
-               call inflow_4440_sa_value(n, qright, sa_bc)
-               transport(1) = sa_bc
-            end if
+            call inflow_4440_sa_value(n, qright, transport(1))
          else if (turbulencemodel .eq. 2) then
-            transport(1) = 1.5e0 * i_turb_inlet * ufreestream**2 * qright(1)
-            transport(2) = qright(1) * transport(1) / max(10.0e-5 * visc, tolsmall)
+            call sst_inflow_transport(n, qright, transport(1:2))
          end if
       end if
       if (passivescalar .gt. 0) transport(turbulenceequations + 1:) = qright(1) * rres
@@ -4341,6 +4522,8 @@ contains
          if ((.not. outlet_backflow) .and. (turbulence .eq. 1) .and. (turbulencemodel .eq. 1)) then
             cturbr(1) = cturbl(1) * rightv(1) / leftv(1)
          end if
+         if (.not. outlet_backflow .and. turbulence == 1 .and. turbulencemodel == 2) &
+            cturbr(1:2) = cturbl(1:2)*rightv(1)/leftv(1)
          if (outlet_backflow) call pressure_outlet_transport(n, rightv, cturbr)
          return
       end if
@@ -4360,7 +4543,7 @@ contains
                call inflow(initcond, pox, poy, poz, rightv)
 
                if ((turbulence .eq. 1) .and. (turbulencemodel .eq. 1)) then
-                  cturbr(1) = visc * turbinit * rightv(1)
+                  call inflow_4440_sa_value(n, rightv, cturbr(1))
                end if
 
             else !subsonic
@@ -4383,7 +4566,7 @@ contains
                   call inflow(initcond, pox, poy, poz, rightv)
 
                   if ((turbulence .eq. 1) .and. (turbulencemodel .eq. 1)) then
-                     cturbr(1) = visc * turbinit * rightv(1)
+                     call inflow_4440_sa_value(n, rightv, cturbr(1))
                   end if
 
                else !subsonic
@@ -4419,14 +4602,12 @@ contains
                if ((turbulence .eq. 1) .or. (passivescalar .gt. 0)) then
 
                   if ((turbulence .eq. 1) .and. (turbulencemodel .eq. 1)) then
-                     cturbr(1) = visc * turbinit * rightv(1)
+                     call inflow_4440_sa_value(n, rightv, cturbr(1))
                   end if
                   if ((turbulence .eq. 1) .and. (turbulencemodel .eq. 2)) then
-                     cturbr(1) = (1.50 * i_turb_inlet * (ufreestream**2)) * rightv(1) !k initialization
-                     cturbr(2) = rightv(1) * cturbr(1) / (10.0e-5 * visc) !omega initialization
+                     call sst_inflow_transport(n, rightv, cturbr(1:2))
                      if (rec_mrf(iconsidered) .eq. 1) then
-                        cturbr(1) = (1.50 * i_turb_inlet * (kinit_srf**2)) * rightv(1) !k initialization
-                        cturbr(2) = rightv(1) * cturbr(1) / (10.0e-5 * visc) !omega initialization
+                        call sst_inflow_transport(n, rightv, cturbr(1:2), kinit_srf)
                      end if
                   end if
 
@@ -4629,7 +4810,9 @@ contains
                   end if
                else
                   cturbr(1) = -cturbl(1)
-                  cturbr(2) = 60.00 * visc / (beta_i1 * (ielem_walldist(iconsidered)**2))
+                  ! Mirror the primitive wall target so arithmetic GG face averaging is exact.
+                  cturbr(2) = rightv(1) * (2.0 * sst_wall_omega(n, &
+                     u_c_val(iconsidered,1,1:nof_variables), ielem_walldist(iconsidered)) - cturbl(2)/leftv(1))
 
                   if (passivescalar .gt. 0) then
                      cturbr(turbulenceequations + 1:turbulenceequations + passivescalar) = &
@@ -4722,14 +4905,12 @@ contains
             if ((turbulence .eq. 1) .or. (passivescalar .gt. 0)) then
 
                if ((turbulence .eq. 1) .and. (turbulencemodel .eq. 1)) then
-                  cturbr(1) = visc * turbinit * rightv(1)
+                  call inflow_4440_sa_value(n, rightv, cturbr(1))
                end if
                if ((turbulence .eq. 1) .and. (turbulencemodel .eq. 2)) then
-                  cturbr(1) = (1.50 * i_turb_inlet * (ufreestream**2)) * rightv(1) !k initialization
-                  cturbr(2) = rightv(1) * cturbr(1) / (10.0e-5 * visc) !omega initialization
+                  call sst_inflow_transport(n, rightv, cturbr(1:2))
                   if (rec_mrf(iconsidered) .eq. 1) then
-                     cturbr(1) = (1.50 * i_turb_inlet * (kinit_srf**2)) * rightv(1) !k initialization
-                     cturbr(2) = rightv(1) * cturbr(1) / (10.0e-5 * visc) !omega initialization
+                     call sst_inflow_transport(n, rightv, cturbr(1:2), kinit_srf)
                   end if
                end if
 
@@ -4798,6 +4979,24 @@ contains
 
       end select
 
+      if (turbulence == 1 .and. turbulencemodel == 2) then
+         ! All inlet paths, including 4440 and supersonic inflow, use the same data.
+         if (b_code == 1) then
+            call sst_inflow_transport(n, rightv, cturbr(1:2))
+            if (rec_mrf(iconsidered) == 1 .and. initcond /= 4440) &
+               call sst_inflow_transport(n, rightv, cturbr(1:2), kinit_srf)
+         elseif (b_code == 2) then
+            if (leftv(2)*nx+leftv(3)*ny+leftv(4)*nz <= 0.0) then
+               call sst_inflow_transport(n, rightv, cturbr(1:2))
+            else
+               cturbr(1:2) = cturbl(1:2)*rightv(1)/leftv(1)
+            end if
+         elseif (b_code == 6 .and. ibfc == -2) then
+            cturbr(1:2) = cturbl(1:2)*rightv(1)/leftv(1)
+         end if
+      end if
+
+
    end subroutine boundarys
 
    subroutine boundarys2d(n, b_code, iconsidered, facex, leftv, rightv, pox, poy, poz, angle1, angle2, nx, ny, nz, cturbl, cturbr, &
@@ -4830,6 +5029,12 @@ contains
       ibfc = 0
       rightv(1:nof_variables) = leftv(1:nof_variables)
       cturbr = cturbl
+      if (axisymmetric_enabled == 1 .and. b_code == 3) then
+         if (axis_face(iconsidered,facex)) then
+            rightv(3)=-leftv(3)
+            return
+         end if
+      end if
       if (b_code .eq. 99) error stop 'Boundary code 99: legacy bleed model is incomplete'
       if (b_code .eq. 9) then
          call pressure_outlet_state(n, leftv, rightv, [nx, ny, 0.0e0], press_outlet, outlet_backflow, ibfc)
@@ -4838,6 +5043,8 @@ contains
          if ((.not. outlet_backflow) .and. (turbulence .eq. 1) .and. (turbulencemodel .eq. 1)) then
             cturbr(1) = cturbl(1) * rightv(1) / leftv(1)
          end if
+         if (.not. outlet_backflow .and. turbulence == 1 .and. turbulencemodel == 2) &
+            cturbr(1:2) = cturbl(1:2)*rightv(1)/leftv(1)
          if (outlet_backflow) call pressure_outlet_transport(n, rightv, cturbr)
          return
       end if
@@ -4857,7 +5064,7 @@ contains
                call inflow2d(initcond, pox, poy, rightv)
 
                if ((turbulence .eq. 1) .and. (turbulencemodel .eq. 1)) then
-                  cturbr(1) = visc * turbinit * rightv(1)
+                  call inflow_4440_sa_value(n, rightv, cturbr(1))
                end if
 
             else !subsonic
@@ -4913,11 +5120,10 @@ contains
             if ((turbulence .eq. 1) .or. (passivescalar .gt. 0)) then
 
                if ((turbulence .eq. 1) .and. (turbulencemodel .eq. 1)) then
-                  cturbr(1) = visc * turbinit
+                  call inflow_4440_sa_value(n, rightv, cturbr(1))
                end if
                if ((turbulence .eq. 1) .and. (turbulencemodel .eq. 2)) then
-                  cturbr(1) = (1.50 * i_turb_inlet * (ufreestream**2)) * rightv(1) !k initialization
-                  cturbr(2) = rightv(1) * cturbr(1) / (10.0e-5 * visc) !omega initialization
+                  call sst_inflow_transport(n, rightv, cturbr(1:2))
 
                end if
 
@@ -5175,7 +5381,9 @@ contains
                   end if
                else
                   cturbr(1) = -cturbl(1)
-                  cturbr(2) = 60.00 * visc / (beta_i1 * (ielem_walldist(iconsidered)**2))
+                  ! Mirror the primitive wall target so arithmetic GG face averaging is exact.
+                  cturbr(2) = rightv(1) * (2.0 * sst_wall_omega(n, &
+                     u_c_val(iconsidered,1,1:nof_variables), ielem_walldist(iconsidered)) - cturbl(2)/leftv(1))
 
                   if (passivescalar .gt. 0) then
                      cturbr(turbulenceequations + 1:turbulenceequations + passivescalar) = &
@@ -5265,11 +5473,10 @@ contains
             if ((turbulence .eq. 1) .or. (passivescalar .gt. 0)) then
 
                if ((turbulence .eq. 1) .and. (turbulencemodel .eq. 1)) then
-                  cturbr(1) = visc * turbinit * rightv(1)
+                  call inflow_4440_sa_value(n, rightv, cturbr(1))
                end if
                if ((turbulence .eq. 1) .and. (turbulencemodel .eq. 2)) then
-                  cturbr(1) = (1.50 * i_turb_inlet * (ufreestream**2)) * rightv(1) !k initialization
-                  cturbr(2) = rightv(1) * cturbr(1) / (10.0e-5 * visc) !omega initialization
+                  call sst_inflow_transport(n, rightv, cturbr(1:2))
                end if
 
                if (passivescalar .gt. 0) then
@@ -5332,6 +5539,24 @@ contains
          end if
 
       end select
+
+      if (turbulence == 1 .and. turbulencemodel == 2) then
+         ! All inlet paths, including 4440 and supersonic inflow, use the same data.
+         if (b_code == 1) then
+            call sst_inflow_transport(n, rightv, cturbr(1:2))
+            if (rec_mrf(iconsidered) == 1 .and. initcond /= 4440) &
+               call sst_inflow_transport(n, rightv, cturbr(1:2), kinit_srf)
+         elseif (b_code == 2) then
+            if (leftv(2)*nx+leftv(3)*ny <= 0.0) then
+               call sst_inflow_transport(n, rightv, cturbr(1:2))
+            else
+               cturbr(1:2) = cturbl(1:2)*rightv(1)/leftv(1)
+            end if
+         elseif (b_code == 6 .and. ibfc == -2) then
+            cturbr(1:2) = cturbl(1:2)*rightv(1)/leftv(1)
+         end if
+      end if
+
 
    end subroutine boundarys2d
 

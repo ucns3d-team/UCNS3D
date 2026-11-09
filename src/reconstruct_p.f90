@@ -9,6 +9,7 @@ module recon
    use gradients
    use basis
    implicit none
+   real, parameter :: realgas_trace_fraction = 1.0e-8
 
 contains
 
@@ -528,6 +529,7 @@ contains
          leftv(1:nof_variables) = u_c_val(iconsidered, 1, 1:nof_variables)
          call cons2prim(n, leftv, mp_pinfl, gammal)
          leftv(1:nof_variables) = leftv(1:nof_variables) + du(1:nof_variables) * slope(1:nof_variables)
+         if (realgas == 1) call close_realgas_trace_species(leftv)
          call prim2cons(n, leftv)
          rec_uleft(iconsidered, 1:nof_variables, facex, pointx) = leftv(1:nof_variables)
       else
@@ -543,6 +545,29 @@ contains
       end if
 
    end subroutine extrapolate_bound_muscl
+
+   subroutine close_realgas_trace_species(q)
+      ! Primitive MUSCL limits species separately. Balance only a trace-sized
+      ! closure residual in the largest species, before rebuilding total energy.
+      implicit none
+#ifdef xpu
+!$omp declare target
+#endif
+      real, intent(inout) :: q(nof_variables)
+      integer :: k, largest, first_species
+      real :: sumy, correction
+      first_species = dimensiona + 4
+      sumy = 0.0e0; largest = first_species
+      do k = first_species, nof_variables
+         if (q(k) /= q(k) .or. q(k) < 0.0e0 .or. q(k) > 1.0e0) return
+         if (q(k) > q(largest)) largest = k
+         sumy = sumy + q(k)
+      end do
+      correction = 1.0e0 - sumy
+      if (abs(correction) > realgas_trace_fraction) return
+      if (q(largest) + correction < 0.0e0 .or. q(largest) + correction > 1.0e0) return
+      q(largest) = q(largest) + correction
+   end subroutine close_realgas_trace_species
 
    subroutine cp_reconstruction_cweno(iconsidered)
       implicit none
@@ -4944,10 +4969,10 @@ contains
             if (greengo == 0) then
                call compute_gradients_inner_mean_lsq_viscous_acc(n)
                if (allocated(rec_volume_w)) call compute_gradients_wall_mean_lsq_viscous_acc(n)
-            else
-               call compute_gradients_inner_mean_ggs_viscous_acc(n)
-               call compute_gradients_mix_mean_ggs_viscous_acc(n)
             end if
+            ! Each kernel selects ielem_ggs: greengo=0 can contain GG fallback cells.
+            call compute_gradients_inner_mean_ggs_viscous_acc(n)
+            call compute_gradients_mix_mean_ggs_viscous_acc(n)
             if (extras) then
                call compute_gradients_inner_turb_ggs_viscous_acc(n)
                call compute_gradients_mix_turb_ggs_viscous_acc(n)
@@ -5116,6 +5141,112 @@ contains
 
 
 
+   logical function repair_realgas_trace_face(face_state, cell_state) result(repaired)
+      ! Correct only bounded undershoots of species that are traces in the cell.
+      ! This is a face-state reconstruction correction, never a cell/source edit.
+      ! Preserve rho, momentum, pressure and Ev; rebuild energy for the corrected
+      ! composition. Significant negativity and invalid thermal states still fail.
+      implicit none
+#ifdef xpu
+!$omp declare target
+#endif
+      real, intent(inout) :: face_state(nof_variables)
+      real, intent(in) :: cell_state(nof_variables)
+      real :: candidate(gpu_max_nvar), rho, kinetic, chemical, thermal, cv, rmix
+      real :: pressure, deficit, yface, ycell, closure
+      integer :: k, slot, largest, first_species
+      repaired = .false.
+      if (realgas /= 1) return
+      first_species = dimensiona + 4
+      if (.not. any(face_state(first_species:nof_variables) < 0.0e0)) return
+      if (any(face_state /= face_state) .or. any(abs(face_state) > 1.0e100)) return
+      if (.not. conservative_state_valid(cell_state)) return
+      rho = face_state(1)
+      if (rho <= tolsmall .or. face_state(dimensiona + 3) < 0.0e0) return
+      deficit = 0.0e0
+      do slot = first_species, nof_variables
+         if (face_state(slot) < 0.0e0) then
+            yface = face_state(slot) / rho
+            ycell = cell_state(slot) / cell_state(1)
+            if (ycell > realgas_trace_fraction .or. -yface > realgas_trace_fraction) return
+            deficit = deficit - yface
+         end if
+      end do
+      if (deficit > realgas_trace_fraction) return
+      closure = sum(face_state(first_species:nof_variables)) / rho
+      if (abs(closure - 1.0e0) > realgas_trace_fraction) return
+
+      kinetic = 0.5e0 * sum(face_state(2:dimensiona + 1)**2) / rho
+      chemical = 0.0e0; cv = 0.0e0; rmix = 0.0e0
+      do k = 1, nof_species
+         slot = dimensiona + 3 + k
+         chemical = chemical + face_state(slot) * max(rg_hzero(k), 0.0e0) / rg_molm(k)
+         rmix = rmix + face_state(slot) * rgs_ru / rg_molm(k)
+         cv = cv + face_state(slot) * rgs_ru / rg_molm(k) * merge(2.5e0, 1.5e0, k <= 3)
+      end do
+      thermal = face_state(dimensiona + 2) - kinetic - face_state(dimensiona + 3) - chemical
+      if (thermal <= tolsmall .or. cv <= 0.0e0 .or. rmix <= 0.0e0) return
+      pressure = thermal * rmix / cv
+
+      candidate(1:nof_variables) = face_state(1:nof_variables)
+      largest = first_species
+      do slot = first_species, nof_variables
+         candidate(slot) = max(candidate(slot), 0.0e0)
+         if (candidate(slot) > candidate(largest)) largest = slot
+      end do
+      ! Balance the correction in the dominant species, retaining sum(rho_s)=rho.
+      closure = 0.0e0
+      do slot = first_species, nof_variables
+         if (slot /= largest) closure = closure + candidate(slot)
+      end do
+      candidate(largest) = rho - closure
+      if (candidate(largest) < 0.0e0) return
+      chemical = 0.0e0; cv = 0.0e0; rmix = 0.0e0
+      do k = 1, nof_species
+         slot = dimensiona + 3 + k
+         chemical = chemical + candidate(slot) * max(rg_hzero(k), 0.0e0) / rg_molm(k)
+         rmix = rmix + candidate(slot) * rgs_ru / rg_molm(k)
+         cv = cv + candidate(slot) * rgs_ru / rg_molm(k) * merge(2.5e0, 1.5e0, k <= 3)
+      end do
+      if (cv <= 0.0e0 .or. rmix <= 0.0e0) return
+      candidate(dimensiona + 2) = kinetic + candidate(dimensiona + 3) + chemical + pressure * cv / rmix
+      if (.not. conservative_state_valid(candidate(1:nof_variables))) return
+      face_state(1:nof_variables) = candidate(1:nof_variables)
+      repaired = .true.
+   end function repair_realgas_trace_face
+
+   logical function realgas_reconstruction_jump_rejected(ivar, face_state, cell_state) result(rejected)
+      implicit none
+#ifdef xpu
+!$omp declare target
+#endif
+      integer, intent(in) :: ivar
+      real, intent(in) :: face_state(nof_variables), cell_state(nof_variables)
+      real, parameter :: relative_jump_limit = 0.75e0
+      real, parameter :: species_scale_min = realgas_trace_fraction
+      real, parameter :: vibrational_scale_fraction = 1.0e-8
+      real :: scale
+
+      ! Inputs are primitive: rho, velocities, p, specific Ev, species fractions.
+      ! These are acceptance scales, never floors applied to the solution.
+      rejected = face_state(ivar) < 0.0e0
+      if (rejected) return
+      scale = abs(cell_state(ivar))
+      if (ivar >= dimensiona + 4) then
+         scale = max(scale, species_scale_min)
+      elseif (ivar == dimensiona + 3) then
+         ! p/rho supplies a unit-consistent scale when vibrational energy is tiny.
+         if (cell_state(1) <= 0.0e0) then
+            rejected = .true.
+            return
+         end if
+         scale = max(scale, vibrational_scale_fraction * abs(cell_state(dimensiona + 2)) / cell_state(1))
+      end if
+      if (scale > 0.0e0) then
+         rejected = abs(face_state(ivar) - cell_state(ivar)) >= relative_jump_limit * scale
+      end if
+   end function realgas_reconstruction_jump_rejected
+
    subroutine checksol(n)
       implicit none
 !> @brief
@@ -5149,8 +5280,6 @@ contains
                ielem_reduce(i) = 0; reduce1 = 0
                jump_cond = 0.9
 
-               if (realgas == 1) jump_cond = 0.5
-
                if (ielem_troubled(i) .eq. 1) then
 
                   if (ielem_full(i) .eq. 0) then
@@ -5180,6 +5309,9 @@ contains
                            end do
 
                            if (realgas .eq. 1) then
+                              if (repair_realgas_trace_face(leftv(1:nof_variables), rightv(1:nof_variables))) then
+                                 rec_uleft(i, 1:nof_variables, l, ngp) = leftv(1:nof_variables)
+                              end if
                               if ((leftv(1) .le. 0.00) .or. (leftv(dimensiona + 2) .le. 0.00) .or. (leftv(dimensiona + 3) &
                                  & .lt. 0.00)) &
                                  & then
@@ -5213,22 +5345,13 @@ contains
                               end do
                            end if
                            if (realgas .eq. 1) then
-                              do iex = 1, nof_variables !loop rho,u,v,w,e,p
+                              do iex = 1, nof_variables
                                  if ((iex .ge. 2) .and. (iex .le. dimensiona + 1)) cycle
-
-                                 jump = abs(leftv(iex) - rightv(iex))
-                                 temp_scale = rightv(iex)
-
-                                 if (abs(temp_scale) .gt. 10e-300) then
-                                    if ((jump .ge. jump_cond * (temp_scale)) .or. &
-                                       & (leftv(iex) .lt. 0.00)) then
-                                       reduce1 = 1
-                                       ielem_reduce(i) = 1 !jump from not species
-                                       exit
-
-                                    end if
+                                 if (realgas_reconstruction_jump_rejected(iex, leftv, rightv)) then
+                                    reduce1 = 1
+                                    ielem_reduce(i) = 1
+                                    exit
                                  end if
-
                               end do
                            end if
 
@@ -5257,6 +5380,7 @@ contains
    end subroutine checksol
 
    subroutine checksolx(n)
+      use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
       implicit none
 !> @brief
 !> subroutine for checking the reconstructed solution
@@ -5275,7 +5399,7 @@ contains
 !$omp target teams distribute parallel do &
 !$omp& private(l, ngp, iqp, iex, k, reduce1, jump, rhol, rscale, mp_pinfl, mp_pinfr, gammal, gammar, sumx, temp_scale, jump_cond) &
 !$omp& firstprivate(kmaxe, n, dg, dimensiona, icoupleturb, nof_variables, qp_line, qp_quad, qp_triangle, realgas) &
-!$omp& firstprivate(turbulence, zero) &
+!$omp& firstprivate(turbulence, turbulencemodel, turbulenceequations, zero) &
 !$omp& map(alloc: dg2fv, ielem_hybrid, ielem_idegfree, ielem_ifca, ielem_reduce, ielem_troubled) &
 !$omp& map(alloc: ielem_types_faces, rec_uleft, rec_uleftturb, u_c_val, u_ct_val) &
 !$omp& private(i) &
@@ -5292,8 +5416,9 @@ contains
 
                jump_cond = 0.5
 
-               if (Realgas .eq. 1) jump_cond = 0.5
-
+               ! MUSCL has already consumed checksol's WENO fallback flag.
+               ! Report only this pass's final-check rejection, not stale history.
+               ielem_reduce(i) = 0
                reduce1 = 0
 
                if (ielem_troubled(i) .eq. 1) then
@@ -5318,6 +5443,9 @@ contains
                         end do
 
                         if (realgas .eq. 1) then
+                           if (repair_realgas_trace_face(leftv(1:nof_variables), rightv(1:nof_variables))) then
+                              rec_uleft(i, 1:nof_variables, l, ngp) = leftv(1:nof_variables)
+                           end if
                            if ((leftv(1) .le. 0.00) .or. (leftv(dimensiona + 2) .le. 0.00) .or. (leftv(dimensiona + 3) .lt. &
                               & 0.00)) then
                               reduce1 = 1
@@ -5351,22 +5479,13 @@ contains
                            end do
                         end if
                         if (realgas .eq. 1) then
-                           do iex = 1, nof_variables !loop rho,u,v,w,e,p
+                           do iex = 1, nof_variables
                               if ((iex .ge. 2) .and. (iex .le. dimensiona + 1)) cycle
-
-                              jump = abs(leftv(iex) - rightv(iex))
-                              temp_scale = rightv(iex)
-
-                              if (abs(temp_scale) .gt. 10e-300) then
-                                 if ((jump .ge. jump_cond * (temp_scale)) .or. &
-                                    & (leftv(iex) .lt. 0.00)) then
-                                    reduce1 = 1
-                                    ielem_reduce(i) = iex !jump from not species
-                                    exit
-
-                                 end if
+                              if (realgas_reconstruction_jump_rejected(iex, leftv, rightv)) then
+                                 reduce1 = 1
+                                 ielem_reduce(i) = iex
+                                 exit
                               end if
-
                            end do
                         end if
 
@@ -5407,8 +5526,12 @@ contains
 
                   end if
 
-                  if (turbulence .eq. 1) then
-                     if (icoupleturb .eq. 1) then
+               end if ! mean-flow troubled-cell check
+
+               if (turbulence == 1 .and. icoupleturb == 1) then
+                  ! SST positivity must also be checked when the mean flow is smooth.
+                  ! Retain the existing 60% jump criterion in troubled cells.
+                  if (ielem_troubled(i) == 1 .or. turbulencemodel == 2) then
                         reduce1 = 0
                         do l = 1, ielem_ifca(i) !faces2
 
@@ -5425,11 +5548,21 @@ contains
                            end if
 
                            do ngp = 1, iqp
-                              leftv(1) = rec_uleftturb(i, 1, l, ngp)
-                              rightv(1) = u_ct_val(i, 1, 1)
-                              if (((abs(leftv(1) - rightv(1))) .ge. (0.6 * rightv(1))) .or. (leftv(1) .le. zero)) then
-                                 reduce1 = 1
-                              end if
+                              do iex = 1, turbulenceequations
+                                 leftv(1) = rec_uleftturb(i, iex, l, ngp)
+                                 rightv(1) = u_ct_val(i, 1, iex)
+                                 if (turbulencemodel == 2) then
+                                    if (.not. ieee_is_finite(leftv(1))) then
+                                       reduce1 = 1
+                                       cycle
+                                    end if
+                                    ! k may be zero; omega must be strictly positive.
+                                    if (leftv(1) < zero .or. (iex == 2 .and. leftv(1) == zero)) reduce1 = 1
+                                 end if
+                                 if (ielem_troubled(i) == 1) then
+                                    if (abs(leftv(1)-rightv(1)) >= 0.6*rightv(1) .or. leftv(1) <= zero) reduce1 = 1
+                                 end if
+                              end do
                            end do
                         end do
 
@@ -5450,13 +5583,14 @@ contains
                                  iqp = qp_line
                               end if
                               do ngp = 1, iqp
-                                 rec_uleftturb(i, 1, l, ngp) = u_ct_val(i, 1, 1)
+                                 ! Fall back as a pair for SST, without changing passive scalars.
+                                 do iex = 1, turbulenceequations
+                                    rec_uleftturb(i, iex, l, ngp) = u_ct_val(i, 1, iex)
+                                 end do
                               end do
                            end do
                         end if
-                     end if
                   end if
-
                end if
 
             end block
@@ -5489,7 +5623,7 @@ contains
       real, intent(in) :: usol(1:nof_variables + turbulenceequations + passivescalar)
       real, intent(out) :: psi(1:nof_variables + turbulenceequations + passivescalar)
       integer :: i, iex, nvtot
-      real :: u0, d2, sfd, epsi2, dmin, dplus, kappa_ven, psi2, sig_1, delu, y_fun, s_y, pol_mog
+      real :: u0, d2, sfd, epsi2, dmin, dplus, kappa_ven, psi2, sig_1, delu, y_fun, s_y, pol_mog, positive_slope
       real :: mp_pinfl, gammal
       real, dimension(1:gpu_max_nvar) :: u0_state
 
@@ -5497,6 +5631,9 @@ contains
       nvtot = nof_variables + turbulenceequations + passivescalar
 
       kappa_ven = 0.1
+      ! Increase smooth-region regularisation for plain Venkatakrishnan only.
+      ! Other limiter/blending options retain their existing coefficient.
+      if (limiter .eq. 7) kappa_ven = 1.0
 
       if (wenwrt .eq. 3) then
          u0_state(1:nof_variables) = u_c_val(i, 1, 1:nof_variables)
@@ -5809,6 +5946,20 @@ contains
 
             end select
 
+         end if
+
+         ! The smooth limiter is not positivity preserving for trace species:
+         ! its additive epsilon can dominate a mass fraction arbitrarily near 0.
+         ! Bound each primitive species slope at every face quadrature point.
+         ! compute_muscl_reconstruction takes the minimum over all these points.
+         ! Density, velocity, pressure and vibrational energy keep their slopes.
+         if (realgas == 1 .and. wenwrt == 3 .and. iex >= dimensiona + 4 .and. iex <= nof_variables) then
+            if (u0 >= 0.0e0 .and. d2 < 0.0e0) then
+               if (-d2 >= u0 / max(1.0e0, psi(iex))) then
+                  positive_slope = (u0 / (-d2)) * (1.0e0 - 32.0e0 * epsilon(1.0e0))
+                  psi(iex) = min(psi(iex), positive_slope)
+               end if
+            end if
          end if
 
       end do

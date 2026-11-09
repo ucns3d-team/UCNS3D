@@ -27,7 +27,7 @@ contains
       end if
    end subroutine exact_riemann_solver
 
-   subroutine hll_riemann_solver(n, cleft_rot, cright_rot, hllcflux, mp_source1, srf_speedrot)
+   subroutine hll_riemann_solver(n, cleft_rot, cright_rot, hllcflux, mp_source1, srf_speedrot, cleft_raw, cright_raw)
       implicit none
 #ifdef xpu
 !$omp declare target
@@ -36,7 +36,8 @@ contains
       real, intent(in) :: cleft_rot(nof_variables + turbulenceequations + passivescalar)
       real, intent(in) :: cright_rot(nof_variables + turbulenceequations + passivescalar), srf_speedrot(nof_variables)
       real, intent(inout) :: hllcflux(nof_variables + turbulenceequations + passivescalar), mp_source1
-      real :: leftv(gpu_max_nvar), rightv(gpu_max_nvar)
+      real, intent(in), optional :: cleft_raw(nof_variables), cright_raw(nof_variables)
+      real :: leftv(gpu_max_nvar), rightv(gpu_max_nvar), thermo(gpu_max_nvar), thermo_pinf, thermo_gamma
       real :: pinfl, pinfr, gammal, gammar, ul, ur, pl, pr, ccl, ccr, sl, sr, fl, fr
       integer :: iv, ie
 
@@ -46,6 +47,21 @@ contains
       leftv(1:nof_variables) = cleft_rot(1:nof_variables)
       rightv(1:nof_variables) = cright_rot(1:nof_variables)
       call cons2prim2(n, leftv, rightv, pinfl, pinfr, gammal, gammar)
+      ! Pressure is a scalar under rotation. At very small internal energy,
+      ! roundoff in rotating momentum can make E-KE nonpositive. Recover the
+      ! ideal-gas pressure in the original frame; keep the conservative energy
+      ! and the rotated velocities unchanged. This introduces no pressure floor.
+      ! The low-Mach correction intentionally changes momentum and is excluded.
+      if (realgas == 0 .and. multispecies == 0 .and. lmach == 0) then
+         if (present(cleft_raw) .and. present(cright_raw)) then
+            thermo(1:nof_variables) = cleft_raw
+            call cons2prim(n, thermo, thermo_pinf, thermo_gamma)
+            leftv(ie) = thermo(ie)
+            thermo(1:nof_variables) = cright_raw
+            call cons2prim(n, thermo, thermo_pinf, thermo_gamma)
+            rightv(ie) = thermo(ie)
+         end if
+      end if
       ul = leftv(2); ur = rightv(2)
       pl = leftv(ie); pr = rightv(ie)
       ccl = sqrt(gammal * (pl + pinfl) / leftv(1))
@@ -311,7 +327,7 @@ contains
 
    end subroutine hllc_riemann_solver
 
-   subroutine roe_riemann_solver(n, iconsidered, facex, cleft, cright, hllcflux, mp_source1, srf_speedrot, nx, ny, nz)
+   subroutine roe_riemann_solver(n, iconsidered, facex, cleft, cright, hllcflux, mp_source1, srf_speedrot, nx, ny, nz, dissipation_factor)
       implicit none
 !> @brief
 !> roe riemann solver in 3d
@@ -328,6 +344,7 @@ contains
       real, dimension(1) :: sl, sr, sm
       real, intent(inout) :: mp_source1
       real, intent(in) :: nx, ny, nz
+      real, intent(in), optional :: dissipation_factor
       real :: mp_pinfl, mp_pinfr, gammal, gammar
       real :: rl, rr, pl, pr, el, er, ul, ur, vl, vr, wl, wr, sped
       real :: mul, mur, lastl, lastr, cc2, uu2, ccl, ccr
@@ -481,6 +498,11 @@ contains
 
       diss(1:nof_variables) = ws(1) * ldu(1) * r(1:nof_variables, 1) + ws(2) * ldu(2) * r(1:nof_variables, 2) &
          & + ws(3) * ldu(3) * r(1:nof_variables, 3) + ws(4) * ldu(4) * r(1:nof_variables, 4)
+
+      ! Option 12 halves every entropy-corrected Roe wave contribution.
+      ! The central physical flux and any existing ADDA face factor are retained.
+      ! Omitting the argument preserves the original option-3 calculation.
+      if (present(dissipation_factor)) diss(1:nof_variables) = dissipation_factor * diss(1:nof_variables)
 
 !compute the physical flux: fl = fn(ul) and fr = fn(ur)
 

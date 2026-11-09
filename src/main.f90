@@ -37,8 +37,6 @@ PROGRAM UCNS3D
    implicit none
    integer :: intxgt
 
-   external metis_partmeshdual
-   external parmetis_v3_partmeshkway
 !call mpi_init(ierror)
 
    call mpi_init_thread(mpi_thread_funneled, provided, ierror)
@@ -49,6 +47,7 @@ PROGRAM UCNS3D
 
    call tolerances !> setup the tolerances values
    call read_ucns3d !> read all the parameter files
+   if (emetis /= 6) call partition_fail('only EMETIS=6 (64-bit ParMETIS) is supported')
 
    call close_input1(n, itt) !> close the input files
 
@@ -70,6 +69,7 @@ PROGRAM UCNS3D
    call find_shape(n, imaxe, ieshape) !> find the shape each element
 
    call checkres !> check the existence of restart/checkpoint files
+   if (restart > 0) call axisymmetric_restart_metadata(.true.)
    call restore_outlet_mach_restart_pressure !> keep Mach outlet pressure continuous on restart
 
    !> allocate memory for local and global numbering of elements and nodes
@@ -77,37 +77,7 @@ PROGRAM UCNS3D
 
    call mpi_barrier(mpi_comm_world, ierror)
 
-   if (emetis .lt. 6) then !> choose a grid partitioning property if emetis<6 use serial metis
-      if (n .eq. 0) then
-
-         if (emetis .eq. 1) then
-            call partitioner1(n, imaxe, imaxn, xmpie, ieshape)
-         end if
-         if (emetis .eq. 2) then
-
-            call partitioner2(n, imaxe, imaxn, xmpie, ieshape)
-
-         end if
-         if (emetis .eq. 3) then
-            call partitioner3(n, imaxe, imaxn, xmpie, ieshape)
-         end if
-         if (emetis .eq. 4) then
-            call partitioner4(n, imaxe, imaxn, xmpie, ieshape)
-         end if
-         if (emetis .eq. 5) then
-            call partitioner5(n, imaxe, imaxn, xmpie, ieshape)
-         end if
-
-      end if
-
-      call mpi_bcast(xmpie, imaxe, mpi_integer, 0, mpi_comm_world, ierror)
-
-   else
-
-      if (emetis .eq. 6) then !> when emetis=6 use parmetis (default)
-         call partitioner6(n, imaxe, imaxn, xmpie, ieshape)
-      end if
-   end if
+   call partitioner6(n, imaxe, imaxn, xmpie, ieshape)
 
    call mpi_barrier(mpi_comm_world, ierror)
 
@@ -119,6 +89,7 @@ PROGRAM UCNS3D
    !> read the grid files and populate the allocated memory values for vertex coordinates and numbering
    call read_input(n, xmpielrank, xmpinrank, xmpie, xmpin, dinode, imaxn, imaxe, imaxb, xmpinnumber, scaler, dinoder)
 
+   call snap_axisymmetric_nodes
    call fix_offsets_local(n)
 
    !> determing the stencil sizes, number of polynomial coefficients etc.
@@ -179,6 +150,10 @@ PROGRAM UCNS3D
 !$omp barrier
 !!$omp parallel default(shared)
    call apply_boundary(n, xper, yper, zper, iperiodicity, xmpielrank)
+!$omp barrier
+!$omp master
+   call prepare_axisymmetric_geometry
+!$omp end master
 !$omp barrier
 !!$omp end parallel
 
@@ -546,6 +521,12 @@ PROGRAM UCNS3D
    !$omp barrier
 
    if ((fastest .ne. 1) .and. (ischeme .ge. 2)) call prestore_1(n)
+   if(lsq_diag_only) then
+      call mpi_barrier(mpi_comm_world,ierror)
+      if(n==0) write(*,*) 'LSQ geometry-only run complete; no flow iterations performed.'
+      call mpi_finalize(ierror)
+      stop
+   end if
 
    !$omp barrier
    !$omp master
@@ -756,6 +737,7 @@ PROGRAM UCNS3D
 
 !this creates a flat array for receiving data from mpi neighbours!
    call flat_comm(n)
+   call exchange_sst_wall_distance(n)
    call alloc_weights(n)
 
    call mpi_barrier(mpi_comm_world, ierror)
@@ -785,9 +767,11 @@ PROGRAM UCNS3D
    !$omp barrier
    call mpi_barrier(mpi_comm_world, ierror)
 
+   call sa_rc_initialize(n)
+
 #ifdef xpu
 !$omp target data map(to: n, aa_1, adda, adda_1, adda_1_s, adda_2, adda_2_s, adda_alpha_1, adda_alpha_2, &
-!$omp& adda_type, allnodesgloball, allres, allresdt, alls, alpha, alpha_0, alpha_inf1, alpha_inf2, alpha_star0, alpha_starinf, &
+!$omp& adda_type, allres, allresdt, alls, alpha, alpha_0, alpha_inf1, alpha_inf2, alpha_star0, alpha_starinf, &
 !$omp& angle_per, aoa, average_restart, averaging, beta, beta_i1, beta_i2, beta_starinf, beta_t, betaas, binio, bleed, &
 !$omp& bleed_number, bleed_type, boundtype, br2_damping, br2_yn, bubble_centre, bubble_radius, c_des_sa, c_des_sst, &
 !$omp& c_mu_inlet, c_sas, c_smg, cascade, catalytic_wall, cavitation, cb1, cb2, cfl, cflmax, cflramp, cfw, charlength, &
@@ -862,6 +846,7 @@ PROGRAM UCNS3D
 !$omp& rec_uleftx, rec_velinvlsqmat, rec_vellsq, rec_velocitydof_wall, rec_vext_ref, rec_volume, rec_volume_w, rec_volumec, &
 !$omp& rec_wall, rec_wallcoeff, rec_wallcoefg, rec_weightl, rec_weno, rec_weno2, rec_wenos, &
 !$omp& rg_hzero, rg_molm, rg_thetag, rg_tv_coef, rg_vf, rgs_ab, rgs_bb, rgs_cb, rgs_eps_over_k, rgs_mg, rgs_sigmaa, rhs_sol_mm_dg, &
+!$omp& axisymmetric_enabled, axis_y, axis_tolerance, axis_tolerance_relative, axis_radius, axis_face_radius, axis_face, &
 !$omp& rhs_val, rhs_valdg, rhst_val, sht, sht_rg, nodelist, xmpielrank, dg2fv, &
 !$omp& u_c_br2_aux_var, u_c_rms, u_c_val, u_c_valdg, u_cs_val, u_cs_valdg, u_ct_val, u_cw_val, u_cw_valdg, u_e_val, &
 !$omp& solhir, solhis, solhird, solhisd, solhi_loc, solhir_flat, solhis_flat, boundhiri, boundhisi, boundhir, boundhis, boundhirm, &
@@ -907,6 +892,7 @@ PROGRAM UCNS3D
 
    call mpi_barrier(mpi_comm_world, ierror)
 
+   call sa_rc_release()
    call mpi_finalize(ierror)
 
    if (n .eq. 0) print *, "ucns3d finished running"

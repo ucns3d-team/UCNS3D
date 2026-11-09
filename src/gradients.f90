@@ -765,7 +765,8 @@ contains
 !$omp& map(alloc: el_bnd, rec_wall, ielem_ggs, ielem_idegfree, ielem_inumneighbours, rec_k0, ielem_walldist) &
 !$omp& map(alloc: u_c_val, u_ct_val, solhir, rec_local, rec_ihexl, rec_ihexb, rec_ihexn, halo_offset) &
 !$omp& map(alloc: rec_volume_w, rec_weightl, rec_stencils, rec_wallcoeff, rec_vellsq, rec_velinvlsqmat) &
-!$omp& map(alloc: rec_gradientsturb) &
+!$omp& map(alloc: rec_gradientsturb, mp_janaf, mp_m, mp_thigh_in, mp_tlow_in, mp_tmid_in, rg_molm) &
+!$omp& map(alloc: rg_hzero, rgs_ab, rgs_bb, rgs_cb, mp_pinf, gamma_in, mp_a_in, mp_r_in) &
 !$omp& private(i, var2, ii, k0, ttk, ivvm, iq, lq, imax, ll, nf, lf, rowf, number_of_dog, nvt, attt)
 #else
 !$omp do private(i, var2, ii, k0, ttk, ivvm, iq, lq, imax, ll, nf, lf, rowf, number_of_dog, nvt, attt)
@@ -793,6 +794,11 @@ contains
                matrix_3 = zero
                sols1(1:nvt) = u_ct_val(rec_ihexl(i, 1, 1), 1, 1:nvt) / u_c_val(rec_ihexl(i, 1, 1), 1, 1)
 
+               matrix_3(1:nvt) = -sols1(1:nvt)
+               if (turbulencemodel == 2 .and. nvt >= 2) then
+                  matrix_3(2) = sst_wall_omega(n,u_c_val(i,1,1:nof_variables),ielem_walldist(i))-sols1(2)
+               end if
+
                do iq = 1, imax
                   if (rec_local(i) .eq. 0) then
                      sols2(1:nvt) = u_ct_val(rec_ihexl(i, 1, iq + 1), 1, 1:nvt) / u_c_val(rec_ihexl(i, 1, iq + 1), 1, 1)
@@ -809,14 +815,10 @@ contains
 
                   matrix_1(1:nvt, iq) = rec_volume_w(rec_wall(i), 1, iq + 1) * rec_weightl(rec_wall(i), 1, &
                      & iq) * (sols2(1:nvt) - sols1(1:nvt))
-                  matrix_1(1:nvt, iq) = matrix_1(1:nvt, iq) + ((sols1(1:nvt) * rec_stencils(rec_wall(i), ll, iq, &
+                  matrix_1(1:nvt, iq) = matrix_1(1:nvt, iq) - ((matrix_3(1:nvt) * rec_stencils(rec_wall(i), ll, iq, &
                      & k0)) / rec_wallcoeff(rec_wall(i), k0))
                end do
 
-               matrix_3(1:nvt) = -sols1(1:nvt)
-               if ((turbulencemodel .eq. 2) .and. (nvt .ge. 2)) then
-                  matrix_3(2) = 60.00 * visc / (beta_i1 * (ielem_walldist(i)**2))
-               end if
 
                do var2 = 1, nvt
                   matrix_2(var2, 1:number_of_dog - 1) = zero
@@ -2645,6 +2647,11 @@ contains
       sols1(1:turbulenceequations + passivescalar) = u_ct_val(rec_ihexl(i, 1, 1), 1, 1:turbulenceequations + passivescalar) / &
          & u_c_val(rec_ihexl(i, 1, 1), 1, 1)
 
+      matrix_3(1:turbulenceequations + passivescalar) = -sols1(1:turbulenceequations + passivescalar)
+      if (turbulencemodel == 2) then
+         matrix_3(2) = sst_wall_omega(n,u_c_val(i,1,1:nof_variables),ielem_walldist(i))-sols1(2)
+      end if
+
       do iq = 1, imax
          if (rec_local(i) .eq. 0) then
 
@@ -2674,14 +2681,9 @@ contains
          matrix_1(1:turbulenceequations + passivescalar, iq) = (rec_volume_w(rec_wall(i), 1, iq + 1) * rec_weightl(rec_wall(i), &
             & 1, iq) * (sols2(1:turbulenceequations + passivescalar) - sols1(1:turbulenceequations + passivescalar)))
          matrix_1(1:turbulenceequations + passivescalar, iq) = matrix_1(1:turbulenceequations + passivescalar, &
-            & iq) + ((sols1(1:turbulenceequations + passivescalar) * rec_stencils(rec_wall(i), ll, iq, &
+            & iq) - ((matrix_3(1:turbulenceequations + passivescalar) * rec_stencils(rec_wall(i), ll, iq, &
             & k0)) / rec_wallcoeff(rec_wall(i), k0))
       end do
-      matrix_3(1:turbulenceequations + passivescalar) = -sols1(1:turbulenceequations + passivescalar)
-
-      if (turbulencemodel .eq. 2) then
-         matrix_3(2) = 60.00 * visc / (beta_i1 * (ielem_walldist(iconsidered)**2))
-      end if
 
       do var2 = 1, turbulenceequations + passivescalar
          matrix_2(var2, 1:number_of_dog - 1) = zero

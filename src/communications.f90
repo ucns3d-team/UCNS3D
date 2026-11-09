@@ -2982,6 +2982,39 @@ contains
 
    end subroutine exhboundhigher_dg2
 
+   subroutine exchange_sst_wall_distance(n)
+      ! Host-only setup after flat_comm. ALE must repeat this exchange and update its device copy.
+      integer, intent(in) :: n
+      integer :: g, nr, ierr, bad, all_bad
+      integer, allocatable :: requests(:)
+      real, allocatable :: send_wall(:)
+      if (turbulence /= 1 .or. turbulencemodel /= 2) return
+      if (.not. allocated(sst_halo_wall)) allocate(sst_halo_wall(halo_total))
+      allocate(send_wall(halos_total), requests(ineedhalo+ineedhalos))
+      send_wall = ielem_walldist(solhi_loc)
+      nr = 0
+      do g=1,ineedhalo
+         if (halo_len(g) == 0) cycle
+         nr = nr+1
+         call mpi_irecv(sst_halo_wall(halo_offset(g)), halo_len(g), mpi_double_precision, &
+            halo_proc(g), 4372, mpi_comm_world, requests(nr), ierr)
+      end do
+      do g=1,ineedhalos
+         if (halos_len(g) == 0) cycle
+         nr = nr+1
+         call mpi_isend(send_wall(halos_offset(g)), halos_len(g), mpi_double_precision, &
+            halos_proc(g), 4372, mpi_comm_world, requests(nr), ierr)
+      end do
+      call mpi_waitall(nr, requests, mpi_statuses_ignore, ierr)
+      bad = count(.not.(sst_halo_wall > 0.0)) + count(.not.(ielem_walldist > 0.0))
+      call mpi_allreduce(bad, all_bad, 1, mpi_integer, mpi_sum, mpi_comm_world, ierr)
+      if (all_bad /= 0) then
+         if (n == 0) write(*,*) 'SST requires positive wall distances for local and halo cells'
+         call mpi_abort(mpi_comm_world, 73, ierr)
+      end if
+      deallocate(send_wall, requests)
+   end subroutine exchange_sst_wall_distance
+
    subroutine flat_comm(n)
       implicit none
       integer, intent(in) :: n

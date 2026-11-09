@@ -41,8 +41,30 @@ contains
    end subroutine allocate_prestore_workspace
 
    subroutine release_prestore_workspace(ws)
-      ! INTENT(OUT) finalizes/deallocates every allocatable component.
-      type(prestore_workspace), intent(out) :: ws
+      type(prestore_workspace), intent(inout) :: ws
+      ! Release optional components as well as the always-allocated buffers.
+      ! Allocation guards also make repeated or partial cleanup safe.
+      if (allocated(ws%intbs)) deallocate(ws%intbs)
+      if (allocated(ws%basefaceval)) deallocate(ws%basefaceval)
+      if (allocated(ws%basefacgval)) deallocate(ws%basefacgval)
+      if (allocated(ws%permutation)) deallocate(ws%permutation)
+      if (allocated(ws%permutationg)) deallocate(ws%permutationg)
+      if (allocated(ws%xder)) deallocate(ws%xder)
+      if (allocated(ws%yder)) deallocate(ws%yder)
+      if (allocated(ws%zder)) deallocate(ws%zder)
+      if (allocated(ws%wlsqr)) deallocate(ws%wlsqr)
+      if (allocated(ws%qr_vec)) deallocate(ws%qr_vec)
+      if (allocated(ws%stencils)) deallocate(ws%stencils)
+      if (allocated(ws%invmat)) deallocate(ws%invmat)
+      if (allocated(ws%lsqm)) deallocate(ws%lsqm)
+      if (allocated(ws%lscqm)) deallocate(ws%lscqm)
+      if (allocated(ws%qff)) deallocate(ws%qff)
+      if (allocated(ws%rff)) deallocate(ws%rff)
+      if (allocated(ws%qtff)) deallocate(ws%qtff)
+      if (allocated(ws%invrff)) deallocate(ws%invrff)
+      if (allocated(ws%vellsqmat)) deallocate(ws%vellsqmat)
+      if (allocated(ws%weff)) deallocate(ws%weff)
+      if (allocated(ws%weffc)) deallocate(ws%weffc)
    end subroutine release_prestore_workspace
 
    subroutine prestore_1(n)
@@ -51,6 +73,7 @@ contains
       implicit none
       integer, intent(in) :: n
       integer :: kmaxe, i, m, k, neighbour_capacity
+      real :: curvature_gamma
       type(prestore_workspace) :: ws
       type(stencil_remote_lookup) :: remote_lookup
       integer, allocatable, dimension(:, :) :: ilox_ihexg !global index of cells
@@ -69,7 +92,11 @@ contains
       real, allocatable, dimension(:, :, :) :: ilon_z !coordinates of each node in x
 
       kmaxe = xmpielrank(n)
-      if (kmaxe == 0) return
+      call lsq_diagnostic_begin(n)
+      if (kmaxe == 0) then
+         if(lsq_diag_enabled) call lsq_diagnostic_write(n)
+         return
+      end if
       m = typesten
       ! Some compact-stencil settings grow individual cell stencils.
       neighbour_capacity = max(numneighbours, maxval(ielem_inumneighbours))
@@ -81,8 +108,8 @@ contains
 ! Each thread owns its stencil workspace and reuses it for its cells.
 ! Keep contiguous cell chunks for the cell-first output arrays.
 !$omp parallel default(none) &
-!$omp& shared(n, kmaxe, m, neighbour_capacity, dimensiona, dg, adda_type, remote_lookup) &
-!$omp& private(i, k, ws, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, &
+!$omp& shared(n, kmaxe, m, neighbour_capacity, dimensiona, dg, adda_type, remote_lookup, lsq_diag_only) &
+!$omp& private(i, k, curvature_gamma, ws, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, &
 !$omp& ilox_xxc, ilox_yyc, ilox_zzc, ilox_volume, ilox_periodicflag, &
 !$omp& ilon_nodcount, ilon_x, ilon_y, ilon_z)
 
@@ -134,8 +161,9 @@ contains
                & ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, remote_lookup)
 
             call localise_sten2(n, i, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, &
-               & ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
-            call checkgrads(n, i)
+               & ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, curvature_gamma)
+            call checkgrads(n, i, curvature_gamma)
+            if(lsq_diag_only) cycle
             call find_rot_angles(n, i)
 
             call prestore_reconstruction3(n, i, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, &
@@ -181,6 +209,7 @@ contains
       call release_prestore_workspace(ws)
 !$omp end parallel
       call release_stencil_remote_lookup(remote_lookup)
+      if(lsq_diag_enabled) call lsq_diagnostic_write(n)
 
    end subroutine prestore_1
 

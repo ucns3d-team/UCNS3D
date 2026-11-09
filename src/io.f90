@@ -11788,6 +11788,7 @@ contains
          call checkpoint2d(n)
       end if
 
+      call axisymmetric_restart_metadata(.false.)
    end subroutine checkpointing
 
    subroutine checkpointing_av
@@ -12612,10 +12613,6 @@ contains
                variable_names(nof_variables + 1 + adda) = 'adda'
             end if
 
-            if (turbulence .eq. 1) then
-               variable_names(nof_variables + 1 + turbulenceequations + adda) = 'turb'
-            end if
-
             if (itestcase .eq. 1) then
                variable_names(1) = 'solution'
                variable_names(2) = 'aux'
@@ -12638,9 +12635,6 @@ contains
             variable_names(11) = 'o'
             variable_names(12) = 'pressure'
             variable_names(13) = 'q'
-            if (turbulence .eq. 1) then
-               variable_names(nof_variables + 2 + turbulenceequations) = 'turb'
-            end if
          end if
 
       else
@@ -12668,9 +12662,6 @@ contains
             variable_names(3) = 'v'
             variable_names(4) = 'pressure'
             variable_names(5) = 'q'
-            if (turbulence .eq. 1) then
-               variable_names(6) = 'turb'
-            end if
 
             if (itestcase .eq. 1) then
                variable_names(1) = 'solution'
@@ -12693,12 +12684,25 @@ contains
             variable_names(10) = 'o'
             variable_names(11) = 'pressure'
             variable_names(12) = 'q'
-            if (turbulence .eq. 1) then
-               variable_names(nof_variables + 2 + turbulenceequations) = 'turb'
-            end if
          end if
 
       end if
+
+      ! The turbulence fields are conservative, as in the existing SA output.
+      ! SST needs a name and a payload column for both rho*k and rho*omega.
+      if (multispecies .ne. 1 .or. realgas .eq. 1) then
+         if (turbulenceequations .eq. 1) then
+            variable_names(write_variables) = 'turb'
+         else if (turbulenceequations .eq. 2) then
+            variable_names(write_variables - 1) = 'rho_k'
+            variable_names(write_variables) = 'rho_omega'
+         end if
+      end if
+
+      ! Keep all legacy volume columns (including q and turbulence) in place.
+      ! This is the final reconstruction-check code: 0 accepted, >=1 reduced.
+      write_variables = write_variables + 1
+      variable_names(write_variables) = 'reduce_flag'
 
       if (averaging .eq. 1) then
 
@@ -12916,6 +12920,7 @@ contains
 !> @brief
 !> this subroutine uses mpi-io for writing the vtk files
       implicit none
+      integer :: field_variables
       integer, intent(in) :: n
       real, allocatable, dimension(:) :: array2, array3, array4
       integer :: i, k, kmaxe, j, jk, icpuid, nvar, imaxp, dumg, duml, jj, fh, dip, n_end, ifg, kmaxn_p, itrimm, temp_cord
@@ -12944,6 +12949,7 @@ contains
       tmp = 0
       disp_init = 0
       kmaxe = xmpielrank(n)
+      field_variables = write_variables - 1
       kmaxn_p = xmpiall_v(n)
 
       temp_cord = 3
@@ -12982,7 +12988,7 @@ contains
             end if
 
             rarray_part1(i, 1:nof_variables) = leftv(1:nof_variables)
-            do j = nof_variables + 1, write_variables - turbulenceequations
+            do j = nof_variables + 1, field_variables - turbulenceequations
                if (multispecies .eq. 1) then
                   rarray_part1(i, j) = ielem_reduce(i) !ielem_vortex(1,i)
                else
@@ -12995,16 +13001,16 @@ contains
                   else
                      rarray_part1(i, j) = ielem_vortex(i, 1)
                   end if
-                  if (j .eq. write_variables - turbulenceequations) then
+                  if (j .eq. field_variables - turbulenceequations) then
                      if (adda .eq. 1) then
                         rarray_part1(i, j) = ielem_diss(i)
                      end if
                   end if
                end if
             end do
-            if (turbulenceequations .gt. 0) then
-               rarray_part1(i, write_variables) = u_ct_val(i, 1, 1)
-            end if
+            do j = 1, turbulenceequations
+               rarray_part1(i, field_variables - turbulenceequations + j) = u_ct_val(i, 1, j)
+            end do
 
          end do
 
@@ -13026,7 +13032,7 @@ contains
                leftv(1:nof_variables) = vectco(1:nof_variables)
             end if
             rarray_part1(i, 1:nof_variables) = leftv(1:nof_variables)
-            do j = nof_variables + 1, write_variables - turbulenceequations
+            do j = nof_variables + 1, field_variables - turbulenceequations
                if (multispecies .eq. 1) then
 
                   rarray_part1(i, j) = ielem_reduce(i) !ielem_vortex(1,i)
@@ -13055,13 +13061,14 @@ contains
                   end if
                end if
             end do
-            if (turbulenceequations .gt. 0) then
-
-               rarray_part1(i, write_variables) = u_ct_val(i, 1, 1)
-            end if
+            do j = 1, turbulenceequations
+               rarray_part1(i, field_variables - turbulenceequations + j) = u_ct_val(i, 1, j)
+            end do
          end do
          temp_node = 4; temp_dims = 3
       end if
+
+      rarray_part1(1:kmaxe, write_variables) = real(ielem_reduce(1:kmaxe))
 
       temp_imaxe = imaxe
       temp_imaxn = imaxn
@@ -13072,7 +13079,7 @@ contains
 
          lf = char(10)
          ! write file name
-         open (300, file=vtu, access='stream')
+         open (300, file=vtu, access='stream', status='replace')
          ! write header
          buffer = '<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf; write &
             & (300) trim(buffer)
@@ -13377,7 +13384,7 @@ contains
 
          lf = char(10)
          ! write file name
-         open (300, file=vtu, access='stream')
+         open (300, file=vtu, access='stream', status='replace')
          ! write header
          buffer = '<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf; write &
             & (300) trim(buffer)
@@ -13590,11 +13597,13 @@ contains
    subroutine parallel_vtk_combine_partitioned(n)
       ! Build the owner's usual fields, then exchange those exact output values.
       implicit none
+      integer :: field_variables
       integer, intent(in) :: n
       integer :: i, j, kmaxe
       real :: ptemp, mp_pinfl, gammal
       real :: leftv(nof_variables), vectco(nof_variables)
       kmaxe = xmpielrank(n)
+      field_variables = write_variables - 1
       if (dimensiona .eq. 3) then
          do i = 1, kmaxe
             leftv(1:nof_variables) = u_c_val(i, 1, 1:nof_variables)
@@ -13607,7 +13616,7 @@ contains
                leftv(1:nof_variables) = vectco(1:nof_variables)
             end if
             sol_vtu(i, 1:nof_variables) = leftv(1:nof_variables)
-            do j = nof_variables + 1, write_variables - turbulenceequations
+            do j = nof_variables + 1, field_variables - turbulenceequations
                if (multispecies .eq. 1) then
                   sol_vtu(i, j) = ielem_reduce(i) !ielem_vortex(1,i)
                else
@@ -13620,16 +13629,16 @@ contains
                   else
                      sol_vtu(i, j) = ielem_vortex(i, 1)
                   end if
-                  if (j .eq. write_variables - turbulenceequations) then
+                  if (j .eq. field_variables - turbulenceequations) then
                      if (adda .eq. 1) then
                         sol_vtu(i, j) = ielem_diss(i)
                      end if
                   end if
                end if
             end do
-            if (turbulenceequations .gt. 0) then
-               sol_vtu(i, write_variables) = u_ct_val(i, 1, 1)
-            end if
+            do j = 1, turbulenceequations
+               sol_vtu(i, field_variables - turbulenceequations + j) = u_ct_val(i, 1, j)
+            end do
          end do
 
 
@@ -13647,7 +13656,7 @@ contains
                leftv(1:nof_variables) = vectco(1:nof_variables)
             end if
             sol_vtu(i, 1:nof_variables) = leftv(1:nof_variables)
-            do j = nof_variables + 1, write_variables - turbulenceequations
+            do j = nof_variables + 1, field_variables - turbulenceequations
                if (multispecies .eq. 1) then
 
                   sol_vtu(i, j) = ielem_reduce(i) !ielem_vortex(1,i)
@@ -13671,12 +13680,14 @@ contains
                   end if
                end if
             end do
-            if (turbulenceequations .gt. 0) then
-               sol_vtu(i, write_variables) = u_ct_val(i, 1, 1)
-            end if
+            do j = 1, turbulenceequations
+               sol_vtu(i, field_variables - turbulenceequations + j) = u_ct_val(i, 1, j)
+            end do
 
          end do
       end if
+
+      sol_vtu(1:kmaxe, write_variables) = real(ielem_reduce(1:kmaxe))
 
       call vtk_ghost_write('OUT_', 'PAR_', it, t, variable_names(1:write_variables), &
          sol_vtu(1:kmaxe, 1:write_variables), inoder4_cord, movement == 1)
@@ -14069,7 +14080,7 @@ contains
 
          lf = char(10)
          ! write file name
-         open (300, file=vtu, access='stream')
+         open (300, file=vtu, access='stream', status='replace')
          ! write header
          buffer = '<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf; write &
             & (300) trim(buffer)
@@ -14432,7 +14443,7 @@ contains
 
          lf = char(10)
          ! write file name
-         open (300, file=vtu, access='stream')
+         open (300, file=vtu, access='stream', status='replace')
          ! write header
          buffer = '<VTKFile type="UnstructuredGrid" version="2.2" byte_order="LittleEndian" header_type="UInt32">'//lf; write &
             & (300) trim(buffer)
@@ -15637,6 +15648,87 @@ contains
 
    end subroutine computeforce
 
+   subroutine computeforce_axisymmetric(n)
+      ! Full body of revolution; transverse ring forces cancel by symmetry.
+      implicit none
+      integer,intent(in) :: n
+      integer :: i,f,j,bc,ierr,unit
+      real :: axial_sum,heat_sum,area_sum,totals(3),global_totals(3),cd,area,weight
+      real :: q(gpu_max_nvar),prim(gpu_max_nvar),mu,ktr,kve,gm,pinf
+      real :: g(gpu_max_nvar,2),txx,txr,trr,ttt,nx,ny,qheat
+      axial_sum=0.0; heat_sum=0.0; area_sum=0.0
+#ifdef xpu
+!$omp target teams distribute parallel do private(f,j,bc,q,prim,mu,ktr,kve,gm,pinf,g,txx,txr,trr,ttt,nx,ny,qheat,area,weight) &
+!$omp& firstprivate(n) reduction(+:axial_sum,heat_sum,area_sum) &
+!$omp& map(alloc: axis_face_radius,ielem_ibounds,ibound_icode,ielem_ifca,ielem_surf,ielem_faceanglex,ielem_faceangley, &
+!$omp& rec_uleft,rec_uleftv,weights_l,xmpielrank,rg_molm,rg_hzero,rg_thetag,rgs_ab,rgs_bb,rgs_cb)
+#else
+!$omp do reduction(+:forcex,axis_heat_load,axis_wall_area) &
+!$omp& private(i,f,j,bc,q,prim,mu,ktr,kve,gm,pinf,g,txx,txr,trr,ttt,nx,ny,qheat,area,weight)
+#endif
+      do i=1,xmpielrank(n)
+         do f=1,ielem_ifca(i)
+            bc=0
+            if(ielem_ibounds(i,f)>0) bc=ibound_icode(ielem_ibounds(i,f))
+            if(bc/=4) cycle
+            nx=ielem_faceanglex(i,f); ny=ielem_faceangley(i,f)
+            do j=1,qp_line_n
+               area=2.0*acos(-1.0)*axis_face_radius(i,f,j)*ielem_surf(i,f)*weights_l(j)
+               q=0.0; q(1:nof_variables)=rec_uleft(i,1:nof_variables,f,j)
+               prim=q; call cons2prim(n,prim(1:nof_variables),pinf,gm)
+               txx=0.0;txr=0.0;qheat=0.0
+               if(itestcase==4) then
+                  g=0.0
+                  do bc=1,nof_variables-1
+                     g(bc,:)=rec_uleftv(i,1:2,bc,f,j)
+                  end do
+                  call molecular_transport(n,q(1:nof_variables),mu,ktr)
+                  if(realgas==0.and.turbulence==1.and.turbulencemodel==2) &
+                     call sst_wall_transport(n,u_c_val(i,1,1:nof_variables),mu,ktr)
+                  ! A resolved stationary no-slip wall has zero v and eddy viscosity.
+                  call axis_stress(mu,g(1,1),g(1,2),g(2,1),g(2,2),0.0,txx,txr,trr,ttt)
+                  if(thermal==1) then
+                     if(realgas==1) then
+                        call realgas_wall_heat_transport(n,q(1:nof_variables),ktr,kve)
+                        qheat=-ktr*(g(3,1)*nx+g(3,2)*ny)-kve*(g(4,1)*nx+g(4,2)*ny)
+                     else
+                        qheat=-ktr*(g(3,1)*nx+g(3,2)*ny)
+                     end if
+                  end if
+               end if
+#ifdef xpu
+               axial_sum=axial_sum+area*((prim(4)-pres)*nx-txx*nx-txr*ny)
+               heat_sum=heat_sum+area*qheat; area_sum=area_sum+area
+#else
+               forcex=forcex+area*((prim(4)-pres)*nx-txx*nx-txr*ny)
+               axis_heat_load=axis_heat_load+area*qheat; axis_wall_area=axis_wall_area+area
+#endif
+            end do
+         end do
+      end do
+#ifdef xpu
+!$omp end target teams distribute parallel do
+      forcex=axial_sum;axis_heat_load=heat_sum;axis_wall_area=area_sum
+#else
+!$omp end do
+#endif
+!$omp master
+      totals=[forcex,axis_heat_load,axis_wall_area]
+      call mpi_allreduce(totals,global_totals,3,mpi_double_precision,mpi_sum,mpi_comm_world,ierr)
+      forcex=global_totals(1); forcey=0.0; forcez=0.0
+      axis_heat_load=global_totals(2);axis_wall_area=global_totals(3)
+      ! Retain FORCE.dat's existing convention: drag divided by dynamic pressure
+      ! (an area); no reference area is inferred from the meridional mesh.
+      cd=forcex/(0.5*rres*ufreestream**2)
+      if(n==0) then
+         open(newunit=unit,file='FORCE.dat',status='unknown',action='write',position='append')
+         write(unit,'(I14,1X,ES16.8,1X,ES16.8,1X,ES16.8)') it,t,0.0,cd
+         close(unit)
+      end if
+!$omp end master
+!$omp barrier
+   end subroutine computeforce_axisymmetric
+
    subroutine computeforce2d(n)
 !> @brief
 !> this subroutine computes the forces on the wall in 2d
@@ -15653,6 +15745,15 @@ contains
       real :: tsolr, tsolu, tsole, tsolv, tsolw, tsolp, ssp
       real :: mp_pinfl, gammal
       real :: mp_pinfr, gammar
+
+      if(axisymmetric_enabled==1) then
+!$omp master
+         forcex=0.0;axis_heat_load=0.0;axis_wall_area=0.0
+!$omp end master
+!$omp barrier
+         call computeforce_axisymmetric(n)
+         return
+      end if
 
 !$omp master
       forcex = zero; forcey = zero; forcez = zero; forcexfr = zero
