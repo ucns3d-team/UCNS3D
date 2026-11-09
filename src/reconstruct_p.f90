@@ -5414,7 +5414,7 @@ contains
                real, dimension(1:gpu_max_nvar) :: leftv
                real, dimension(1:gpu_max_nvar) :: rightv
 
-               jump_cond = 0.5
+               jump_cond = 0.8
 
                ! MUSCL has already consumed checksol's WENO fallback flag.
                ! Report only this pass's final-check rejection, not stale history.
