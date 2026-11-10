@@ -2,10 +2,24 @@ module profile
    use declaration
    use library
    use basis
+   use flow_operations, only: sst_inflow_transport, inflow_4440_sa_value, realgas_inlet_density
 
    implicit none
 
 contains
+
+   subroutine apply_initial_profile_temperatures
+      ! Called by the input reader on every launch, including a restart.
+      ! Initial cells and prescribed inflow/farfield states share these values.
+      ! Other profiles retain the temperatures selected by the existing reader.
+      if ((initcond .eq. 2323) .and. (realgas .eq. 1)) then
+         ! CUBRC double-cone Run 42: Knight et al. (2012), Table 1.
+         ! Velocity, pressure, composition and wall state remain DAT inputs.
+         rg_t_inf = 303.00
+         rg_ttr = 303.00
+         rg_tve = 3085.00
+      end if
+   end subroutine apply_initial_profile_temperatures
 
    real function linear_init3d(n, pox, poy, poz)
       !> @brief
@@ -219,6 +233,7 @@ contains
 
          rg_ttr0 = rg_ttr !initial temperature ttr
          rg_tve0 = rg_tve !initial temperature vib
+         r1 = realgas_inlet_density(p1, rg_ttr0)
 
          ! translational-rotational internal energy
          rg_tr = 0.00
@@ -281,21 +296,13 @@ contains
 
          if (turbulencemodel .eq. 1) then
 
-            veccos(nof_variables + 1) = visc * turbinit
+            call inflow_4440_sa_value(n, veccos(1:nof_variables), veccos(nof_variables+1))
          end if
          if (turbulencemodel .eq. 2) then
 
-            if (zero_turb_init .eq. 0) then
-               veccos(nof_variables + 1) = (1.50 * (i_turb_inlet * ufreestream)**2) * r1
-               veccos(nof_variables + 2) = ufreestream / l_turb_inlet
-               veccos(nof_variables + 2) = (c_mu_inlet**(-0.250)) * sqrt(veccos(5)) &
-                  & / l_turb_inlet * r1
-            end if
-
-            if (zero_turb_init .eq. 1) then
-               veccos(nof_variables + 1) = zero
-               veccos(nof_variables + 2) = ufreestream / l_turb_inlet
-            end if
+            call sst_inflow_transport(n, veccos(1:nof_variables), &
+               veccos(nof_variables+1:nof_variables+2), ufreestream)
+            if (zero_turb_init == 1) veccos(nof_variables+1) = 0.0
 
          end if
 
@@ -818,19 +825,13 @@ contains
 
             if (turbulencemodel .eq. 1) then
 
-               veccos(6) = visc * turbinit
+               call inflow_4440_sa_value(n, veccos(1:nof_variables), veccos(nof_variables+1))
             end if
             if (turbulencemodel .eq. 2) then
 
-               if (zero_turb_init .eq. 0) then
-                  veccos(6) = (1.50 * i_turb_inlet * (ufreestream**2)) * r1
-                  veccos(7) = r1 * veccos(6) / (10.0e-5 * visc)
-               end if
-
-               if (zero_turb_init .eq. 1) then
-                  veccos(6) = (1.50 * i_turb_inlet * (ufreestream**2)) * r1
-                  veccos(7) = r1 * veccos(6) / (10.0e-5 * visc)
-               end if
+               call sst_inflow_transport(n, veccos(1:nof_variables), &
+                  veccos(nof_variables+1:nof_variables+2), ufreestream)
+               if (zero_turb_init == 1) veccos(nof_variables+1) = 0.0
 
             end if
 
@@ -945,7 +946,7 @@ contains
 ! kinetic energy
 
          skin1 = (oo2) * ((u1**2) + (v1**2))
-         r1 = p1 / (rg_rmix * rg_ttr0)
+         r1 = realgas_inlet_density(p1, rg_ttr0)
 
          veccos(1) = r1
          veccos(2) = r1 * u1
@@ -975,21 +976,13 @@ contains
 
          if (turbulencemodel .eq. 1) then
 
-            veccos(nof_variables + 1) = visc * turbinit
+            call inflow_4440_sa_value(n, veccos(1:nof_variables), veccos(nof_variables+1))
          end if
          if (turbulencemodel .eq. 2) then
 
-            if (zero_turb_init .eq. 0) then
-               veccos(nof_variables + 1) = (1.50 * (i_turb_inlet * ufreestream)**2) * r1
-               veccos(nof_variables + 2) = ufreestream / l_turb_inlet
-               veccos(nof_variables + 2) = (c_mu_inlet**(-0.250)) * sqrt(veccos(5)) &
-                  & / l_turb_inlet * r1
-            end if
-
-            if (zero_turb_init .eq. 1) then
-               veccos(nof_variables + 1) = zero
-               veccos(nof_variables + 2) = ufreestream / l_turb_inlet
-            end if
+            call sst_inflow_transport(n, veccos(1:nof_variables), &
+               veccos(nof_variables+1:nof_variables+2), ufreestream)
+            if (zero_turb_init == 1) veccos(nof_variables+1) = 0.0
 
          end if
 

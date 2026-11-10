@@ -1,0 +1,7 @@
+! Optional activation file for the separate axissymetry solver build.
+! Mesh coordinates are metres; use UCNS3D scaling factor = 1.0.
+! Tip (x,y) = (0,0); radial coordinate r = y >= 0; no swirl.
+&axisymmetric
+  axis_y = 0.0
+  axis_tolerance_relative = 1.0e-10
+/

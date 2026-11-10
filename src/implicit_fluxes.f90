@@ -9,6 +9,43 @@ module implicit_fluxes
    implicit none
 
 contains
+   subroutine add_duct_inlet_coupling(n, qcell, normal, block, off)
+! The inlet ghost state B(U_i) depends on THIS cell, not on a neighbour.
+! Put off*B'(U_i) in its diagonal block; lagging it through Jacobi sweeps
+! can amplify the pressure-to-velocity response of a low-Mach total inlet.
+! Keep the existing boundary state, flux approximation and transport coupling.
+      implicit none
+#ifdef xpu
+!$omp declare target
+#endif
+      integer, intent(in) :: n
+      real, intent(in) :: qcell(nof_variables), normal(3)
+      real, intent(inout) :: block(:, :), off(:, :)
+      real :: qp(gpu_max_nvar), qm(gpu_max_nvar), gp(gpu_max_nvar), gm(gpu_max_nvar)
+      real :: db(gpu_max_nvar, gpu_max_nvar), scale(gpu_max_nvar)
+      real :: rho, energy, h
+      integer :: j, nv
+      if (initcond /= 4440 .or. realgas /= 0 .or. multispecies /= 0) return
+      nv = nof_variables
+      rho = max(abs(qcell(1)), tolsmall)
+      energy = max(abs(qcell(dimensiona + 2)), rho)
+      scale = rho
+      scale(2:dimensiona + 1) = sqrt(rho * energy)
+      scale(dimensiona + 2) = energy
+      scale(1:nv) = max(scale(1:nv), abs(qcell))
+      db = 0.0e0
+      do j = 1, nv
+         h = 1.0e-6 * scale(j)
+         qp(1:nv) = qcell; qm(1:nv) = qcell
+         qp(j) = qp(j) + h; qm(j) = qm(j) - h
+         call inflow_4440_from_left(n, qp(1:nv), normal, gp(1:nv))
+         call inflow_4440_from_left(n, qm(1:nv), normal, gm(1:nv))
+         db(1:nv, j) = (gp(1:nv) - gm(1:nv)) / (2.0e0 * h)
+      end do
+      block(1:nv, 1:nv) = block(1:nv, 1:nv) + matmul(off(1:nv, 1:nv), db(1:nv, 1:nv))
+      off(1:nv, 1:nv) = 0.0e0
+   end subroutine add_duct_inlet_coupling
+
    subroutine add_duct_outlet_jacobian(n, i, qcell, normal, radius, area, block, off, diagt, offt)
 ! Replace the Rusanov boundary approximation by dF(B(U))/dU in the cell block.
 ! The interior .5*A(U)*n terms were cancelled using the closed-cell area sum;
@@ -64,6 +101,7 @@ contains
          block(1:nof_variables, 1:nof_variables) = block(1:nof_variables, 1:nof_variables) &
             & - ielem_totvolume(i) * jac(1:nof_variables, 1:nof_variables)
       end if
+      if (dimensiona==2) call add_axisymmetric_implicit(n,i,block)
    end subroutine add_time_and_realgas_source
    subroutine calculate_jacobian(n)
       implicit none
@@ -78,7 +116,8 @@ contains
 !$omp target teams distribute parallel do firstprivate(n) private(ii) &
 !$omp& firstprivate(nof_interior) &
 !$omp& map(alloc: el_int, gamma_in, ielem_dih, ielem_faceanglex, ielem_faceangley, ielem_ifca, ielem_ineigh) &
-!$omp& map(alloc: ielem_surf, ielem_walldist, impdiag, impdiagt, impoff, impofft, mp_janaf, mp_m, mp_pinf) &
+!$omp& map(alloc: ibound_icode, ielem_ibounds, ielem_ineighb, ielem_indexi, rec_local, rec_ihexn, rec_ihexl, halo_offset) &
+!$omp& map(alloc: sst_halo_wall, ielem_surf, ielem_walldist, impdiag, impdiagt, impoff, impofft, mp_janaf, mp_m, mp_pinf) &
 !$omp& map(alloc: mp_thigh_in, mp_tlow_in, mp_tmid_in, rec_grads, rec_mrf, rec_rotvel, rg_hzero, rg_molm, rg_thetag) &
 !$omp& map(alloc: rgs_ab, rgs_bb, rgs_cb, rgs_eps_over_k, rgs_mg, rgs_sigmaa, u_c_val, u_ct_val)
 #else
@@ -99,7 +138,7 @@ contains
 !$omp& firstprivate(nof_bounded) &
 !$omp& map(alloc: catalytic_con, el_bnd, gamma_in, halo_offset, ibound_icode, ielem_dih, ielem_faceanglex) &
 !$omp& map(alloc: ielem_faceangley, ielem_ibounds, ielem_ifca, ielem_indexi, ielem_ineigh, ielem_ineighb) &
-!$omp& map(alloc: ielem_nodes_faces, ielem_surf, ielem_types_faces, ielem_walldist, impdiag, impdiagt, impoff) &
+!$omp& map(alloc: sst_halo_wall, ielem_nodes_faces, ielem_surf, ielem_types_faces, ielem_walldist, impdiag, impdiagt, impoff) &
 !$omp& map(alloc: impofft, inoder4_cord, mp_a_in, mp_janaf, mp_m, mp_pinf, mp_r_in, mp_thigh_in, mp_tlow_in) &
 !$omp& map(alloc: mp_tmid_in, rec_grads, rec_ihexl, rec_ihexn, rec_local, rec_mrf, rec_rotvel, rg_hzero, rg_molm) &
 !$omp& map(alloc: rg_thetag, rg_vf, rgs_ab, rgs_bb, rgs_cb, rgs_eps_over_k, rgs_mg, rgs_sigmaa, solhir, u_c_val) &
@@ -375,7 +414,8 @@ contains
 
       if (turbulence .eq. 1) then
          do nvar = 1, turbulenceequations
-            sht(i, nvar) = min(max(sht(i, nvar), 0.00), turb_source_cap_frac * (impdiagt(i, nvar) + (ielem_totvolume(i) / &
+            sht(i, nvar) = min(sa_source_jacobian_for_diagonal(sht(i, nvar), rot_corr, turbulencemodel), &
+               & turb_source_cap_frac * (impdiagt(i, nvar) + (ielem_totvolume(i) / &
                & (ielem_dtl(i)))))
             impdiagt(i, nvar) = max((impdiagt(i, nvar) + (ielem_totvolume(i) / (ielem_dtl(i))) - sht(i, nvar)), &
                & max(turb_diag_floor_frac * (ielem_totvolume(i) / (ielem_dtl(i))), turb_diag_abs_floor))
@@ -424,7 +464,8 @@ contains
       if (turbulence .eq. 1) then
          do nvar = 1, turbulenceequations
 
-            sht(i, nvar) = min(max(sht(i, nvar), 0.00), turb_source_cap_frac * (impdiagt(i, nvar) + ielem_totvolume(i) * ((1.00 / &
+            sht(i, nvar) = min(sa_source_jacobian_for_diagonal(sht(i, nvar), rot_corr, turbulencemodel), &
+               & turb_source_cap_frac * (impdiagt(i, nvar) + ielem_totvolume(i) * ((1.00 / &
                & ielem_dtl(i)) + (1.50 / dt))))
             impdiagt(i, nvar) = max((ielem_totvolume(i) * ((1.00 / ielem_dtl(i)) + (1.50 / dt)) + (impdiagt(i, nvar)) - sht(i, &
                & nvar)), max(turb_diag_floor_frac * (ielem_totvolume(i) * ((1.00 / ielem_dtl(i)) + (1.50 / dt))), &
@@ -565,7 +606,11 @@ contains
                   call fill_turbulence_gradients(3, i, eddyfl)
 
 
+                  ! Freeze reconstructed gradients in this approximate Jacobian, but
+                  ! retain the right state and its own geometry.
                   eddyfr = eddyfl
+                  eddyfr(1) = sst_neighbour_wall(n,i,l)
+                  eddyfr(2:3) = cturbr(1:2)
                   call eddyvisco(n, viscl, laml, turbmv, etvm, eddyfl, eddyfr, leftv, rightv)
                end if
 
@@ -577,6 +622,14 @@ contains
 
                if (realgas .eq. 1) viscots = realgas_face_diffusion_speed(cleft, cright, ielem_dih(i, l), viscl, laml)
 
+               if (turbulencemodel == 1) viscots = max(viscots, &
+                  max((viscl(1)+max(cturbl(1),0.0))/cleft(1), &
+                      (viscl(2)+max(cturbr(1),0.0))/cright(1)) / &
+                  (sigma*max(abs(ielem_dih(i,l)),1.0e-15)))
+
+               if (turbulencemodel == 2) viscots = max(viscots, &
+                  max(eddyfl(19)+eddyfr(19),eddyfl(20)+eddyfr(20)) / &
+                  ((cleft(1)+cright(1))*max(ielem_dih(i,l),1.0e-15)))
                vpp = max(asound1, asound2) + viscots
             end if
 
@@ -866,7 +919,11 @@ contains
                   call fill_turbulence_gradients(3, i, eddyfl)
 
 
+                  ! Freeze reconstructed gradients in this approximate Jacobian, but
+                  ! retain the right state and its own geometry.
                   eddyfr = eddyfl
+                  eddyfr(1) = sst_neighbour_wall(n,i,l)
+                  eddyfr(2:3) = cturbr(1:2)
 
                   call eddyvisco(n, viscl, laml, turbmv, etvm, eddyfl, eddyfr, leftv, rightv)
                end if
@@ -879,6 +936,14 @@ contains
 
                if (realgas .eq. 1) viscots = realgas_face_diffusion_speed(cleft, cright, ielem_dih(i, l), viscl, laml)
 
+               if (turbulencemodel == 1) viscots = max(viscots, &
+                  max((viscl(1)+max(cturbl(1),0.0))/cleft(1), &
+                      (viscl(2)+max(cturbr(1),0.0))/cright(1)) / &
+                  (sigma*max(abs(ielem_dih(i,l)),1.0e-15)))
+
+               if (turbulencemodel == 2) viscots = max(viscots, &
+                  max(eddyfl(19)+eddyfr(19),eddyfl(20)+eddyfr(20)) / &
+                  ((cleft(1)+cright(1))*max(ielem_dih(i,l),1.0e-15)))
                vpp = max(asound1, asound2) + viscots
             end if
 
@@ -932,6 +997,11 @@ contains
 
          end if
 
+         if (b_code == 1 .and. initcond == 4440 .and. realgas == 0 .and. multispecies == 0) then
+            call add_duct_inlet_coupling(n, u_c_val(i, 1, 1:nof_variables), [nx, ny, nz], &
+               & impdiag(i, :, :), impoff(i, l, :, :))
+         end if
+
          if (b_code == 9 .and. duct_outlet_face_flux_enabled()) then
             if (turbulenceequations + passivescalar > 0) then
                call add_duct_outlet_jacobian(n, i, cleft(1:nof_variables), [nx, ny, nz], max(asound1, asound2), mul1, &
@@ -958,7 +1028,8 @@ contains
 !$omp target teams distribute parallel do firstprivate(n) private(ii) &
 !$omp& firstprivate(nof_interior) &
 !$omp& map(alloc: el_int, gamma_in, ielem_dih, ielem_faceanglex, ielem_faceangley, ielem_ifca, ielem_ineigh) &
-!$omp& map(alloc: ielem_surf, ielem_walldist, impdiag, impdiagt, impoff, impofft, mp_janaf, mp_m, mp_pinf) &
+!$omp& map(alloc: ibound_icode, ielem_ibounds, ielem_ineighb, ielem_indexi, rec_local, rec_ihexn, rec_ihexl, halo_offset) &
+!$omp& map(alloc: sst_halo_wall, ielem_surf, ielem_walldist, impdiag, impdiagt, impoff, impofft, mp_janaf, mp_m, mp_pinf) &
 !$omp& map(alloc: mp_thigh_in, mp_tlow_in, mp_tmid_in, rec_grads, rg_hzero, rg_molm, rg_thetag, rgs_ab, rgs_bb) &
 !$omp& map(alloc: rgs_cb, rgs_eps_over_k, rgs_mg, rgs_sigmaa, u_c_val, u_ct_val)
 #else
@@ -980,7 +1051,7 @@ contains
 !$omp& map(alloc: bleed_end, bleed_plenum, bleed_porosity, bleed_start, catalytic_con, el_bnd, gamma_in, halo_offset) &
 !$omp& map(alloc: ibound_icode, ielem_bleedn, ielem_dih, ielem_faceanglex, ielem_faceangley, ielem_ibounds) &
 !$omp& map(alloc: ielem_ifca, ielem_indexi, ielem_ineigh, ielem_ineighb, ielem_nodes_faces, ielem_surf) &
-!$omp& map(alloc: ielem_walldist, impdiag, impdiagt, impoff, impofft, inoder4_cord, mp_a_in, mp_janaf, mp_m, mp_pinf) &
+!$omp& map(alloc: sst_halo_wall, ielem_walldist, impdiag, impdiagt, impoff, impofft, inoder4_cord, mp_a_in, mp_janaf, mp_m, mp_pinf) &
 !$omp& map(alloc: mp_r_in, mp_thigh_in, mp_tlow_in, mp_tmid_in, rec_grads, rec_ihexl, rec_ihexn, rec_local, rg_hzero) &
 !$omp& map(alloc: rg_molm, rg_thetag, rg_vf, rgs_ab, rgs_bb, rgs_cb, rgs_eps_over_k, rgs_mg, rgs_sigmaa, solhir) &
 !$omp& map(alloc: u_c_val, u_ct_val)
@@ -1159,6 +1230,7 @@ contains
          impdiag(i, j, j) = impdiag(i, j, j) + (ielem_totvolume(i) / ielem_dtl(i))
 
       end do
+      call add_axisymmetric_implicit(n,i,impdiag(i,:,:))
    end subroutine calculate_jacobian_2d_loop1_cell
 
    subroutine calculate_jacobian_2d_loop2_cell(n, i)
@@ -1199,6 +1271,7 @@ contains
          impdiag(i, j, j) = ielem_totvolume(i) * ((1.00 / ielem_dtl(i)) + (1.50 / dt)) + (impdiag(i, j, j))
 
       end do
+      call add_axisymmetric_implicit(n,i,impdiag(i,:,:))
    end subroutine calculate_jacobian_2d_loop2_cell
 
    subroutine calculate_jacobian_2d_loop3_cell(n, i)
@@ -1263,6 +1336,7 @@ contains
             impdiagt(i, nvar) = impdiagt(i, nvar) + (ielem_totvolume(i) / (ielem_dtl(i)))
          end do
       end if
+      call add_axisymmetric_transport_implicit(n,i,impdiagt(i,:))
    end subroutine calculate_jacobian_2d_loop5_cell
 
    subroutine calculate_jacobian_2d_loop6_cell(n, i)
@@ -1310,6 +1384,7 @@ contains
 !     impdiagt(i,nvar)=(ielem_totvolume(i)*((1.00/ielem_dtl(i))+((1.50/dt)*impdiagt(i,nvar))))
          end do
       end if
+      call add_axisymmetric_transport_implicit(n,i,impdiagt(i,:))
    end subroutine calculate_jacobian_2d_loop6_cell
 
    subroutine calculate_jacobian_2d_inner_cell(n, ii)
@@ -1437,7 +1512,11 @@ contains
                   call fill_turbulence_gradients(2, i, eddyfl)
 
 
+                  ! Freeze reconstructed gradients in this approximate Jacobian, but
+                  ! retain the right state and its own geometry.
                   eddyfr = eddyfl
+                  eddyfr(1) = sst_neighbour_wall(n,i,l)
+                  eddyfr(2:3) = cturbr(1:2)
                   call eddyvisco2d(n, viscl, laml, turbmv, etvm, eddyfl, eddyfr, leftv, rightv)
                end if
 
@@ -1450,6 +1529,14 @@ contains
 
                if (realgas .eq. 1) viscots = realgas_face_diffusion_speed(cleft, cright, ielem_dih(i, l), viscl, laml)
 
+               if (turbulencemodel == 1) viscots = max(viscots, &
+                  max((viscl(1)+max(cturbl(1),0.0))/cleft(1), &
+                      (viscl(2)+max(cturbr(1),0.0))/cright(1)) / &
+                  (sigma*max(abs(ielem_dih(i,l)),1.0e-15)))
+
+               if (turbulencemodel == 2) viscots = max(viscots, &
+                  max(eddyfl(19)+eddyfr(19),eddyfl(20)+eddyfr(20)) / &
+                  ((cleft(1)+cright(1))*max(ielem_dih(i,l),1.0e-15)))
                vpp = max(asound1, asound2) + viscots
             end if
 
@@ -1740,7 +1827,11 @@ contains
                   call fill_turbulence_gradients(2, i, eddyfl)
 
 
+                  ! Freeze reconstructed gradients in this approximate Jacobian, but
+                  ! retain the right state and its own geometry.
                   eddyfr = eddyfl
+                  eddyfr(1) = sst_neighbour_wall(n,i,l)
+                  eddyfr(2:3) = cturbr(1:2)
                   call eddyvisco2d(n, viscl, laml, turbmv, etvm, eddyfl, eddyfr, leftv, rightv)
                end if
 
@@ -1752,6 +1843,14 @@ contains
 
                if (realgas .eq. 1) viscots = realgas_face_diffusion_speed(cleft, cright, ielem_dih(i, l), viscl, laml)
 
+               if (turbulencemodel == 1) viscots = max(viscots, &
+                  max((viscl(1)+max(cturbl(1),0.0))/cleft(1), &
+                      (viscl(2)+max(cturbr(1),0.0))/cright(1)) / &
+                  (sigma*max(abs(ielem_dih(i,l)),1.0e-15)))
+
+               if (turbulencemodel == 2) viscots = max(viscots, &
+                  max(eddyfl(19)+eddyfr(19),eddyfl(20)+eddyfr(20)) / &
+                  ((cleft(1)+cright(1))*max(ielem_dih(i,l),1.0e-15)))
                vpp = max(asound1, asound2) + viscots
             end if
 
@@ -1804,6 +1903,11 @@ contains
                & convj(1:nof_variables, 1:nof_variables)) &
                & - ((oo2 * vpp) * identity1(1:nof_variables, 1:nof_variables))) * mul1)
 
+         end if
+
+         if (b_code == 1 .and. initcond == 4440 .and. realgas == 0 .and. multispecies == 0) then
+            call add_duct_inlet_coupling(n, u_c_val(i, 1, 1:nof_variables), [nx, ny, 0.0e0], &
+               & impdiag(i, :, :), impoff(i, l, :, :))
          end if
 
          if (b_code == 9 .and. duct_outlet_face_flux_enabled()) then
@@ -1939,7 +2043,11 @@ contains
                      call fill_turbulence_gradients(3, i, eddyfl)
 
 
+                     ! Freeze reconstructed gradients in this approximate Jacobian, but
+                     ! retain the right state and its own geometry.
                      eddyfr = eddyfl
+                     eddyfr(1) = sst_neighbour_wall(n,i,l)
+                     eddyfr(2:3) = cturbr(1:2)
                      call eddyvisco(n, viscl, laml, turbmv, etvm, eddyfl, eddyfr, leftv, rightv)
                   end if
 
@@ -1951,6 +2059,14 @@ contains
 
                   if (realgas .eq. 1) viscots = realgas_face_diffusion_speed(cleft, cright, ielem_dih(i, l), viscl, laml)
 
+                  if (turbulencemodel == 1) viscots = max(viscots, &
+                  max((viscl(1)+max(cturbl(1),0.0))/cleft(1), &
+                      (viscl(2)+max(cturbr(1),0.0))/cright(1)) / &
+                  (sigma*max(abs(ielem_dih(i,l)),1.0e-15)))
+
+                  if (turbulencemodel == 2) viscots = max(viscots, &
+                     max(eddyfl(19)+eddyfr(19),eddyfl(20)+eddyfr(20)) / &
+                     ((cleft(1)+cright(1))*max(ielem_dih(i,l),1.0e-15)))
                   vpp = max(asound1, asound2) + viscots
                end if
 
@@ -2173,7 +2289,11 @@ contains
                      call fill_turbulence_gradients(3, i, eddyfl)
 
 
+                     ! Freeze reconstructed gradients in this approximate Jacobian, but
+                     ! retain the right state and its own geometry.
                      eddyfr = eddyfl
+                     eddyfr(1) = sst_neighbour_wall(n,i,l)
+                     eddyfr(2:3) = cturbr(1:2)
                      call eddyvisco(n, viscl, laml, turbmv, etvm, eddyfl, eddyfr, leftv, rightv)
                   end if
 
@@ -2185,6 +2305,14 @@ contains
 
                   if (realgas .eq. 1) viscots = realgas_face_diffusion_speed(cleft, cright, ielem_dih(i, l), viscl, laml)
 
+                  if (turbulencemodel == 1) viscots = max(viscots, &
+                  max((viscl(1)+max(cturbl(1),0.0))/cleft(1), &
+                      (viscl(2)+max(cturbr(1),0.0))/cright(1)) / &
+                  (sigma*max(abs(ielem_dih(i,l)),1.0e-15)))
+
+                  if (turbulencemodel == 2) viscots = max(viscots, &
+                     max(eddyfl(19)+eddyfr(19),eddyfl(20)+eddyfr(20)) / &
+                     ((cleft(1)+cright(1))*max(ielem_dih(i,l),1.0e-15)))
                   vpp = max(asound1, asound2) + viscots
                end if
 
@@ -2232,6 +2360,11 @@ contains
 
             end if
 
+            if (b_code == 1 .and. initcond == 4440 .and. realgas == 0 .and. multispecies == 0) then
+               call add_duct_inlet_coupling(n, u_c_val(i, 1, 1:nof_variables), [nx, ny, nz], &
+                  & impdiag(1, :, :), impoff(1, l, :, :))
+            end if
+
             if (b_code == 9 .and. duct_outlet_face_flux_enabled()) then
                call add_duct_outlet_jacobian(n, i, cleft(1:nof_variables), [nx, ny, nz], max(asound1, asound2), mul1, &
                   & impdiag(1, :, :), impoff(1, l, :, :), impdiagt(1, :), impofft(1, l, :))
@@ -2249,7 +2382,8 @@ contains
 
             if (turbulence .eq. 1) then
                do nvar = 1, turbulenceequations
-                  sht(i, nvar) = min(max(sht(i, nvar), 0.00), turb_source_cap_frac * (impdiagt(1, nvar) + (ielem_totvolume(i) / &
+                  sht(i, nvar) = min(sa_source_jacobian_for_diagonal(sht(i, nvar), rot_corr, turbulencemodel), &
+                     & turb_source_cap_frac * (impdiagt(1, nvar) + (ielem_totvolume(i) / &
                      & ielem_dtl(i))))
                   impdiagt(1, nvar) = max((impdiagt(1, nvar) + (ielem_totvolume(i) / ielem_dtl(i)) - sht(i, nvar)), &
                      & max(turb_diag_floor_frac * (ielem_totvolume(i) / ielem_dtl(i)), turb_diag_abs_floor))
@@ -2265,7 +2399,8 @@ contains
 
             if (turbulence .eq. 1) then
                do nvar = 1, turbulenceequations
-                  sht(i, nvar) = min(max(sht(i, nvar), 0.00), turb_source_cap_frac * (ielem_totvolume(i) * ((1.00 / ielem_dtl(i)) &
+                  sht(i, nvar) = min(sa_source_jacobian_for_diagonal(sht(i, nvar), rot_corr, turbulencemodel), &
+                     & turb_source_cap_frac * (ielem_totvolume(i) * ((1.00 / ielem_dtl(i)) &
                      & + ((1.50 / dt) * impdiagt(1, nvar)))))
                   impdiagt(1, nvar) = max(((ielem_totvolume(i) * ((1.00 / ielem_dtl(i)) + ((1.50 / dt) * impdiagt(1, &
                      & nvar)))) - sht(i, nvar)), max(turb_diag_floor_frac * (ielem_totvolume(i) * ((1.00 / ielem_dtl(i)) + ((1.50 &
@@ -2410,7 +2545,11 @@ contains
                      call fill_turbulence_gradients(2, i, eddyfl)
 
 
+                     ! Freeze reconstructed gradients in this approximate Jacobian, but
+                     ! retain the right state and its own geometry.
                      eddyfr = eddyfl
+                     eddyfr(1) = sst_neighbour_wall(n,i,l)
+                     eddyfr(2:3) = cturbr(1:2)
                      call eddyvisco2d(n, viscl, laml, turbmv, etvm, eddyfl, eddyfr, leftv, rightv)
                   end if
 
@@ -2422,6 +2561,14 @@ contains
 
                   if (realgas .eq. 1) viscots = realgas_face_diffusion_speed(cleft, cright, ielem_dih(i, l), viscl, laml)
 
+                  if (turbulencemodel == 1) viscots = max(viscots, &
+                  max((viscl(1)+max(cturbl(1),0.0))/cleft(1), &
+                      (viscl(2)+max(cturbr(1),0.0))/cright(1)) / &
+                  (sigma*max(abs(ielem_dih(i,l)),1.0e-15)))
+
+                  if (turbulencemodel == 2) viscots = max(viscots, &
+                     max(eddyfl(19)+eddyfr(19),eddyfl(20)+eddyfr(20)) / &
+                     ((cleft(1)+cright(1))*max(ielem_dih(i,l),1.0e-15)))
                   vpp = max(asound1, asound2) + viscots
                end if
 
@@ -2652,7 +2799,11 @@ contains
                      call fill_turbulence_gradients(2, i, eddyfl)
 
 
+                     ! Freeze reconstructed gradients in this approximate Jacobian, but
+                     ! retain the right state and its own geometry.
                      eddyfr = eddyfl
+                     eddyfr(1) = sst_neighbour_wall(n,i,l)
+                     eddyfr(2:3) = cturbr(1:2)
                      call eddyvisco2d(n, viscl, laml, turbmv, etvm, eddyfl, eddyfr, leftv, rightv)
                   end if
 
@@ -2664,6 +2815,14 @@ contains
 
                   if (realgas .eq. 1) viscots = realgas_face_diffusion_speed(cleft, cright, ielem_dih(i, l), viscl, laml)
 
+                  if (turbulencemodel == 1) viscots = max(viscots, &
+                  max((viscl(1)+max(cturbl(1),0.0))/cleft(1), &
+                      (viscl(2)+max(cturbr(1),0.0))/cright(1)) / &
+                  (sigma*max(abs(ielem_dih(i,l)),1.0e-15)))
+
+                  if (turbulencemodel == 2) viscots = max(viscots, &
+                     max(eddyfl(19)+eddyfr(19),eddyfl(20)+eddyfr(20)) / &
+                     ((cleft(1)+cright(1))*max(ielem_dih(i,l),1.0e-15)))
                   vpp = max(asound1, asound2) + viscots
                end if
 
@@ -2711,6 +2870,11 @@ contains
 
             end if
 
+            if (b_code == 1 .and. initcond == 4440 .and. realgas == 0 .and. multispecies == 0) then
+               call add_duct_inlet_coupling(n, u_c_val(i, 1, 1:nof_variables), [nx, ny, 0.0e0], &
+                  & impdiag(1, :, :), impoff(1, l, :, :))
+            end if
+
             if (b_code == 9 .and. duct_outlet_face_flux_enabled()) then
                call add_duct_outlet_jacobian(n, i, cleft(1:nof_variables), [nx, ny, 0.0e0], max(asound1, asound2), mul1, &
                   & impdiag(1, :, :), impoff(1, l, :, :), impdiagt(1, :), impofft(1, l, :))
@@ -2728,7 +2892,8 @@ contains
 
             if (turbulence .eq. 1) then
                do nvar = 1, turbulenceequations
-                  sht(i, nvar) = min(max(sht(i, nvar), 0.00), turb_source_cap_frac * (impdiagt(1, nvar) + (ielem_totvolume(i) / &
+                  sht(i, nvar) = min(sa_source_jacobian_for_diagonal(sht(i, nvar), rot_corr, turbulencemodel), &
+                     & turb_source_cap_frac * (impdiagt(1, nvar) + (ielem_totvolume(i) / &
                      & ielem_dtl(i))))
                   impdiagt(1, nvar) = max((impdiagt(1, nvar) + (ielem_totvolume(i) / ielem_dtl(i)) - sht(i, nvar)), &
                      & max(turb_diag_floor_frac * (ielem_totvolume(i) / ielem_dtl(i)), turb_diag_abs_floor))
@@ -2745,7 +2910,8 @@ contains
 
             if (turbulence .eq. 1) then
                do nvar = 1, turbulenceequations
-                  sht(i, nvar) = min(max(sht(i, nvar), 0.00), turb_source_cap_frac * (ielem_totvolume(i) * ((1.00 / ielem_dtl(i)) &
+                  sht(i, nvar) = min(sa_source_jacobian_for_diagonal(sht(i, nvar), rot_corr, turbulencemodel), &
+                     & turb_source_cap_frac * (ielem_totvolume(i) * ((1.00 / ielem_dtl(i)) &
                      & + (1.50 / dt)) + (impdiagt(1, 1))))
                   impdiagt(1, nvar) = max((ielem_totvolume(i) * ((1.00 / ielem_dtl(i)) + (1.50 / dt)) + (impdiagt(1, 1)) - sht(i, &
                      & nvar)), max(turb_diag_floor_frac * (ielem_totvolume(i) * ((1.00 / ielem_dtl(i)) + (1.50 / dt))), &
@@ -2763,6 +2929,7 @@ contains
          end if
       end if
 
+      if(turbulenceequations+passivescalar>0) call add_axisymmetric_transport_implicit(n,i,impdiagt(1,:))
    end subroutine calculate_jacobian_2dlm
 
    subroutine calculate_jacobian_2d_mf(n)
@@ -2860,6 +3027,7 @@ contains
          impdiag_mf(i) = impdiag_mf(i) + ielem_totvolume(i) * &
             & realgas_source_radius(n, leftv)
       end if
+      if(axisymmetric_enabled==1) impdiag_mf(i)=impdiag_mf(i)+ielem_totvolume(i)*axisymmetric_source_radius(n,i)
    end subroutine calculate_jacobian_2d_mf_loop1_cell
 
    subroutine calculate_jacobian_2d_mf_loop2_cell(n, i)
@@ -2901,6 +3069,7 @@ contains
          impdiag_mf(i) = impdiag_mf(i) + ielem_totvolume(i) * &
             & realgas_source_radius(n, leftv)
       end if
+      if(axisymmetric_enabled==1) impdiag_mf(i)=impdiag_mf(i)+ielem_totvolume(i)*axisymmetric_source_radius(n,i)
    end subroutine calculate_jacobian_2d_mf_loop2_cell
 
    subroutine calculate_jacobian_2d_mf_loop3_cell(n, i)
@@ -2937,7 +3106,8 @@ contains
 
       if (turbulence .eq. 1) then
          do nvar = 1, turbulenceequations
-            sht(i, nvar) = min(max(sht(i, nvar), 0.00), turb_source_cap_frac * (impdiagt(i, nvar) + (ielem_totvolume(i) / &
+            sht(i, nvar) = min(sa_source_jacobian_for_diagonal(sht(i, nvar), rot_corr, turbulencemodel), &
+               & turb_source_cap_frac * (impdiagt(i, nvar) + (ielem_totvolume(i) / &
                & ielem_dtl(i))))
             impdiagt(i, nvar) = max((impdiagt(i, nvar) + (ielem_totvolume(i) / ielem_dtl(i)) - sht(i, nvar)), &
                & max(turb_diag_floor_frac * (ielem_totvolume(i) / ielem_dtl(i)), turb_diag_abs_floor))
@@ -2945,12 +3115,14 @@ contains
       end if
       if (passivescalar .gt. 0) then
          do nvar = turbulenceequations + 1, turbulenceequations + passivescalar
-            sht(i, nvar) = min(max(sht(i, nvar), 0.00), turb_source_cap_frac * (impdiagt(i, nvar) + (ielem_totvolume(i) / &
+            sht(i, nvar) = min(sa_source_jacobian_for_diagonal(sht(i, nvar), rot_corr, turbulencemodel), &
+               & turb_source_cap_frac * (impdiagt(i, nvar) + (ielem_totvolume(i) / &
                & ielem_dtl(i))))
             impdiagt(i, nvar) = max((impdiagt(i, nvar) + (ielem_totvolume(i) / ielem_dtl(i)) - sht(i, nvar)), &
                & max(turb_diag_floor_frac * (ielem_totvolume(i) / ielem_dtl(i)), turb_diag_abs_floor))
          end do
       end if
+      call add_axisymmetric_transport_implicit(n,i,impdiagt(i,:))
    end subroutine calculate_jacobian_2d_mf_loop3_cell
 
    subroutine calculate_jacobian_2d_mf_loop4_cell(n, i)
@@ -2988,7 +3160,8 @@ contains
       if (turbulence .eq. 1) then
          do nvar = 1, turbulenceequations
 !
-            sht(i, nvar) = min(max(sht(i, nvar), 0.00), turb_source_cap_frac * (impdiagt(i, nvar) + ielem_totvolume(i) * ((1.00 / &
+            sht(i, nvar) = min(sa_source_jacobian_for_diagonal(sht(i, nvar), rot_corr, turbulencemodel), &
+               & turb_source_cap_frac * (impdiagt(i, nvar) + ielem_totvolume(i) * ((1.00 / &
                & ielem_dtl(i)) + (1.50 / dt))))
             impdiagt(i, nvar) = max((ielem_totvolume(i) * ((1.00 / ielem_dtl(i)) + (1.50 / dt)) + (impdiagt(i, nvar)) - sht(i, &
                & nvar)), max(turb_diag_floor_frac * (ielem_totvolume(i) * ((1.00 / ielem_dtl(i)) + (1.50 / dt))), &
@@ -2997,13 +3170,15 @@ contains
       end if
       if (passivescalar .gt. 0) then
          do nvar = turbulenceequations + 1, turbulenceequations + passivescalar
-            sht(i, nvar) = min(max(sht(i, nvar), 0.00), turb_source_cap_frac * (impdiagt(i, nvar) + (ielem_totvolume(i) / &
+            sht(i, nvar) = min(sa_source_jacobian_for_diagonal(sht(i, nvar), rot_corr, turbulencemodel), &
+               & turb_source_cap_frac * (impdiagt(i, nvar) + (ielem_totvolume(i) / &
                & ielem_dtl(i))))
             impdiagt(i, nvar) = max((impdiagt(i, nvar) + (ielem_totvolume(i) / ielem_dtl(i)) - sht(i, nvar)), &
                & max(turb_diag_floor_frac * (ielem_totvolume(i) / ielem_dtl(i)), turb_diag_abs_floor))
          end do
       end if
 
+      call add_axisymmetric_transport_implicit(n,i,impdiagt(i,:))
    end subroutine calculate_jacobian_2d_mf_loop4_cell
 
    subroutine calculate_jacobian_2d_mf_inner_cell(n, ii)
@@ -3123,7 +3298,11 @@ contains
                   call fill_turbulence_gradients(2, i, eddyfl)
 
 
+                  ! Freeze reconstructed gradients in this approximate Jacobian, but
+                  ! retain the right state and its own geometry.
                   eddyfr = eddyfl
+                  eddyfr(1) = sst_neighbour_wall(n,i,l)
+                  eddyfr(2:3) = cturbr(1:2)
                   call eddyvisco2d(n, viscl, laml, turbmv, etvm, eddyfl, eddyfr, leftv, rightv)
                end if
 
@@ -3136,6 +3315,14 @@ contains
 
                if (realgas .eq. 1) viscots = realgas_face_diffusion_speed(cleft, cright, ielem_dih(i, l), viscl, laml)
 
+               if (turbulencemodel == 1) viscots = max(viscots, &
+                  max((viscl(1)+max(cturbl(1),0.0))/cleft(1), &
+                      (viscl(2)+max(cturbr(1),0.0))/cright(1)) / &
+                  (sigma*max(abs(ielem_dih(i,l)),1.0e-15)))
+
+               if (turbulencemodel == 2) viscots = max(viscots, &
+                  max(eddyfl(19)+eddyfr(19),eddyfl(20)+eddyfr(20)) / &
+                  ((cleft(1)+cright(1))*max(ielem_dih(i,l),1.0e-15)))
                vpp = max(asound1, asound2) + viscots
             end if
          end if
@@ -3381,7 +3568,11 @@ contains
                   call fill_turbulence_gradients(2, i, eddyfl)
 
 
+                  ! Freeze reconstructed gradients in this approximate Jacobian, but
+                  ! retain the right state and its own geometry.
                   eddyfr = eddyfl
+                  eddyfr(1) = sst_neighbour_wall(n,i,l)
+                  eddyfr(2:3) = cturbr(1:2)
                   call eddyvisco2d(n, viscl, laml, turbmv, etvm, eddyfl, eddyfr, leftv, rightv)
                end if
 
@@ -3393,6 +3584,14 @@ contains
 
                if (realgas .eq. 1) viscots = realgas_face_diffusion_speed(cleft, cright, ielem_dih(i, l), viscl, laml)
 
+               if (turbulencemodel == 1) viscots = max(viscots, &
+                  max((viscl(1)+max(cturbl(1),0.0))/cleft(1), &
+                      (viscl(2)+max(cturbr(1),0.0))/cright(1)) / &
+                  (sigma*max(abs(ielem_dih(i,l)),1.0e-15)))
+
+               if (turbulencemodel == 2) viscots = max(viscots, &
+                  max(eddyfl(19)+eddyfr(19),eddyfl(20)+eddyfr(20)) / &
+                  ((cleft(1)+cright(1))*max(ielem_dih(i,l),1.0e-15)))
                vpp = max(asound1, asound2) + viscots
             end if
 
@@ -3613,7 +3812,8 @@ contains
 
       if (turbulence .eq. 1) then
          do nvar = 1, turbulenceequations
-            sht(i, nvar) = min(max(sht(i, nvar), 0.00), turb_source_cap_frac * (impdiagt(i, nvar) + (ielem_totvolume(i) / &
+            sht(i, nvar) = min(sa_source_jacobian_for_diagonal(sht(i, nvar), rot_corr, turbulencemodel), &
+               & turb_source_cap_frac * (impdiagt(i, nvar) + (ielem_totvolume(i) / &
                & ielem_dtl(i))))
             impdiagt(i, nvar) = max((impdiagt(i, nvar) + (ielem_totvolume(i) / ielem_dtl(i)) - sht(i, nvar)), &
                & max(turb_diag_floor_frac * (ielem_totvolume(i) / ielem_dtl(i)), turb_diag_abs_floor))
@@ -3621,7 +3821,8 @@ contains
       end if
       if (passivescalar .gt. 0) then
          do nvar = turbulenceequations + 1, turbulenceequations + passivescalar
-            sht(i, nvar) = min(max(sht(i, nvar), 0.00), turb_source_cap_frac * (impdiagt(i, nvar) + (ielem_totvolume(i) / &
+            sht(i, nvar) = min(sa_source_jacobian_for_diagonal(sht(i, nvar), rot_corr, turbulencemodel), &
+               & turb_source_cap_frac * (impdiagt(i, nvar) + (ielem_totvolume(i) / &
                & ielem_dtl(i))))
             impdiagt(i, nvar) = max((impdiagt(i, nvar) + (ielem_totvolume(i) / ielem_dtl(i)) - sht(i, nvar)), &
                & max(turb_diag_floor_frac * (ielem_totvolume(i) / ielem_dtl(i)), turb_diag_abs_floor))
@@ -3664,7 +3865,8 @@ contains
       if (turbulence .eq. 1) then
          do nvar = 1, turbulenceequations
 !
-            sht(i, nvar) = min(max(sht(i, nvar), 0.00), turb_source_cap_frac * (impdiagt(i, nvar) + ielem_totvolume(i) * ((1.00 / &
+            sht(i, nvar) = min(sa_source_jacobian_for_diagonal(sht(i, nvar), rot_corr, turbulencemodel), &
+               & turb_source_cap_frac * (impdiagt(i, nvar) + ielem_totvolume(i) * ((1.00 / &
                & ielem_dtl(i)) + (1.50 / dt))))
             impdiagt(i, nvar) = max((ielem_totvolume(i) * ((1.00 / ielem_dtl(i)) + (1.50 / dt)) + (impdiagt(i, nvar)) - sht(i, &
                & nvar)), max(turb_diag_floor_frac * (ielem_totvolume(i) * ((1.00 / ielem_dtl(i)) + (1.50 / dt))), &
@@ -3673,7 +3875,8 @@ contains
       end if
       if (passivescalar .gt. 0) then
          do nvar = turbulenceequations + 1, turbulenceequations + passivescalar
-            sht(i, nvar) = min(max(sht(i, nvar), 0.00), turb_source_cap_frac * (impdiagt(i, nvar) + (ielem_totvolume(i) / &
+            sht(i, nvar) = min(sa_source_jacobian_for_diagonal(sht(i, nvar), rot_corr, turbulencemodel), &
+               & turb_source_cap_frac * (impdiagt(i, nvar) + (ielem_totvolume(i) / &
                & ielem_dtl(i))))
             impdiagt(i, nvar) = max((impdiagt(i, nvar) + (ielem_totvolume(i) / ielem_dtl(i)) - sht(i, nvar)), &
                & max(turb_diag_floor_frac * (ielem_totvolume(i) / ielem_dtl(i)), turb_diag_abs_floor))
@@ -3788,7 +3991,11 @@ contains
                   call fill_turbulence_gradients(3, i, eddyfl)
 
 
+                  ! Freeze reconstructed gradients in this approximate Jacobian, but
+                  ! retain the right state and its own geometry.
                   eddyfr = eddyfl
+                  eddyfr(1) = sst_neighbour_wall(n,i,l)
+                  eddyfr(2:3) = cturbr(1:2)
                   call eddyvisco(n, viscl, laml, turbmv, etvm, eddyfl, eddyfr, leftv, rightv)
                end if
 
@@ -3801,6 +4008,14 @@ contains
 
                if (realgas .eq. 1) viscots = realgas_face_diffusion_speed(cleft, cright, ielem_dih(i, l), viscl, laml)
 
+               if (turbulencemodel == 1) viscots = max(viscots, &
+                  max((viscl(1)+max(cturbl(1),0.0))/cleft(1), &
+                      (viscl(2)+max(cturbr(1),0.0))/cright(1)) / &
+                  (sigma*max(abs(ielem_dih(i,l)),1.0e-15)))
+
+               if (turbulencemodel == 2) viscots = max(viscots, &
+                  max(eddyfl(19)+eddyfr(19),eddyfl(20)+eddyfr(20)) / &
+                  ((cleft(1)+cright(1))*max(ielem_dih(i,l),1.0e-15)))
                vpp = max(asound1, asound2) + viscots
             end if
          end if
@@ -4037,7 +4252,11 @@ contains
                   call fill_turbulence_gradients(3, i, eddyfl)
 
 
+                  ! Freeze reconstructed gradients in this approximate Jacobian, but
+                  ! retain the right state and its own geometry.
                   eddyfr = eddyfl
+                  eddyfr(1) = sst_neighbour_wall(n,i,l)
+                  eddyfr(2:3) = cturbr(1:2)
                   call eddyvisco(n, viscl, laml, turbmv, etvm, eddyfl, eddyfr, leftv, rightv)
                end if
 
@@ -4049,6 +4268,14 @@ contains
 
                if (realgas .eq. 1) viscots = realgas_face_diffusion_speed(cleft, cright, ielem_dih(i, l), viscl, laml)
 
+               if (turbulencemodel == 1) viscots = max(viscots, &
+                  max((viscl(1)+max(cturbl(1),0.0))/cleft(1), &
+                      (viscl(2)+max(cturbr(1),0.0))/cright(1)) / &
+                  (sigma*max(abs(ielem_dih(i,l)),1.0e-15)))
+
+               if (turbulencemodel == 2) viscots = max(viscots, &
+                  max(eddyfl(19)+eddyfr(19),eddyfl(20)+eddyfr(20)) / &
+                  ((cleft(1)+cright(1))*max(ielem_dih(i,l),1.0e-15)))
                vpp = max(asound1, asound2) + viscots
             end if
 

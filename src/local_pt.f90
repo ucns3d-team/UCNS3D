@@ -5,6 +5,7 @@ module local
    use library
    use declaration
    use transform
+   use vtk_ghost_output, only: vtk_ghost_initialize, vtk_ghost_write, vtk_ghost_release
    implicit none
 
    ! Built once before cell workers start; lookups never mutate this table.
@@ -12,6 +13,11 @@ module local
       private
       integer, allocatable :: ids(:), owners(:), groups(:), rows(:)
    end type stencil_remote_lookup
+
+   ! Host geometry for the optional diagnostic and profile-controlled viscous GG fallback.
+   integer, parameter :: lsq_diag_fields=14
+   logical :: lsq_diag_enabled=.false., lsq_diag_only=.false., lsq_diag_written=.false.
+   real, allocatable :: lsq_diag_values(:,:)
 
 contains
 
@@ -877,10 +883,12 @@ contains
    end subroutine localise_stencil2d
 
    subroutine localise_sten2(n, iconsi, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, &
-      & ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z)
+      & ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, curvature_gamma)
 !> @brief
 !> this subroutine continues expressing all the stencil elements coordinates and volumes with respect to the considered cell
       implicit none
+      real, intent(out), optional :: curvature_gamma
+      real :: geometry_values(lsq_diag_fields)
       integer :: mm_i
       integer :: mm_j
       real :: mm_old(1:dimensiona)
@@ -986,6 +994,17 @@ contains
 
          end do
       end if
+
+      ! Evaluate physical geometry before affine mapping. No persistent Gamma array
+      ! is needed for switching; the worker passes one scalar to checkgrads.
+      ! The layered-cell curvature indicator is currently supported in nonperiodic 3D.
+      if(present(curvature_gamma)) curvature_gamma=-1.0
+      if(lsq_diag_enabled.or.(greengo==0.and.grid_curvature_limit>0.0.and.iperiodicity/=1)) then
+         call lsq_diagnostic_cell(i,ilox_ishape,ilox_ihexg,ilon_x,ilon_y,ilon_z,geometry_values)
+         if(present(curvature_gamma)) curvature_gamma=geometry_values(1)
+         if(lsq_diag_enabled) lsq_diag_values(i,:)=geometry_values
+      end if
+      if(lsq_diag_only) return
 
       vext = 0.00
       nodes_list = 0.00
@@ -2101,15 +2120,21 @@ contains
 
    subroutine grads_assign(n)
       integer, intent(in) :: n
-      integer :: i, j, k, l, jj, kmaxe
+      integer :: i, j, k, l, jj, kmaxe, previous_gg
 
       kmaxe = xmpielrank(n)
 
       if (dimensiona .eq. 3) then
 
-!$omp do
+!$omp do private(previous_gg)
          do i = 1, kmaxe
+            previous_gg = ielem_ggs(i)
             call checkgrads(n, i)
+            ! Gamma was evaluated before the prestore mapping. Preserve that
+            ! decision in this later geometry pass: its LS/GG matrices already
+            ! match the earlier selection. A fresh prestore recomputes the flag.
+            if (greengo == 0 .and. grid_curvature_limit > 0.0) &
+               ielem_ggs(i) = max(ielem_ggs(i), previous_gg)
          end do
 !$omp end do
 
@@ -2125,19 +2150,20 @@ contains
 
    end subroutine grads_assign
 
-   subroutine checkgrads(n, iconsi)
+   subroutine checkgrads(n, iconsi, curvature_gamma)
 !> @brief
 !> this subroutine assigns the correct viscous gradient approximation flag for each cell based on some additional geometrical characteristics
       implicit none
       integer, intent(in) :: n, iconsi
-      real :: dxx1, dxx2, tempg1, dist1, dist2, oo2, surfmin, surfmax
+      real, intent(in), optional :: curvature_gamma
+      real :: dxx1, dxx2, tempg1, dist1, surfmin, surfmax
       integer :: i, j, k, l, jj, icount3, nnd, ixf4, idc, idc2
       real, dimension(1:dimensiona) :: cords
-      real, dimension(1:8, 1:dimensiona) :: vext, nodes_list
+      real, dimension(1:8, 1:dimensiona) :: vext, nodes_list, face_vertices
 
       i = iconsi
       ielem_ggs(i) = greengo
-      dxx1 = -tolbig; dxx2 = tolbig
+      dxx1 = 0.0; dxx2 = huge(1.0)
       call compute_centre3d(i, cords)
       vext(1, 1:dims) = cords(1:dims)
 
@@ -2204,17 +2230,15 @@ contains
             nnd = 3
          end select
 
-         if (ielem_interior(i) .eq. 1) then
-            if ((ielem_ineighg(i, l) .gt. 0) .and. (ielem_ibounds(i, l) .gt. 0)) then
-               !
-
-            end if
+         ! Every face needs a centre, including physical and MPI boundaries.
+         ! Periodic face IDs can refer to the opposite periodic image.
+         if ((ielem_ibounds(i, l) > 0) .and. (ielem_ineighg(i, l) > 0)) then
+            call coordinates_face_period(n, i, l, face_vertices, nodes_list)
+            call cordinates3(n, nodes_list, nnd, cords(1:3))
          else
-            !
             call compute_centre3df(n, i, l, nnd, cords)
-            vext(2, 1:dims) = cords(1:dims)
-
          end if
+         vext(2, 1:dims) = cords(1:dims)
 
          surfmin = min(surfmin, ielem_surf(i, l))
          surfmax = max(surfmax, ielem_surf(i, l))
@@ -2258,7 +2282,21 @@ contains
 
       !end if
 
-      tempg1 = ielem_condition(i) !max((dxx1/dxx2),(dxx2/dxx1))
+      ! gridar1 controls viscous LS -> GG using centre-to-face distances.
+      ! Keep ielem_condition (face areas) for existing diagnostics/adaptation.
+      if (dxx2 > 0.0) then
+         tempg1 = dxx1 / max(dxx2, tiny(1.0) * max(1.0, dxx1))
+      else
+         tempg1 = huge(1.0)
+      end if
+      if ((greengo == 0) .and. (tempg1 > gridar1)) ielem_ggs(i) = 1
+      ! An unavailable Gamma is -1: retain the AR decision. Partial neighbour
+      ! coverage can trigger GG when its measured lower bound exceeds the limit.
+      if (greengo == 0 .and. grid_curvature_limit > 0.0) then
+         if (present(curvature_gamma)) then
+            if (curvature_gamma > grid_curvature_limit) ielem_ggs(i) = 1
+         end if
+      end if
 !
 
       if (code_profile .eq. 88) then
@@ -2268,8 +2306,7 @@ contains
 
       end if
 
-      if (tempg1 .gt. gridar1) then
-!               ielem_ggs(i)=1
+      if (ielem_condition(i) .gt. gridar1) then
          if ((iadapt .eq. 1) .or. (code_profile .eq. 88) .or. (code_profile .eq. 98)) then
             ielem_full(i) = 0
          end if
@@ -2409,16 +2446,16 @@ contains
 !> this subroutine assigns the correct viscous gradient approximation flag for each cell based on some additional geometrical characteristics
       implicit none
       integer, intent(in) :: n, iconsi
-      real :: dxx1, dxx2, tempg1, dist1, dist2, oo2, surfmin, surfmax
+      real :: dxx1, dxx2, tempg1, dist1, surfmin, surfmax
       integer :: i, j, k, l, jj, icount3, nnd, ixf4
       real, dimension(1:dimensiona) :: cords
-      real, dimension(1:8, 1:dimensiona) :: vext, nodes_list
+      real, dimension(1:8, 1:dimensiona) :: vext, nodes_list, face_vertices
 
       i = iconsi
 
       tempg1 = 0.0;
       ielem_ggs(i) = greengo
-      dxx1 = -tolbig; dxx2 = tolbig
+      dxx1 = 0.0; dxx2 = huge(1.0)
       call compute_centre2d(i, cords)
       vext(1, 1:dims) = cords(1:dims)
 
@@ -2481,39 +2518,15 @@ contains
          surfmin = min(surfmin, ielem_surf(i, l))
          surfmax = max(surfmax, ielem_surf(i, l))
 
-         if (ielem_interior(i) .eq. 1) then
-            if ((ielem_ineighg(i, l) .gt. 0) .and. (ielem_ibounds(i, l) .gt. 0)) then
-               if (ielem_ineighb(i, l) .ne. n) then
-
-                  do k = 1, nnd
-                     nodes_list(k, 1:dims) = node_coords(ielem_nodes_faces(iconsi, l, k))
-                  end do
-
-                  do k = 1, nnd
-                     if (abs(nodes_list(k, 1) - vext(1, 1)) .gt. xper * oo2) then
-                        nodes_list(k, 1) = nodes_list(k, 1) + (xper * sign(1.00, vext(1, 1) - xper * oo2))
-                     end if
-                     if (abs(nodes_list(k, 2) - vext(1, 2)) .gt. yper * oo2) then
-                        nodes_list(k, 2) = nodes_list(k, 2) + (yper * sign(1.00, vext(1, 2) - yper * oo2))
-                     end if
-                  end do
-
-                  call cordinates2(n, nodes_list, nnd, cords(1:2))
-                  vext(2, 1:dims) = cords(1:dims)
-               else
-                  call compute_centre2df(n, i, l, nnd, cords)
-                  vext(2, 1:dims) = cords(1:dims)
-               end if
-            else
-
-               call compute_centre2df(n, i, l, nnd, cords)
-               vext(2, 1:dims) = cords(1:dims)
-            end if
+         ! Every face needs a centre, including physical and MPI boundaries.
+         ! Periodic face IDs can refer to the opposite periodic image.
+         if ((ielem_ibounds(i, l) > 0) .and. (ielem_ineighg(i, l) > 0)) then
+            call coordinates_face_period2d(n, i, l, face_vertices, nodes_list)
+            call cordinates2(n, nodes_list, nnd, cords(1:2))
          else
             call compute_centre2df(n, i, l, nnd, cords)
-            vext(2, 1:dims) = cords(1:dims)
-
          end if
+         vext(2, 1:dims) = cords(1:dims)
 
          dist1 = distance2(n, vext)
          if (dist1 .lt. dxx2) then
@@ -2529,9 +2542,16 @@ contains
 
       ielem_condition(i) = surfmax / surfmin
 
-      tempg1 = ielem_condition(i)
+      ! gridar1 controls viscous LS -> GG using centre-to-face distances.
+      ! Keep ielem_condition (face areas) for existing diagnostics/adaptation.
+      if (dxx2 > 0.0) then
+         tempg1 = dxx1 / max(dxx2, tiny(1.0) * max(1.0, dxx1))
+      else
+         tempg1 = huge(1.0)
+      end if
+      if ((greengo == 0) .and. (tempg1 > gridar1)) ielem_ggs(i) = 1
 
-      if ((realgas .eq. 1) .or. (code_profile .eq. 888)) then
+      if (code_profile .eq. 888) then
          if (ielem_interior(i) .eq. 1) then
             do j = 1, ielem_ifca(i)
                if (ielem_ibounds(i, j) .gt. 0) then
@@ -2541,17 +2561,6 @@ contains
          end if
       end if
 
-!             if (tempg1.gt.gridar1)then
-!               ielem_ggs(i)=1
-!
-!               if ((iadapt.eq.1).or.(code_profile.eq.88).or.(code_profile.eq.98))then
-!                 ielem_full(i)=0
-!                         end if
-!
-!               end if
-!
-!
-!
 !    if (fastest.eq.0)then
 !                dxx1=-tolbig; dxx2=tolbig
 !                jj=1
@@ -2575,5 +2584,228 @@ contains
 ! end if
 
    end subroutine checkgrads2d
+
+   subroutine lsq_diagnostic_begin(n)
+      integer, intent(in) :: n
+      character(32) :: setting
+      integer :: status
+      lsq_diag_enabled = .false.; lsq_diag_only = .false.
+      call get_environment_variable('UCNS3D_LSQ_DIAGNOSTIC', setting, status=status)
+      if (status == 0) lsq_diag_enabled = trim(setting) == '1'
+      call get_environment_variable('UCNS3D_LSQ_DIAGNOSTIC_ONLY', setting, status=status)
+      if (status == 0) lsq_diag_only = trim(setting) == '1'
+      lsq_diag_enabled = lsq_diag_enabled .or. lsq_diag_only
+      if (.not. lsq_diag_enabled) return
+      if (lsq_diag_written) then
+         lsq_diag_enabled=.false.
+         return
+      end if
+      if (dimensiona /= 3 .or. iperiodicity == 1) &
+         call mesh_fail('LSQ curvature diagnostic currently supports nonperiodic 3D meshes')
+      if (.not. local_nodes_enabled) &
+         call mesh_fail('LSQ curvature diagnostic requires compact local-node mesh storage')
+      allocate(lsq_diag_values(xmpielrank(n), lsq_diag_fields)); lsq_diag_values = 0.0
+      lsq_diag_values(:,1) = -1.0
+   end subroutine lsq_diagnostic_begin
+
+   pure function lsq_cross(a,b) result(c)
+      real, intent(in) :: a(3), b(3)
+      real :: c(3)
+      c = [a(2)*b(3)-a(3)*b(2), a(3)*b(1)-a(1)*b(3), a(1)*b(2)-a(2)*b(1)]
+   end function lsq_cross
+
+   ! Host geometry only. No solver state, flow values, or derived types.
+   pure subroutine lsq_layer_geometry(shape, xyz, centre, axis, thickness, aspect, dominance, alignment, valid)
+      integer, intent(in) :: shape
+      real, intent(in) :: xyz(3,8)
+      real, intent(out) :: centre(3), axis(3), thickness, aspect, dominance, alignment
+      logical, intent(out) :: valid
+      integer :: faces(4,6), counts(6), nf, nv, f, j, k, a, b, ca, cb
+      real :: fc(3,6), normal(3,6), area(6), edges(3,4), av(3), length, dmin, dmax, d
+      real :: best, score, other, scale, trial_axis(3), plane_distance
+      logical :: disjoint
+      faces=0;counts=0;nf=0;nv=0
+      centre=0.0;axis=0.0;thickness=0.0;aspect=-1.0;dominance=0.0;alignment=0.0;valid=.false.
+      select case(shape)
+      case(1)
+         nv=8;nf=6;counts=4
+         faces(:,1)=[1,2,3,4];faces(:,2)=[5,6,7,8]
+         faces(:,3)=[1,2,6,5];faces(:,4)=[2,3,7,6]
+         faces(:,5)=[3,4,8,7];faces(:,6)=[4,1,5,8]
+      case(2)
+         nv=4;nf=4;counts(1:4)=3
+         faces(1:3,1)=[1,2,3];faces(1:3,2)=[1,2,4]
+         faces(1:3,3)=[2,3,4];faces(1:3,4)=[3,1,4]
+      case(3)
+         nv=5;nf=5;counts(1)=4;counts(2:5)=3
+         faces(:,1)=[1,2,3,4];faces(1:3,2)=[1,2,5];faces(1:3,3)=[2,3,5]
+         faces(1:3,4)=[3,4,5];faces(1:3,5)=[4,1,5]
+      case(4)
+         nv=6;nf=5;counts(1:2)=3;counts(3:5)=4
+         faces(1:3,1)=[1,2,3];faces(1:3,2)=[4,5,6]
+         faces(:,3)=[1,2,5,4];faces(:,4)=[2,3,6,5];faces(:,5)=[3,1,4,6]
+      case default
+         return
+      end select
+      centre=sum(xyz(:,1:nv),dim=2)/real(nv)
+      fc=0.0;normal=0.0;area=0.0;scale=0.0;dmin=huge(1.0);dmax=0.0
+      do f=1,nf
+         do j=1,counts(f)
+            fc(:,f)=fc(:,f)+xyz(:,faces(j,f))-centre
+         end do
+         fc(:,f)=fc(:,f)/real(counts(f))
+         d=norm2(fc(:,f));dmin=min(dmin,d);dmax=max(dmax,d)
+         do j=1,counts(f)
+            edges(:,j)=xyz(:,faces(j,f))-(centre+fc(:,f))
+            scale=max(scale,norm2(edges(:,j)))
+         end do
+         av=0.0
+         do j=1,counts(f)
+            k=mod(j,counts(f))+1
+            av=av+lsq_cross(edges(:,j),edges(:,k))
+         end do
+         length=norm2(av);area(f)=0.5*length
+         if(length>tiny(1.0)) normal(:,f)=av/length
+      end do
+      if(dmin>tiny(1.0)) aspect=dmax/dmin
+      if(shape/=1.and.shape/=4) return
+      best=-1.0;ca=0;cb=0
+      do a=1,nf-1
+         do b=a+1,nf
+            disjoint=.true.
+            do j=1,counts(a)
+               if(any(faces(1:counts(b),b)==faces(j,a))) disjoint=.false.
+            end do
+            if(.not.disjoint) cycle
+            if(shape==4.and.(counts(a)/=3.or.counts(b)/=3)) cycle
+            other=0.0
+            do f=1,nf
+               if(f/=a.and.f/=b) other=max(other,area(f))
+            end do
+            if(other<=tiny(1.0)) cycle
+            score=min(area(a),area(b))/other
+            if(score>best) then
+               best=score;ca=a;cb=b
+            end if
+         end do
+      end do
+      if(ca==0) return
+      dominance=best
+      alignment=abs(dot_product(normal(:,ca),normal(:,cb)))
+      ! These are diagnostic confidence gates, not gradient-switch thresholds.
+      if(dominance<2.0.or.alignment<0.95) return
+      trial_axis=normal(:,ca)+sign(1.0,dot_product(normal(:,ca),normal(:,cb)))*normal(:,cb)
+      length=norm2(trial_axis)
+      if(length<=tiny(1.0)) return
+      axis=trial_axis/length
+      plane_distance=abs(dot_product(fc(:,cb)-fc(:,ca),axis))
+      if(plane_distance<=100.0*epsilon(1.0)*scale) return
+      thickness=plane_distance;valid=.true.
+   end subroutine lsq_layer_geometry
+
+   pure subroutine lsq_curvature_pair(ci, ni, hi, cj, nj, gamma_pair, span, angle)
+      real, intent(in) :: ci(3), ni(3), hi, cj(3), nj(3)
+      real, intent(out) :: gamma_pair, span, angle
+      real :: delta(3), sine_angle, cosine_angle
+      delta=cj-ci
+      span=norm2(delta-dot_product(delta,ni)*ni)
+      sine_angle=min(1.0,norm2(lsq_cross(ni,nj)))
+      cosine_angle=min(1.0,abs(dot_product(ni,nj)))
+      angle=atan2(sine_angle,cosine_angle)*180.0/acos(-1.0)
+      gamma_pair=span*sine_angle/(2.0*hi)
+   end subroutine lsq_curvature_pair
+
+   subroutine lsq_diagnostic_cell(i, shapes, gids, xx, yy, zz, values)
+      integer, intent(in) :: i, shapes(:,:), gids(:,:)
+      real, intent(out) :: values(lsq_diag_fields)
+      real, intent(in) :: xx(:,:,:), yy(:,:,:), zz(:,:,:)
+      real :: xyz(3,8), ci(3), cj(3), ni(3), nj(3), hi, hj, ari, arj, dom, ali, dj, aj
+      real :: fn(3), p(3,4), gamma_pair, span, angle, best, bestspan, bestangle
+      integer :: f,j,k,nv,nfv,navailable,nused,slot,gid
+      logical :: vi,vj
+      values=0.0;values(1)=-1.0
+      xyz=0.0
+      nv=ielem_nonodes(i)
+      xyz(1,1:nv)=xx(1,1,1:nv);xyz(2,1:nv)=yy(1,1,1:nv);xyz(3,1:nv)=zz(1,1,1:nv)
+      call lsq_layer_geometry(ielem_ishape(i),xyz,ci,ni,hi,ari,dom,ali,vi)
+      values(2)=ari;values(3)=hi
+      values(7)=dom;values(12)=real(ielem_ishape(i));values(13)=ali
+      if(ari>1000.0) values(11)=1.0
+      if(ielem_ishape(i)/=1.and.ielem_ishape(i)/=4) return
+      values(8)=1.0
+      if(.not.vi) return
+      best=-1.0;bestspan=0.0;bestangle=0.0;navailable=0;nused=0
+      do f=1,ielem_ifca(i)
+         nfv=3
+         if(ielem_types_faces(i,f)==5) nfv=4
+         do k=1,nfv
+            p(:,k)=node_coords(ielem_nodes_faces(i,f,k))-ci
+         end do
+         fn=0.0
+         do k=1,nfv
+            fn=fn+lsq_cross(p(:,k),p(:,mod(k,nfv)+1))
+         end do
+         if(norm2(fn)<=tiny(1.0)) cycle
+         fn=fn/norm2(fn)
+         ! Omit the two cap faces; only neighbouring cells along the layer.
+         if(abs(dot_product(fn,ni))>=0.5) cycle
+         gid=ielem_ineighg(i,f)
+         if(gid<=0) cycle
+         navailable=navailable+1;slot=0
+         do j=2,ielem_inumneighbours(i)
+            if(gids(1,j)==gid) then
+               slot=j;exit
+            end if
+         end do
+         if(slot==0) cycle
+         select case(shapes(1,slot))
+         case(1);nv=8
+         case(4);nv=6
+         case default;cycle
+         end select
+         xyz=0.0
+         xyz(1,1:nv)=xx(1,slot,1:nv);xyz(2,1:nv)=yy(1,slot,1:nv);xyz(3,1:nv)=zz(1,slot,1:nv)
+         call lsq_layer_geometry(shapes(1,slot),xyz,cj,nj,hj,arj,dj,aj,vj)
+         if(.not.vj) cycle
+         call lsq_curvature_pair(ci,ni,hi,cj,nj,gamma_pair,span,angle)
+         nused=nused+1
+         if(gamma_pair>best) then
+            best=gamma_pair;bestspan=span;bestangle=angle
+         end if
+      end do
+      values(9)=real(nused);values(10)=real(navailable)
+      values(8)=3.0
+      if(nused==0) return
+      values(1)=best;values(4)=bestspan/hi
+      values(5)=bestangle;values(6)=bestspan
+      values(8)=4.0
+      if(nused==navailable) values(8)=5.0
+   end subroutine lsq_diagnostic_cell
+
+   subroutine lsq_diagnostic_write(n)
+      integer, intent(in) :: n
+      integer, allocatable :: output_nodes(:,:)
+      integer :: i,k
+      character(32), parameter :: names(lsq_diag_fields)=[character(32) :: &
+         'CurvatureGamma','FaceDistanceAR','LayerThickness','LayerAspectRatio', &
+         'TurningAngleAtMaxGamma_deg','TangentialSpanAtMaxGamma','CapAreaDominance', &
+         'CurvatureStatus','LateralNeighboursUsed','LateralNeighboursAvailable', &
+         'ARAbove1000','UCNS3DCellShape','CapNormalAlignment','ViscousGGFlag']
+      if(.not.lsq_diag_enabled.or.lsq_diag_written) return
+      allocate(output_nodes(8,xmpielrank(n)));output_nodes=0
+      do i=1,xmpielrank(n)
+         do k=1,ielem_nonodes(i)
+            output_nodes(k,i)=node_final_index(ielem_nodes(k,i))
+         end do
+      end do
+      call vtk_ghost_initialize(ielem_ihexgl,ielem_ishape,ielem_nonodes,output_nodes,node_ids,node_xyz, &
+         lsq_diag_fields,mpi_comm_world)
+      lsq_diag_values(:,14)=real(ielem_ggs)
+      call vtk_ghost_write('LSQ_CURVATURE_','LSQ_CURVATURE_',0,0.0,names,lsq_diag_values,node_xyz,.false.)
+      call vtk_ghost_release()
+      deallocate(output_nodes,lsq_diag_values)
+      lsq_diag_written=.true.
+      if(n==0) write(*,*) 'LSQ curvature diagnostic written once: LSQ_CURVATURE_0.pvtu'
+   end subroutine lsq_diagnostic_write
 
 end module local

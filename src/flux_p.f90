@@ -815,11 +815,12 @@ contains
                            rhllcflux(nof_variables + iv) = hllcflux(nof_variables + iv)
                         end do
                      end if
-                  case (3) !roe
+                  case (3, 12) ! Roe; option 12 uses half dissipation
 
                      call rotateb(n, cleft, cleft_rot, angle1, angle2)
                      call rotateb(n, cright, cright_rot, angle1, angle2)
-                     call roe_riemann_solver(n, iconsidered, facex, cleft, cright, hllcflux, mp_source1, srf_speedrot, nx, ny, nz)
+                     call roe_riemann_solver(n, iconsidered, facex, cleft, cright, hllcflux, mp_source1, srf_speedrot, nx, ny, nz, &
+                     & dissipation_factor=merge(0.5e0, 1.0e0, iriemann == 12))
 
                      do iv = 1, nof_variables + nvt
                         rhllcflux(iv) = hllcflux(iv)
@@ -1006,10 +1007,11 @@ contains
                rhllcflux(nof_variables + iv) = hllcflux(nof_variables + iv)
             end do
          end if
-      case (3)
+      case (3, 12)
          call rotateb(n, cleft, cleft_rot, angle1, angle2)
          call rotateb(n, cright, cright_rot, angle1, angle2)
-         call roe_riemann_solver(n, iconsidered, facex, cleft, cright, hllcflux, mp_source1, srf_speedrot, nx, ny, nz)
+         call roe_riemann_solver(n, iconsidered, facex, cleft, cright, hllcflux, mp_source1, srf_speedrot, nx, ny, nz, &
+                     & dissipation_factor=merge(0.5e0, 1.0e0, iriemann == 12))
          do iv = 1, nof_variables + nvt
             rhllcflux(iv) = hllcflux(iv)
          end do
@@ -1427,7 +1429,7 @@ contains
 
                   case (9) !hll
 
-                     call hll_riemann_solver(n, cleft_rot, cright_rot, hllcflux, mp_source1, srf_speedrot)
+                     call hll_riemann_solver(n, cleft_rot, cright_rot, hllcflux, mp_source1, srf_speedrot, cleft, cright)
                      call rotateb2d(n, rhllcflux, hllcflux, angle1, angle2)
                      if ((turbulence .eq. 1) .or. (passivescalar .gt. 0)) then
 
@@ -1669,7 +1671,7 @@ contains
 
                   case (9) !hll
 
-                     call hll_riemann_solver(n, cleft_rot, cright_rot, hllcflux, mp_source1, srf_speedrot)
+                     call hll_riemann_solver(n, cleft_rot, cright_rot, hllcflux, mp_source1, srf_speedrot, cleft, cright)
                      call rotateb2d(n, rhllcflux, hllcflux, angle1, angle2)
                      if ((turbulence .eq. 1) .or. (passivescalar .gt. 0)) then
 
@@ -1804,8 +1806,8 @@ contains
    subroutine calculate_fluxeshi_diffusive_inner_cell(n)
       implicit none
       integer, intent(in) :: n
-      integer :: i, l, ngp, iqp, kc, b_code, srf, k, iv, nvt
-      real :: wface, muturb
+      integer :: i, l, ngp, iqp, kc, b_code, srf, k, nvt
+      real :: wface
       integer :: iconsidered, facex, pointx, rg_i, rg_j, idxy
       real :: angle1, angle2, nx, ny, nz
       real :: mp_pinfl, mp_pinfr, gammal, gammar, rho12l, rho12r
@@ -1817,6 +1819,7 @@ contains
 
 #ifdef xpu
 !$omp target teams distribute parallel do &
+!$omp& firstprivate(prtu, schmidt_turb) &
 !$omp& firstprivate(br2_yn, dg, dimensiona, lamx, lmach, mrf, multispecies, n, nof_interior, nof_species) &
 !$omp& firstprivate(nof_variables, oo2, passivescalar, qp_quad_n, qp_triangle_n, realgas, rg_relax, sigma) &
 !$omp& firstprivate(turbulence, turbulenceequations, turbulencemodel, zero) &
@@ -1824,9 +1827,9 @@ contains
 !$omp& map(alloc: ielem_walldist, rec_mrf, rg_molm, rhs_val, rhst_val, weights_q, weights_t) &
 !$omp& private(angle1, angle2, b_code, damp) &
 !$omp& private(facex, gammal, gammar, i) &
-!$omp& private(iconsidered, idxy, ii, iqp, iv, k, kc, l, mbar) &
+!$omp& private(iconsidered, idxy, ii, iqp, k, kc, l, mbar) &
 !$omp& private(molar_sum, mp_ktr_mix, mp_ktr_mix_av, mp_kve, mp_lam_av, mp_laml, mp_lamr, mp_mu_mix, mp_pinfl) &
-!$omp& private(mp_pinfr, muturb, ngp, nvt, nx, ny, nz, pointx) &
+!$omp& private(mp_pinfr, ngp, nvt, nx, ny, nz, pointx) &
 !$omp& private(rg_i, rg_j, rho12, rho12l, rho12r) &
 !$omp& private(srf, sumy_face, u12, ux, uy, uz) &
 !$omp& private(v12, vdamp, vx, vy, vz, w12, wface, wx, wy, wz, y_face) &
@@ -1834,20 +1837,23 @@ contains
 !$omp& map(alloc: integ_basis_dg_value, integ_basis_value, integ_basis_valuec, mp_janaf, mp_m, mp_pinf, mp_thigh_in) &
 !$omp& map(alloc: mp_tlow_in, mp_tmid_in, rec_qpoints, rec_rotvel, rec_uleft, rec_uleft_dg, rec_uleftturb) &
 !$omp& map(alloc: rec_uleftturbv, rec_uleftv, rec_volume, rg_hzero, rg_thetag, rgs_ab, rgs_bb, rgs_cb, rgs_eps_over_k) &
-!$omp& map(alloc: rgs_mg, rgs_sigmaa, rhs_valdg, u_ct_val)
+!$omp& map(alloc: rgs_mg, rgs_sigmaa, rhs_valdg, u_ct_val) &
+!$omp& map(alloc: sst_halo_wall, ibound_icode, ielem_ibounds, ielem_ineighb, ielem_indexi, rec_local, rec_ihexn, rec_ihexl, halo_offset, u_c_val)
 #else
 !$omp do &
 !$omp& private(angle1, angle2, b_code, damp) &
 !$omp& private(facex, gammal, gammar, i) &
-!$omp& private(iconsidered, idxy, ii, iqp, iv, k, kc, l, mbar) &
+!$omp& private(iconsidered, idxy, ii, iqp, k, kc, l, mbar) &
 !$omp& private(molar_sum, mp_ktr_mix, mp_ktr_mix_av, mp_kve, mp_lam_av, mp_laml, mp_lamr, mp_mu_mix, mp_pinfl) &
-!$omp& private(mp_pinfr, muturb, ngp, nvt, nx, ny, nz, pointx) &
+!$omp& private(mp_pinfr, ngp, nvt, nx, ny, nz, pointx) &
 !$omp& private(rg_i, rg_j, rho12, rho12l, rho12r) &
 !$omp& private(srf, sumy_face, u12, ux, uy, uz) &
 !$omp& private(v12, vdamp, vx, vy, vz, w12, wface, wx, wy, wz, y_face)
 #endif
       do ii = 1, nof_interior
          block
+            real :: mp_cvvl, mp_cvvr, muturb
+            integer :: iv
             real, dimension(1:gpu_max_nvar_total) :: godflux2, rhllcflux, hllcflux
             real, dimension(1:gpu_max_nvar_total) :: cleft, cright, cleft_rot, cright_rot
             real, dimension(1:gpu_max_nvar) :: leftv, rightv, srf_speedrot
@@ -1925,13 +1931,13 @@ contains
 
                   viscl = 0.0e0; laml = 0.0e0
                   if (realgas == 1) then
-                        call multispecies_mixtures_rg(leftv, mp_mu_mix, mp_ktr_mix, mp_kve, rg_difl, rg_enthl, rg_enthvbl, gammal)
+                        call multispecies_mixtures_rg(leftv, mp_mu_mix, mp_ktr_mix, mp_kve, rg_difl, rg_enthl, rg_enthvbl, gammal, mp_cvvl)
 
                         mp_laml = mp_kve
                         laml(1) = mp_ktr_mix
                         viscl(1) = mp_mu_mix
 
-                        call multispecies_mixtures_rg(rightv, mp_mu_mix, mp_ktr_mix, mp_kve, rg_difr, rg_enthr, rg_enthvbr, gammar)
+                        call multispecies_mixtures_rg(rightv, mp_mu_mix, mp_ktr_mix, mp_kve, rg_difr, rg_enthr, rg_enthvbr, gammar, mp_cvvr)
 
                         mp_lamr = mp_kve
                         laml(2) = mp_ktr_mix
@@ -1951,7 +1957,7 @@ contains
                         eddyfl(10:12) = lcvgrad(3, 1:3); eddyfl(13:15) = lcvgrad_t(1, 1:3)
                         eddyfl(16:18) = lcvgrad_t(2, 1:3)
 
-                        eddyfr(1) = ielem_walldist(i); eddyfr(2) = cturbr(1); eddyfr(3) = cturbr(2)
+                        eddyfr(1) = sst_neighbour_wall(n,i,l); eddyfr(2) = cturbr(1); eddyfr(3) = cturbr(2)
                         eddyfr(4:6) = rcvgrad(1, 1:3); eddyfr(7:9) = rcvgrad(2, 1:3); eddyfr(10:12) = rcvgrad(3, 1:3)
                         eddyfr(13:15) = rcvgrad_t(1, 1:3); eddyfr(16:18) = rcvgrad_t(2, 1:3)
                         call eddyvisco(n, viscl, laml, turbmv, etvm, eddyfl, eddyfr, leftv, rightv)
@@ -2015,6 +2021,9 @@ contains
                         if (turbulence == 1) mp_ktr_mix_av = 0.5e0 * (laml(3) + laml(4))
 
                         mp_lam_av = 0.50 * (mp_lamr + mp_laml) ! ! vibrational conductivity
+                        ! Baseline gradient-diffusion closure: Pr_tv=Pr_t.
+                        if (turbulence == 1) mp_lam_av = mp_lam_av + &
+                           0.5*(viscl(3)*mp_cvvl+viscl(4)*mp_cvvr)/prtu
 
                         rg_dif_av = 0.50 * (rg_difr + rg_difl)
 
@@ -2087,6 +2096,8 @@ contains
 
                               i_raw(1:dimensiona, rg_i) = &
                                  & -rho12 * rg_dif_av(rg_i) * (rg_molm(rg_i) / mbar) * gradx(1:dimensiona)
+                              if (turbulence == 1) i_raw(1:dimensiona,rg_i) = i_raw(1:dimensiona,rg_i) - &
+                                 0.5*(viscl(3)+viscl(4))/schmidt_turb*grady(1:dimensiona)
                               sumi(1:dimensiona) = sumi(1:dimensiona) + i_raw(1:dimensiona, rg_i)
                            end do
 
@@ -2226,19 +2237,23 @@ contains
                   end if
 
                   if ((turbulence .eq. 1) .or. (passivescalar .gt. 0)) then
-                     if (turbulence .eq. 1) then
-                        muturb = (oo2 * (viscl(1) + viscl(2))) + (oo2 * (viscl(3) + viscl(4)))
-                     else
-                        muturb = oo2 * (viscl(1) + viscl(2))
-                     end if
-                     do iv = 1, nvt
-                        hllcflux(nof_variables + iv) = muturb * oo2 * ((lcvgrad_t(iv, 1) + rcvgrad_t(iv, 1)) * nx + &
-                           & (lcvgrad_t(iv, 2) + rcvgrad_t(iv, 2)) * ny + (lcvgrad_t(iv, 3) + rcvgrad_t(iv, 3)) * nz)
+                     muturb = 0.5*(viscl(1)+viscl(2))
+                     if (turbulence == 1) muturb = muturb + 0.5*(viscl(3)+viscl(4))
+                     do iv=1,turbulenceequations+passivescalar
+                        hllcflux(nof_variables+iv) = muturb * &
+                           sum(0.5*(lcvgrad_t(iv,1:3)+rcvgrad_t(iv,1:3))*[nx,ny,nz])
                      end do
-                     if (turbulencemodel .eq. 1) then
-                        do iv = 1, nvt
-                           hllcflux(nof_variables + iv) = hllcflux(nof_variables + iv) / sigma
-                        end do
+                     if (turbulence == 1 .and. turbulencemodel == 1) then
+                        ! SA (with or without RC): rho_i div[(nu+nu_tilde) grad(nu_tilde)]/sigma.
+                        ! Keeping density outside the divergence includes the conservative
+                        ! density-gradient correction without extra gradient storage.
+                        ! Average signed wall ghosts BEFORE positivity protection (nu_tilde_wall=0).
+                        muturb = (0.5*(viscl(1)+viscl(2))+max(0.0,0.5*(cturbl(1)+cturbr(1)))) / sigma
+                        hllcflux(nof_variables+1) = u_c_val(i,1,1)/rho12 * muturb * &
+                           sum(0.5*(lcvgrad_t(1,1:3)+rcvgrad_t(1,1:3))*[nx,ny,nz])
+                     elseif (turbulence == 1 .and. turbulencemodel == 2) then
+                        call sst_diffusion_flux(3,eddyfl,eddyfr,lcvgrad_t,rcvgrad_t,[nx,ny,nz], &
+                           hllcflux(nof_variables+1:nof_variables+2))
                      end if
                      wface = weights_temp(ngp) * ielem_surf(i, l)
                      do iv = 1, nvt
@@ -2273,8 +2288,8 @@ contains
    subroutine calculate_fluxeshi_diffusive_bound_cell(n)
       implicit none
       integer, intent(in) :: n
-      integer :: i, l, ngp, iqp, kc, igoflux, b_code, srf, k, iv, nvt
-      real :: wface, muturb
+      integer :: i, l, ngp, iqp, kc, igoflux, b_code, srf, k, nvt
+      real :: wface
       integer :: iconsidered, facex, pointx, rg_i, rg_j, idxy, icompute
       real :: angle1, angle2, nx, ny, nz
       real :: mp_pinfl, mp_pinfr, gammal, gammar, rho12l, rho12r
@@ -2286,6 +2301,7 @@ contains
 
 #ifdef xpu
 !$omp target teams distribute parallel do &
+!$omp& firstprivate(prtu, schmidt_turb) &
 !$omp& firstprivate(br2_yn, catalytic_wall, dg, dimensiona, lamx, lmach, mrf, multispecies, n, nof_bounded) &
 !$omp& firstprivate(nof_species, nof_variables, oo2, passivescalar, qp_quad_n, qp_triangle_n, realgas, rg_relax) &
 !$omp& firstprivate(sigma, turbulence, turbulenceequations, turbulencemodel, zero) &
@@ -2293,9 +2309,9 @@ contains
 !$omp& map(alloc: ielem_walldist, rec_mrf, rg_molm, rhs_val, rhst_val, weights_q, weights_t) &
 !$omp& private(angle1, angle2, b_code, damp) &
 !$omp& private(facex, gammal, gammar, i) &
-!$omp& private(icompute, iconsidered, idxy, igoflux, ii, iqp, iv, k, kc, l) &
+!$omp& private(icompute, iconsidered, idxy, igoflux, ii, iqp, k, kc, l) &
 !$omp& private(mbar, molar_sum, mp_ktr_mix, mp_ktr_mix_av, mp_kve, mp_lam_av, mp_laml, mp_lamr, mp_mu_mix) &
-!$omp& private(mp_pinfl, mp_pinfr, muturb, ngp, nvt, nx, ny, nz, pointx) &
+!$omp& private(mp_pinfl, mp_pinfr, ngp, nvt, nx, ny, nz, pointx) &
 !$omp& private(rg_i, rg_j, rho12, rho12l, rho12r) &
 !$omp& private(srf, sumy_face, u12, ux, uy, uz) &
 !$omp& private(v12, vdamp, vx, vy, vz, w12, wface, wx, wy, wz, y_face) &
@@ -2305,20 +2321,23 @@ contains
 !$omp& map(alloc: integ_basis_value, integ_basis_valuec, mp_a_in, mp_janaf, mp_m, mp_pinf, mp_r_in, mp_thigh_in) &
 !$omp& map(alloc: mp_tlow_in, mp_tmid_in, rec_qpoints, rec_rotvel, rec_uleft, rec_uleft_dg, rec_uleftturb) &
 !$omp& map(alloc: rec_uleftturbv, rec_uleftv, rec_volume, rg_hzero, rg_thetag, rg_vf, rgs_ab, rgs_bb, rgs_cb) &
-!$omp& map(alloc: rgs_eps_over_k, rgs_mg, rgs_sigmaa, rhs_valdg, u_ct_val)
+!$omp& map(alloc: rgs_eps_over_k, rgs_mg, rgs_sigmaa, rhs_valdg, u_ct_val) &
+!$omp& map(alloc: sst_halo_wall, ielem_indexi, rec_local, rec_ihexn, rec_ihexl, halo_offset, u_c_val)
 #else
 !$omp do &
 !$omp& private(angle1, angle2, b_code, damp) &
 !$omp& private(facex, gammal, gammar, i) &
-!$omp& private(icompute, iconsidered, idxy, igoflux, ii, iqp, iv, k, kc, l) &
+!$omp& private(icompute, iconsidered, idxy, igoflux, ii, iqp, k, kc, l) &
 !$omp& private(mbar, molar_sum, mp_ktr_mix, mp_ktr_mix_av, mp_kve, mp_lam_av, mp_laml, mp_lamr, mp_mu_mix) &
-!$omp& private(mp_pinfl, mp_pinfr, muturb, ngp, nvt, nx, ny, nz, pointx) &
+!$omp& private(mp_pinfl, mp_pinfr, ngp, nvt, nx, ny, nz, pointx) &
 !$omp& private(rg_i, rg_j, rho12, rho12l, rho12r) &
 !$omp& private(srf, sumy_face, u12, ux, uy, uz) &
 !$omp& private(v12, vdamp, vx, vy, vz, w12, wface, wx, wy, wz, y_face)
 #endif
       do ii = 1, nof_bounded
          block
+            real :: mp_cvvl, mp_cvvr, muturb
+            integer :: iv
             real, dimension(1:gpu_max_nvar_total) :: godflux2, rhllcflux, hllcflux
             real, dimension(1:gpu_max_nvar_total) :: cleft, cright, cleft_rot, cright_rot
             real, dimension(1:gpu_max_nvar) :: leftv, rightv, srf_speedrot
@@ -2400,13 +2419,13 @@ contains
 
                   viscl = 0.0e0; laml = 0.0e0
                   if (realgas == 1) then
-                        call multispecies_mixtures_rg(leftv, mp_mu_mix, mp_ktr_mix, mp_kve, rg_difl, rg_enthl, rg_enthvbl, gammal)
+                        call multispecies_mixtures_rg(leftv, mp_mu_mix, mp_ktr_mix, mp_kve, rg_difl, rg_enthl, rg_enthvbl, gammal, mp_cvvl)
 
                         mp_laml = mp_kve
                         laml(1) = mp_ktr_mix
                         viscl(1) = mp_mu_mix
 
-                        call multispecies_mixtures_rg(rightv, mp_mu_mix, mp_ktr_mix, mp_kve, rg_difr, rg_enthr, rg_enthvbr, gammar)
+                        call multispecies_mixtures_rg(rightv, mp_mu_mix, mp_ktr_mix, mp_kve, rg_difr, rg_enthr, rg_enthvbr, gammar, mp_cvvr)
 
                         mp_lamr = mp_kve
                         laml(2) = mp_ktr_mix
@@ -2426,10 +2445,16 @@ contains
                         eddyfl(10:12) = lcvgrad(3, 1:3); eddyfl(13:15) = lcvgrad_t(1, 1:3)
                         eddyfl(16:18) = lcvgrad_t(2, 1:3)
 
-                        eddyfr(1) = ielem_walldist(i); eddyfr(2) = cturbr(1); eddyfr(3) = cturbr(2)
+                        eddyfr(1) = sst_neighbour_wall(n,i,l); eddyfr(2) = cturbr(1); eddyfr(3) = cturbr(2)
                         eddyfr(4:6) = rcvgrad(1, 1:3); eddyfr(7:9) = rcvgrad(2, 1:3); eddyfr(10:12) = rcvgrad(3, 1:3)
                         eddyfr(13:15) = rcvgrad_t(1, 1:3); eddyfr(16:18) = rcvgrad_t(2, 1:3)
                         call eddyvisco(n, viscl, laml, turbmv, etvm, eddyfl, eddyfr, leftv, rightv)
+                        if (b_code == 4) then
+                           call sst_wall_transport(n, u_c_val(i,1,1:nof_variables), viscl(1), laml(1))
+                           viscl(2) = viscl(1); laml(2) = laml(1)
+                           viscl(3:4) = 0.0; laml(3:4) = laml(1:2)
+                           eddyfl(19:20) = viscl(1); eddyfr(19:20) = viscl(2)
+                        end if
                      end if
                   end if
 
@@ -2495,6 +2520,9 @@ contains
                         mp_ktr_mix_av = 0.50 * (laml(1) + laml(2))
                         if (turbulence == 1) mp_ktr_mix_av = 0.5e0 * (laml(3) + laml(4))
                         mp_lam_av = 0.50 * (mp_laml + mp_lamr)
+                        ! Baseline gradient-diffusion closure: Pr_tv=Pr_t.
+                        if (turbulence == 1) mp_lam_av = mp_lam_av + &
+                           0.5*(viscl(3)*mp_cvvl+viscl(4)*mp_cvvr)/prtu
 
                      ! mixture-averaged species diffusion coefficients
                         rg_dif_av(:) = 0.50 * (rg_difl(:) + rg_difr(:))
@@ -2582,6 +2610,8 @@ contains
 
                                  i_raw(1:dimensiona, rg_i) = &
                                     & -rho12 * rg_dif_av(rg_i) * (rg_molm(rg_i) / mbar) * gradx(1:dimensiona)
+                              if (turbulence == 1) i_raw(1:dimensiona,rg_i) = i_raw(1:dimensiona,rg_i) - &
+                                 0.5*(viscl(3)+viscl(4))/schmidt_turb*grady(1:dimensiona)
                                  sumi(1:dimensiona) = sumi(1:dimensiona) + i_raw(1:dimensiona, rg_i)
                               end do
 
@@ -2725,19 +2755,23 @@ contains
                   end if
 
                   if ((turbulence .eq. 1) .or. (passivescalar .gt. 0)) then
-                     if (turbulence .eq. 1) then
-                        muturb = (oo2 * (viscl(1) + viscl(2))) + (oo2 * (viscl(3) + viscl(4)))
-                     else
-                        muturb = oo2 * (viscl(1) + viscl(2))
-                     end if
-                     do iv = 1, nvt
-                        hllcflux(nof_variables + iv) = muturb * oo2 * ((lcvgrad_t(iv, 1) + rcvgrad_t(iv, 1)) * nx + &
-                           & (lcvgrad_t(iv, 2) + rcvgrad_t(iv, 2)) * ny + (lcvgrad_t(iv, 3) + rcvgrad_t(iv, 3)) * nz)
+                     muturb = 0.5*(viscl(1)+viscl(2))
+                     if (turbulence == 1) muturb = muturb + 0.5*(viscl(3)+viscl(4))
+                     do iv=1,turbulenceequations+passivescalar
+                        hllcflux(nof_variables+iv) = muturb * &
+                           sum(0.5*(lcvgrad_t(iv,1:3)+rcvgrad_t(iv,1:3))*[nx,ny,nz])
                      end do
-                     if (turbulencemodel .eq. 1) then
-                        do iv = 1, nvt
-                           hllcflux(nof_variables + iv) = hllcflux(nof_variables + iv) / sigma
-                        end do
+                     if (turbulence == 1 .and. turbulencemodel == 1) then
+                        ! SA (with or without RC): rho_i div[(nu+nu_tilde) grad(nu_tilde)]/sigma.
+                        ! Keeping density outside the divergence includes the conservative
+                        ! density-gradient correction without extra gradient storage.
+                        ! Average signed wall ghosts BEFORE positivity protection (nu_tilde_wall=0).
+                        muturb = (0.5*(viscl(1)+viscl(2))+max(0.0,0.5*(cturbl(1)+cturbr(1)))) / sigma
+                        hllcflux(nof_variables+1) = u_c_val(i,1,1)/rho12 * muturb * &
+                           sum(0.5*(lcvgrad_t(1,1:3)+rcvgrad_t(1,1:3))*[nx,ny,nz])
+                     elseif (turbulence == 1 .and. turbulencemodel == 2) then
+                        call sst_diffusion_flux(3,eddyfl,eddyfr,lcvgrad_t,rcvgrad_t,[nx,ny,nz], &
+                           hllcflux(nof_variables+1:nof_variables+2))
                      end if
 
                      if ((b_code .eq. 3)) then
@@ -2805,6 +2839,7 @@ contains
 
 #ifdef xpu
 !$omp target teams distribute parallel do &
+!$omp& firstprivate(prtu, schmidt_turb) &
 !$omp& firstprivate(br2_yn, dg, dimensiona, lamx, lmach, multispecies, n, nof_interior, nof_species, nof_variables) &
 !$omp& firstprivate(oo2, passivescalar, qp_line_n, realgas, rg_relax, sigma, turbulence, turbulenceequations) &
 !$omp& firstprivate(turbulencemodel, zero) &
@@ -2823,7 +2858,8 @@ contains
 !$omp& map(alloc: integ_basis_dg_value, integ_basis_value, integ_basis_valuec, mp_janaf, mp_m, mp_pinf, mp_thigh_in) &
 !$omp& map(alloc: mp_tlow_in, mp_tmid_in, rec_mrf, rec_qpoints, rec_rotvel, rec_uleft, rec_uleft_dg, rec_uleftturb) &
 !$omp& map(alloc: rec_uleftturbv, rec_uleftv, rec_volume, rg_hzero, rg_thetag, rgs_ab, rgs_bb, rgs_cb, rgs_eps_over_k) &
-!$omp& map(alloc: rgs_mg, rgs_sigmaa, rhs_valdg, u_ct_val)
+!$omp& map(alloc: rgs_mg, rgs_sigmaa, rhs_valdg, u_ct_val) &
+!$omp& map(alloc: sst_halo_wall, ibound_icode, ielem_ibounds, ielem_ineighb, ielem_indexi, rec_local, rec_ihexn, rec_ihexl, halo_offset, u_c_val)
 #else
 !$omp do &
 !$omp& private(angle1, angle2, b_code, damp) &
@@ -2838,6 +2874,10 @@ contains
 #endif
       do ii = 1, nof_interior
          block
+            real :: axis_hoop,axis_ttt
+            real :: mp_cvvl, mp_cvvr
+            integer :: iv
+            real :: muturb
             real, dimension(1:gpu_max_nvar_total) :: godflux2, rhllcflux, hllcflux
             real, dimension(1:gpu_max_nvar_total) :: cleft, cright, cleft_rot, cright_rot
             real, dimension(1:gpu_max_nvar) :: leftv, rightv, srf_speedrot
@@ -2909,7 +2949,7 @@ contains
                   viscl = 0.0e0; laml = 0.0e0
                   if (realgas == 1) then
                         call multispecies_mixtures_rg(leftv, mp_mu_mix, mp_ktr_mix, mp_kve, &
-                           & rg_difl, rg_enthl, rg_enthvbl, gammal)
+                           & rg_difl, rg_enthl, rg_enthvbl, gammal, mp_cvvl)
 
                         laml(1) = mp_ktr_mix
 
@@ -2918,7 +2958,7 @@ contains
 
                         rightv(1:nof_variables) = cright(1:nof_variables)
                         call multispecies_mixtures_rg(rightv, mp_mu_mix, mp_ktr_mix, mp_kve, &
-                           & rg_difr, rg_enthr, rg_enthvbr, gammar)
+                           & rg_difr, rg_enthr, rg_enthvbr, gammar, mp_cvvr)
 
                      ! mixture thermal conductivities (average)
 
@@ -2932,6 +2972,10 @@ contains
                   if (turbulence .eq. 1) then
                      if (turbulencemodel .eq. 1) then
                         turbmv(1) = cturbl(1); turbmv(2) = cturbr(1); eddyfl(2) = turbmv(1); eddyfr(2) = turbmv(2)
+                        if(axisymmetric_enabled==1) then
+                           eddyfl(12)=axis_ratio(leftv(3)/leftv(1),axis_face_radius(i,l,ngp),lcvgrad(2,2))
+                           eddyfr(12)=axis_ratio(rightv(3)/rightv(1),axis_face_radius(i,l,ngp),rcvgrad(2,2))
+                        end if
                         call eddyvisco2d(n, viscl, laml, turbmv, etvm, eddyfl, eddyfr, leftv, rightv)
                      end if
                      if (turbulencemodel .eq. 2) then
@@ -2940,9 +2984,13 @@ contains
                         eddyfl(8:9) = lcvgrad_t(1, 1:2)
                         eddyfl(10:11) = lcvgrad_t(2, 1:2)
 
-                        eddyfr(1) = ielem_walldist(i); eddyfr(2) = cturbr(1); eddyfr(3) = cturbr(2)
+                        eddyfr(1) = sst_neighbour_wall(n,i,l); eddyfr(2) = cturbr(1); eddyfr(3) = cturbr(2)
                         eddyfr(4:5) = rcvgrad(1, 1:2); eddyfr(6:7) = rcvgrad(2, 1:2)
                         eddyfr(8:9) = rcvgrad_t(1, 1:2); eddyfr(10:11) = rcvgrad_t(2, 1:2)
+                        if(axisymmetric_enabled==1) then
+                           eddyfl(12)=axis_ratio(leftv(3)/leftv(1),axis_face_radius(i,l,ngp),lcvgrad(2,2))
+                           eddyfr(12)=axis_ratio(rightv(3)/rightv(1),axis_face_radius(i,l,ngp),rcvgrad(2,2))
+                        end if
                         call eddyvisco2d(n, viscl, laml, turbmv, etvm, eddyfl, eddyfr, leftv, rightv)
                      end if
                   end if
@@ -2993,6 +3041,9 @@ contains
                         mp_ktr_mix_av = 0.50 * (laml(1) + laml(2))
                         if (turbulence == 1) mp_ktr_mix_av = 0.5e0 * (laml(3) + laml(4))
                         mp_lam_av = 0.50 * (mp_laml + mp_lamr)
+                        ! Baseline gradient-diffusion closure: Pr_tv=Pr_t.
+                        if (turbulence == 1) mp_lam_av = mp_lam_av + &
+                           0.5*(viscl(3)*mp_cvvl+viscl(4)*mp_cvvr)/prtu
 
                      ! mixture-averaged species diffusion coefficients
                         rg_dif_av(:) = 0.50 * (rg_difl(:) + rg_difr(:))
@@ -3107,6 +3158,8 @@ contains
 
                               i_raw(1:dimensiona, rg_i) = &
                                  & -rho12 * rg_dif_av(rg_i) * (rg_molm(rg_i) / mbar) * gradx(1:dimensiona)
+                              if (turbulence == 1) i_raw(1:dimensiona,rg_i) = i_raw(1:dimensiona,rg_i) - &
+                                 0.5*(viscl(3)+viscl(4))/schmidt_turb*grady(1:dimensiona)
 
                               sumi(1:dimensiona) = sumi(1:dimensiona) + i_raw(1:dimensiona, rg_i)
 
@@ -3205,6 +3258,11 @@ contains
 
                ! tau_xy
                   taul(1, 2) = (uy + vx); taul(2, 1) = taul(1, 2)
+                  if(axisymmetric_enabled==1) then
+                     axis_hoop=axis_ratio(v12,axis_face_radius(i,l,ngp),vy)
+                     call axis_stress(1.0,ux,uy,vx,vy,axis_hoop,taul(1,1),taul(1,2),taul(2,2),axis_ttt)
+                     taul(2,1)=taul(1,2)
+                  end if
 
                ! average and multiplay by viscosity
                   if (turbulence .eq. 1) then
@@ -3239,28 +3297,23 @@ contains
                   end if
 
                   if ((turbulence .eq. 1) .or. (passivescalar .gt. 0)) then
-                     if (turbulence .eq. 1) then
-                        hllcflux(nof_variables + 1:nof_variables + turbulenceequations + passivescalar) = &
-                           & ((oo2 * (viscl(1) + viscl(2))) + (oo2 * (viscl(3) + viscl(4)))) * &
-                           & (((lcvgrad_t(1:turbulenceequations + passivescalar, 1) + rcvgrad_t(1:turbulenceequations + &
-               & passivescalar, &
-                           & 1)) * oo2 * nx) + &
-                           & ((lcvgrad_t(1:turbulenceequations + passivescalar, 2) + rcvgrad_t(1:turbulenceequations + &
-                              & passivescalar, &
-                           & 2)) * oo2 * ny))
-                     else
-                        hllcflux(nof_variables + 1:nof_variables + turbulenceequations + passivescalar) = &
-                           & ((oo2 * (viscl(1) + viscl(2)))) * &
-                           & (((lcvgrad_t(1:turbulenceequations + passivescalar, 1) + rcvgrad_t(1:turbulenceequations + &
-               & passivescalar, &
-                           & 1)) * oo2 * nx) + &
-                           & ((lcvgrad_t(1:turbulenceequations + passivescalar, 2) + rcvgrad_t(1:turbulenceequations + &
-                              & passivescalar, &
-                           & 2)) * oo2 * ny))
-
-                     end if
-                     if (turbulencemodel .eq. 1) then
-                        hllcflux(5) = hllcflux(5) / sigma
+                     muturb = 0.5*(viscl(1)+viscl(2))
+                     if (turbulence == 1) muturb = muturb + 0.5*(viscl(3)+viscl(4))
+                     do iv=1,turbulenceequations+passivescalar
+                        hllcflux(nof_variables+iv) = muturb * &
+                           sum(0.5*(lcvgrad_t(iv,1:2)+rcvgrad_t(iv,1:2))*[nx,ny])
+                     end do
+                     if (turbulence == 1 .and. turbulencemodel == 1) then
+                        ! SA (with or without RC): rho_i div[(nu+nu_tilde) grad(nu_tilde)]/sigma.
+                        ! Keeping density outside the divergence includes the conservative
+                        ! density-gradient correction without extra gradient storage.
+                        ! Average signed wall ghosts BEFORE positivity protection (nu_tilde_wall=0).
+                        muturb = (0.5*(viscl(1)+viscl(2))+max(0.0,0.5*(cturbl(1)+cturbr(1)))) / sigma
+                        hllcflux(nof_variables+1) = u_c_val(i,1,1)/rho12 * muturb * &
+                           sum(0.5*(lcvgrad_t(1,1:2)+rcvgrad_t(1,1:2))*[nx,ny])
+                     elseif (turbulence == 1 .and. turbulencemodel == 2) then
+                        call sst_diffusion_flux(2,eddyfl,eddyfr,lcvgrad_t,rcvgrad_t,[nx,ny], &
+                           hllcflux(nof_variables+1:nof_variables+2))
                      end if
                      godflux2(nof_variables + 1:nof_variables + turbulenceequations + passivescalar) = godflux2(nof_variables + &
                         & 1:nof_variables + turbulenceequations + passivescalar) + &
@@ -3305,6 +3358,7 @@ contains
 
 #ifdef xpu
 !$omp target teams distribute parallel do &
+!$omp& firstprivate(prtu, schmidt_turb) &
 !$omp& firstprivate(br2_yn, catalytic_wall, dg, dimensiona, lamx, lmach, multispecies, n, nof_bounded, nof_species) &
 !$omp& firstprivate(nof_variables, oo2, passivescalar, qp_line_n, realgas, rg_relax, sigma, turbulence) &
 !$omp& firstprivate(turbulenceequations, turbulencemodel, zero) &
@@ -3326,7 +3380,8 @@ contains
 !$omp& map(alloc: integ_basis_valuec, mp_a_in, mp_janaf, mp_m, mp_pinf, mp_r_in, mp_thigh_in, mp_tlow_in, mp_tmid_in) &
 !$omp& map(alloc: rec_qpoints, rec_uleft, rec_uleft_dg, rec_uleftturb, rec_uleftturbv, rec_uleftv, rec_volume) &
 !$omp& map(alloc: rg_hzero, rg_thetag, rg_vf, rgs_ab, rgs_bb, rgs_cb, rgs_eps_over_k, rgs_mg, rgs_sigmaa, rhs_valdg) &
-!$omp& map(alloc: u_ct_val)
+!$omp& map(alloc: u_ct_val) &
+!$omp& map(alloc: sst_halo_wall, ielem_indexi, rec_local, rec_ihexn, rec_ihexl, halo_offset, u_c_val)
 #else
 !$omp do &
 !$omp& private(angle1, angle2, b_code, damp) &
@@ -3341,6 +3396,10 @@ contains
 #endif
       do ii = 1, nof_bounded
          block
+            real :: axis_hoop,axis_ttt
+            real :: mp_cvvl, mp_cvvr
+            integer :: iv
+            real :: muturb
             real, dimension(1:gpu_max_nvar_total) :: godflux2, rhllcflux, hllcflux
             real, dimension(1:gpu_max_nvar_total) :: cleft, cright, cleft_rot, cright_rot
             real, dimension(1:gpu_max_nvar) :: leftv, rightv, srf_speedrot
@@ -3412,7 +3471,7 @@ contains
                   viscl = 0.0e0; laml = 0.0e0
                   if (realgas == 1) then
                         call multispecies_mixtures_rg(leftv, mp_mu_mix, mp_ktr_mix, mp_kve, &
-                           & rg_difl, rg_enthl, rg_enthvbl, gammal)
+                           & rg_difl, rg_enthl, rg_enthvbl, gammal, mp_cvvl)
 
                         laml(1) = mp_ktr_mix
 
@@ -3421,7 +3480,7 @@ contains
 
                         rightv(1:nof_variables) = cright(1:nof_variables)
                         call multispecies_mixtures_rg(rightv, mp_mu_mix, mp_ktr_mix, mp_kve, &
-                           & rg_difr, rg_enthr, rg_enthvbr, gammar)
+                           & rg_difr, rg_enthr, rg_enthvbr, gammar, mp_cvvr)
 
                      ! mixture thermal conductivities (average)
 
@@ -3435,6 +3494,10 @@ contains
                   if (turbulence .eq. 1) then
                      if (turbulencemodel .eq. 1) then
                         turbmv(1) = cturbl(1); turbmv(2) = cturbr(1); eddyfl(2) = turbmv(1); eddyfr(2) = turbmv(2)
+                        if(axisymmetric_enabled==1) then
+                           eddyfl(12)=axis_ratio(leftv(3)/leftv(1),axis_face_radius(i,l,ngp),lcvgrad(2,2))
+                           eddyfr(12)=axis_ratio(rightv(3)/rightv(1),axis_face_radius(i,l,ngp),rcvgrad(2,2))
+                        end if
                         call eddyvisco2d(n, viscl, laml, turbmv, etvm, eddyfl, eddyfr, leftv, rightv)
                         if (b_code .eq. 4) then
                            viscl(3:4) = zero
@@ -3448,10 +3511,20 @@ contains
                         eddyfl(8:9) = lcvgrad_t(1, 1:2)
                         eddyfl(10:11) = lcvgrad_t(2, 1:2)
 
-                        eddyfr(1) = ielem_walldist(i); eddyfr(2) = cturbr(1); eddyfr(3) = cturbr(2)
+                        eddyfr(1) = sst_neighbour_wall(n,i,l); eddyfr(2) = cturbr(1); eddyfr(3) = cturbr(2)
                         eddyfr(4:5) = rcvgrad(1, 1:2); eddyfr(6:7) = rcvgrad(2, 1:2)
                         eddyfr(8:9) = rcvgrad_t(1, 1:2); eddyfr(10:11) = rcvgrad_t(2, 1:2)
+                        if(axisymmetric_enabled==1) then
+                           eddyfl(12)=axis_ratio(leftv(3)/leftv(1),axis_face_radius(i,l,ngp),lcvgrad(2,2))
+                           eddyfr(12)=axis_ratio(rightv(3)/rightv(1),axis_face_radius(i,l,ngp),rcvgrad(2,2))
+                        end if
                         call eddyvisco2d(n, viscl, laml, turbmv, etvm, eddyfl, eddyfr, leftv, rightv)
+                        if (b_code == 4) then
+                           call sst_wall_transport(n, u_c_val(i,1,1:nof_variables), viscl(1), laml(1))
+                           viscl(2) = viscl(1); laml(2) = laml(1)
+                           viscl(3:4) = 0.0; laml(3:4) = laml(1:2)
+                           eddyfl(19:20) = viscl(1); eddyfr(19:20) = viscl(2)
+                        end if
                      end if
                   end if
 
@@ -3505,6 +3578,9 @@ contains
                         mp_ktr_mix_av = 0.50 * (laml(1) + laml(2))
                         if (turbulence == 1) mp_ktr_mix_av = 0.5e0 * (laml(3) + laml(4))
                         mp_lam_av = 0.50 * (mp_laml + mp_lamr)
+                        ! Baseline gradient-diffusion closure: Pr_tv=Pr_t.
+                        if (turbulence == 1) mp_lam_av = mp_lam_av + &
+                           0.5*(viscl(3)*mp_cvvl+viscl(4)*mp_cvvr)/prtu
 
                      ! mixture-averaged species diffusion coefficients
                         rg_dif_av(:) = 0.50 * (rg_difl(:) + rg_difr(:))
@@ -3624,6 +3700,8 @@ contains
 
                                  i_raw(1:dimensiona, rg_i) = &
                                     & -rho12 * rg_dif_av(rg_i) * (rg_molm(rg_i) / mbar) * gradx(1:dimensiona)
+                              if (turbulence == 1) i_raw(1:dimensiona,rg_i) = i_raw(1:dimensiona,rg_i) - &
+                                 0.5*(viscl(3)+viscl(4))/schmidt_turb*grady(1:dimensiona)
 
                                  sumi(1:dimensiona) = sumi(1:dimensiona) + i_raw(1:dimensiona, rg_i)
 
@@ -3726,6 +3804,11 @@ contains
 
                ! tau_xy
                   taul(1, 2) = (uy + vx); taul(2, 1) = taul(1, 2)
+                  if(axisymmetric_enabled==1) then
+                     axis_hoop=axis_ratio(v12,axis_face_radius(i,l,ngp),vy)
+                     call axis_stress(1.0,ux,uy,vx,vy,axis_hoop,taul(1,1),taul(1,2),taul(2,2),axis_ttt)
+                     taul(2,1)=taul(1,2)
+                  end if
 
                ! average and multiplay by viscosity
                   if (turbulence .eq. 1) then
@@ -3766,28 +3849,23 @@ contains
                   end if
 
                   if ((turbulence .eq. 1) .or. (passivescalar .gt. 0)) then
-                     if (turbulence .eq. 1) then
-                        hllcflux(nof_variables + 1:nof_variables + turbulenceequations + passivescalar) = &
-                           & ((oo2 * (viscl(1) + viscl(2))) + (oo2 * (viscl(3) + viscl(4)))) * &
-                           & (((lcvgrad_t(1:turbulenceequations + passivescalar, 1) + rcvgrad_t(1:turbulenceequations + &
-               & passivescalar, &
-                           & 1)) * oo2 * nx) + &
-                           & ((lcvgrad_t(1:turbulenceequations + passivescalar, 2) + rcvgrad_t(1:turbulenceequations + &
-                              & passivescalar, &
-                           & 2)) * oo2 * ny))
-                     else
-                        hllcflux(nof_variables + 1:nof_variables + turbulenceequations + passivescalar) = &
-                           & ((oo2 * (viscl(1) + viscl(2)))) * &
-                           & (((lcvgrad_t(1:turbulenceequations + passivescalar, 1) + rcvgrad_t(1:turbulenceequations + &
-               & passivescalar, &
-                           & 1)) * oo2 * nx) + &
-                           & ((lcvgrad_t(1:turbulenceequations + passivescalar, 2) + rcvgrad_t(1:turbulenceequations + &
-                              & passivescalar, &
-                           & 2)) * oo2 * ny))
-
-                     end if
-                     if (turbulencemodel .eq. 1) then
-                        hllcflux(5) = hllcflux(5) / sigma
+                     muturb = 0.5*(viscl(1)+viscl(2))
+                     if (turbulence == 1) muturb = muturb + 0.5*(viscl(3)+viscl(4))
+                     do iv=1,turbulenceequations+passivescalar
+                        hllcflux(nof_variables+iv) = muturb * &
+                           sum(0.5*(lcvgrad_t(iv,1:2)+rcvgrad_t(iv,1:2))*[nx,ny])
+                     end do
+                     if (turbulence == 1 .and. turbulencemodel == 1) then
+                        ! SA (with or without RC): rho_i div[(nu+nu_tilde) grad(nu_tilde)]/sigma.
+                        ! Keeping density outside the divergence includes the conservative
+                        ! density-gradient correction without extra gradient storage.
+                        ! Average signed wall ghosts BEFORE positivity protection (nu_tilde_wall=0).
+                        muturb = (0.5*(viscl(1)+viscl(2))+max(0.0,0.5*(cturbl(1)+cturbr(1)))) / sigma
+                        hllcflux(nof_variables+1) = u_c_val(i,1,1)/rho12 * muturb * &
+                           sum(0.5*(lcvgrad_t(1,1:2)+rcvgrad_t(1,1:2))*[nx,ny])
+                     elseif (turbulence == 1 .and. turbulencemodel == 2) then
+                        call sst_diffusion_flux(2,eddyfl,eddyfr,lcvgrad_t,rcvgrad_t,[nx,ny], &
+                           hllcflux(nof_variables+1:nof_variables+2))
                      end if
 
                      if ((b_code .eq. 3)) then
@@ -3912,6 +3990,7 @@ contains
       if (ielem_recalc(i) .eq. 1) then
 
          do l = 1, ielem_ifca(i) !for all their faces
+            facex = l ! Required by Roe/ADDA for this face, including interior faces.
 !                                      if (ielem_reorient(l,i).eq.0)then
             godflux2 = zero
             mp_source2 = zero
@@ -4003,11 +4082,12 @@ contains
                         & 1:nof_variables + turbulenceequations + passivescalar)
                   end if
 
-               case (3) !roe
+               case (3, 12) ! Roe; option 12 uses half dissipation
 
                   call rotateb(n, cleft, cleft_rot, angle1, angle2)
                   call rotateb(n, cright, cright_rot, angle1, angle2)
-                  call roe_riemann_solver(n, iconsidered, facex, cleft, cright, hllcflux, mp_source1, srf_speedrot, nx, ny, nz)
+                  call roe_riemann_solver(n, iconsidered, facex, cleft, cright, hllcflux, mp_source1, srf_speedrot, nx, ny, nz, &
+                     & dissipation_factor=merge(0.5e0, 1.0e0, iriemann == 12))
 
                   rhllcflux = hllcflux
 
@@ -4116,6 +4196,7 @@ contains
       if (ielem_recalc(i) .eq. 1) then
 
          do l = 1, ielem_ifca(i)
+            facex = l ! Required by Roe/ADDA for this face, including interior faces.
             igoflux = 0
             if (ielem_ineighb(i, l) .eq. n) then !my cpu only
                if (ielem_ibounds(i, l) .gt. 0) then !check for boundaries
@@ -4393,11 +4474,12 @@ contains
                         & 1:nof_variables + turbulenceequations + passivescalar)
                   end if
 
-               case (3) !roe
+               case (3, 12) ! Roe; option 12 uses half dissipation
 
                   call rotateb(n, cleft, cleft_rot, angle1, angle2)
                   call rotateb(n, cright, cright_rot, angle1, angle2)
-                  call roe_riemann_solver(n, iconsidered, facex, cleft, cright, hllcflux, mp_source1, srf_speedrot, nx, ny, nz)
+                  call roe_riemann_solver(n, iconsidered, facex, cleft, cright, hllcflux, mp_source1, srf_speedrot, nx, ny, nz, &
+                     & dissipation_factor=merge(0.5e0, 1.0e0, iriemann == 12))
 
                   rhllcflux = hllcflux
 
@@ -4678,7 +4760,7 @@ contains
 
                case (9) !hll
 
-                  call hll_riemann_solver(n, cleft_rot, cright_rot, hllcflux, mp_source1, srf_speedrot)
+                  call hll_riemann_solver(n, cleft_rot, cright_rot, hllcflux, mp_source1, srf_speedrot, cleft, cright)
                   call rotateb2d(n, rhllcflux, hllcflux, angle1, angle2)
                   if ((turbulence .eq. 1) .or. (passivescalar .gt. 0)) then
 
@@ -5039,7 +5121,7 @@ contains
 
                case (9) !hll
 
-                  call hll_riemann_solver(n, cleft_rot, cright_rot, hllcflux, mp_source1, srf_speedrot)
+                  call hll_riemann_solver(n, cleft_rot, cright_rot, hllcflux, mp_source1, srf_speedrot, cleft, cright)
                   call rotateb2d(n, rhllcflux, hllcflux, angle1, angle2)
                   if ((turbulence .eq. 1) .or. (passivescalar .gt. 0)) then
 

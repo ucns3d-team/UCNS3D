@@ -43,9 +43,12 @@ contains
       integer, intent(in) :: i
       real, intent(inout) :: block(:, :)
       integer :: j
-      ! Chemistry, rotation and the duct outlet couple equations; diagonal blocks need
-      ! no private matrix copy, including additional species equations.
-      if (realgas == 1 .or. (dimensiona == 3 .and. rframe /= 0) .or. duct_outlet_face_flux_enabled()) then
+      ! Geometry, chemistry, rotation and the 4440 inlet/outlet couple equations.
+      ! An axisymmetric perfect-gas block is no longer diagonal: leaving its
+      ! source off-diagonals uninverted corrupts the momentum/energy update.
+      if ((dimensiona == 2 .and. axisymmetric_enabled == 1) .or. &
+         & realgas == 1 .or. (dimensiona == 3 .and. rframe /= 0) .or. duct_outlet_face_flux_enabled() .or. &
+         & (initcond == 4440 .and. realgas == 0 .and. multispecies == 0)) then
          call invert_realgas_block(i, block)
       else
          do j = 1, nof_variables
@@ -494,8 +497,8 @@ contains
       real :: rho, energy, piv, factor
       integer :: i, j, k, p
       logical :: diagonal
-! Rusanov contributes a scalar diagonal; active chemistry adds a coupled block.
-! Retain scalar Rusanov inversion when chemistry adds no off-diagonal terms.
+! Rusanov contributes a scalar diagonal; geometric/chemical sources can couple it.
+! Retain scalar inversion whenever the assembled block is actually diagonal.
       diagonal = .true.
       do j = 1, nof_variables
          do i = 1, nof_variables

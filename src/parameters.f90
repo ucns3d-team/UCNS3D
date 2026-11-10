@@ -3,10 +3,57 @@ module parameters
    use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
    use mpiinfo
    use declaration
+   use axisymmetric_support
+   use profile, only: apply_initial_profile_temperatures
+   use flow_operations, only: realgas_inlet_density
 
    implicit none
 
 contains
+
+   subroutine configure_realgas_freestream(rank)
+      implicit none
+      integer, intent(in) :: rank
+      real :: input_density, sumy
+      input_density = rres
+      if (.not. ieee_is_finite(rg_ttr) .or. .not. ieee_is_finite(rg_tve)) then
+         call abort_ucns3d_configuration(rank, 'REALGAS inlet temperatures must be finite')
+      end if
+      if (rg_ttr <= 0.0e0 .or. rg_tve <= 0.0e0) then
+         call abort_ucns3d_configuration(rank, 'REALGAS inlet Ttr and Tv must be positive')
+      end if
+      if (any(.not. ieee_is_finite(rg_vf)) .or. any(.not. ieee_is_finite(rg_molm))) then
+         call abort_ucns3d_configuration(rank, 'REALGAS inlet composition and molar masses must be finite')
+      end if
+      if (any(rg_vf < 0.0e0) .or. any(rg_molm <= 0.0e0)) then
+         call abort_ucns3d_configuration(rank, 'REALGAS requires nonnegative mass fractions and positive molar masses')
+      end if
+      sumy = sum(rg_vf)
+      if (abs(sumy - 1.0e0) > 1.0e-8) then
+         call abort_ucns3d_configuration(rank, 'REALGAS inlet mass fractions must sum to one')
+      end if
+      ! Preserve the documented negative-pressure shorthand before deriving rho.
+      if (pres < 0.0e0) pres = input_density / gamma
+      if (.not. ieee_is_finite(pres)) then
+         call abort_ucns3d_configuration(rank, 'REALGAS inlet pressure must be finite')
+      end if
+      if (pres <= 0.0e0) then
+         call abort_ucns3d_configuration(rank, 'REALGAS inlet pressure must be positive')
+      end if
+      rres = realgas_inlet_density(pres, rg_ttr)
+      if (.not. ieee_is_finite(rres) .or. rres <= 0.0e0) then
+         call abort_ucns3d_configuration(rank, 'REALGAS pressure/temperature/composition give invalid inlet density')
+      end if
+      if (rank == 0) then
+         open (63, file='history.txt', form='formatted', action='write', position='append')
+         write (63, *) 'REALGAS inlet uses p,Ttr,Y; density is derived; Tv is independent.'
+         write (63, *) 'REALGAS DAT density / effective density [kg/m3]: ', input_density, rres
+         write (63, *) 'REALGAS effective p [Pa], Ttr [K], Tv [K]: ', pres, rg_ttr, rg_tve
+         write (63, *) 'REALGAS inlet species mass fractions: ', rg_vf
+         close (63)
+         write (*, *) 'REALGAS inlet rho,p,Ttr,Tv: ', rres, pres, rg_ttr, rg_tve
+      end if
+   end subroutine configure_realgas_freestream
 
    subroutine read_ucns3d
 !> @brief
@@ -34,6 +81,7 @@ contains
          average_restart = 0
       end if
       source_active = 0
+      call read_axisymmetric_input
       transition_model = 0
       transition_axis = 1
       transition_direction = 1
@@ -372,6 +420,15 @@ contains
       read (15, *)
       read (15, *)
       read (15, *) governingequations, initcond
+      if ((initcond .eq. 2323) .and. (realgas .ne. 1)) then
+         call abort_ucns3d_configuration(n, 'initcond=2323 requires the five-species REALGAS.DAT model')
+      end if
+      call apply_initial_profile_temperatures
+      if ((initcond .eq. 2323) .and. (n .eq. 0)) then
+         open (63, file='history.txt', form='formatted', action='write', position='append')
+         write (63, *) 'INITCOND 2323 Run 42 inlet Ttr,Tv (K): ', rg_ttr, rg_tve
+         close (63)
+      end if
       ! The optional duct viscosity input cannot affect another initial-condition case.
       if (initcond .ne. 4440) duct_viscosity_ref = 0.0e0
       read (15, *)
@@ -390,16 +447,17 @@ contains
          read (mach_line, *) rres, ufreestream, vvel, wvel, pres
          Mach_in = -1.00
       end if
-      press_outlet = pres
-      if (total_pressure_inlet .le. 0.00) total_pressure_inlet = pres
-      if (total_temperature_inlet .le. 0.00) total_temperature_inlet = 350.00
-      if (density_inlet .le. 0.00) density_inlet = rres
       read (15, *)
       read (15, *)
       read (15, *) aoa, vectorx, vectory, vectorz
       read (15, *)
       read (15, *)
       read (15, *) gamma, prandtl, reynolds, charlength
+      if (realgas == 1) call configure_realgas_freestream(n)
+      press_outlet = pres
+      if (total_pressure_inlet .le. 0.00) total_pressure_inlet = pres
+      if (total_temperature_inlet .le. 0.00) total_temperature_inlet = 350.00
+      if (density_inlet .le. 0.00) density_inlet = rres
       read (15, *)
       read (15, *)
       read (15, *)
@@ -412,6 +470,7 @@ contains
       read (15, *)
       read (15, *)
       read (15, *) temporder, cfl, timestep, upperlimit, reslimit
+      rungekutta = temporder
       read (15, *)
       read (15, *)
       read (15, *) iboundary, boundtype, scaler
@@ -498,11 +557,14 @@ contains
       qsas_model = 0 ! 0                                        ||hybrid models: 1-sas-sst  //  2-des-sst
       ! 0                                        ||zero turbulence option (if 1, initialization for k/w is done with zero turbulence)
       zero_turb_init = 0
+      ! SST-2003m; sigma_* are stored as reciprocals of the diffusion multipliers.
+      alpha_inf1 = 5.0 / 9.0
+      alpha_inf2 = 0.44
       ! --------------k-omega constants--------------------------
-      sigma_k1 = 1.176470588 ! 1.176470588                                ||sigma_k1
+      sigma_k1 = 1.0 / 0.85 ! 1.176470588                                ||sigma_k1
       sigma_k2 = 1.0 ! 1.0                                        ||sigma_k2
       sigma_om1 = 2.0 ! 2.0                                        ||sigma_om1
-      sigma_om2 = 1.168 ! 1.168                                        ||sigma_om2
+      sigma_om2 = 1.0 / 0.856 ! 1.168                                        ||sigma_om2
       aa_1 = 0.31 ! 0.31                                        ||aa_1
       beta_i1 = 0.075 ! 0.075                                        ||beta_i1
       beta_i2 = 0.0828 ! 0.0828                                        ||beta_i2
@@ -521,7 +583,7 @@ contains
       eta2_sas = 3.51 ! 3.51                                        ||eta2_sas (sas)
       sigma_phi = 0.666666667 ! 0.666666667                                ||sigma_phi (sas)
       c_sas = 2.0 ! 2.0                                        ||c_sas   (sas)
-      l_turb_inlet = 0.0026 ! 0.0026                                        ||l_turb_inlet (default turbulence lengthscale)
+      l_turb_inlet = 0.0026 ! positive: intensity/length scale; <=0: use init_mu_ratio; 0.0026                                        ||l_turb_inlet (default turbulence lengthscale)
       i_turb_inlet = 0.1 ! 0.1                                        ||i_turb_inlet (default turbulene intensity)
       ! 0.01                                        ||init_mu_ratio        (default initial ratio for turbulent viscosity)
       init_mu_ratio = 0.01
@@ -533,6 +595,8 @@ contains
 
       cavitation = 0
       extended_bounds = 0
+
+      grid_curvature_limit = -1.0 ! retain existing AR-only behaviour outside profiles 0/888
 
       select case (code_profile)
 
@@ -559,10 +623,11 @@ contains
          relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
          cflmax = 2 !cflmax:to be used with ramping
          cflramp = 0 !cfl ramping: |0: deactivated |1:activated
-         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         ! Mesh partitioning: option 6, 64-bit ParMETIS only.
          emetis = 6
          itold = 10000 !tolerance=n_iterations
-         gridar1 = 10000000 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar1 = 10000.0 ! greengo=0: viscous GG when face-distance AR > this OR curvature Gamma > limit
+         grid_curvature_limit = 1.0 ! 3D nonperiodic layered hex/prism criterion; strict greater-than
          gridar2 = 10000000 ! limit volume cells
          fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
          !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
@@ -575,6 +640,8 @@ contains
          end if
 
          des_model = 0
+
+          if (rungekutta.eq.11)des_model=1
 
       case (232323)
 
@@ -593,28 +660,74 @@ contains
          end if
          icompact = 0 !compact stencil mode(0 not true,1 true)
          extf = 3 !stencils stability values from 1.2 to 3 (default 2)
-         weight_lsqr = 0 !weighted least squares(0 not true,1 true)
+         weight_lsqr = 1 !weighted least squares(0 not true,1 true)
          guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
          fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
          relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
          cflmax = 30 !cflmax:to be used with ramping
          cflramp = 0 !cfl ramping: |0: deactivated |1:activated
-         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         ! Mesh partitioning: option 6, 64-bit ParMETIS only.
          emetis = 6
          itold = 10000 !tolerance=n_iterations
-         gridar1 = 10000 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar1 = 10000.0 ! greengo=0: switch viscous LS to GG when max/min centre-to-face distance exceeds this
          gridar2 = 10000 ! limit volume cells
-         fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
+         grid_curvature_limit = 1.0 ! 3D nonperiodic layered hex/prism criterion; strict greater-than
+         fastest = 0 ! 0     ||fastest, no coordinate mapping (1: engaged,0:with transformation)
          !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
          lmach_style = 0
          lamx = 1.00; lamy = 1.00; lamz = 1.00 !linear advection coefficients (lamx, lamy,lamz)
-         rot_corr = 1
+         rot_corr = 2 !steady Spalart-Shur SA-noft2-RC (0=off, 1=legacy SA-R)
 
          if (iboundary .eq. 1) then
             lowmem = 1
          end if
 
          des_model = 0
+         if (rungekutta.eq.11)des_model=1
+
+
+
+          case (242424)
+
+         lowmemory = 0 !memory usage: |0: high(faster) |1:low (slower)||
+         binio = 1 !i/o (ascii=0, binary=1)
+         lowmem = 0 !global arrays setting (0=without better suited for non periodic bound,1=with (large memory footprint))
+         reduce_comp = 0 !quadrature free flux=0 not true,1 true
+         turbulencemodel = 2 !turbulence model selection: |1:spalart-allmaras |2:k-w sst
+!         icoupleturb=0        !coupling turbulence model: |1:coupled | 0: decoupled
+         ihybrid = 0 !hybrid turbulence : |1:enabled|0:disabled
+         hybridist = 0.00 !hybrid distance
+         swirl = 0 !swirling flow:0 deactivated, 1 activated
+         iadapt = 0 !adaptive numerical scheme (0 not true,1 true)
+         if ((initcond .eq. 405) .or. (initcond .eq. 405)) then
+            iadapt = 1
+         end if
+         icompact = 0 !compact stencil mode(0 not true,1 true)
+         extf = 3 !stencils stability values from 1.2 to 3 (default 2)
+         weight_lsqr = 1 !weighted least squares(0 not true,1 true)
+         guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
+         fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
+         relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
+         cflmax = 30 !cflmax:to be used with ramping
+         cflramp = 0 !cfl ramping: |0: deactivated |1:activated
+         ! Mesh partitioning: option 6, 64-bit ParMETIS only.
+         emetis = 6
+         itold = 10000 !tolerance=n_iterations
+         gridar1 = 10000.0 ! greengo=0: switch viscous LS to GG when max/min centre-to-face distance exceeds this
+         gridar2 = 10000 ! limit volume cells
+         grid_curvature_limit = 1.0 ! 3D nonperiodic layered hex/prism criterion; strict greater-than
+         fastest = 0 ! 0     ||fastest, no coordinate mapping (1: engaged,0:with transformation)
+         !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
+         lmach_style = 0
+         lamx = 1.00; lamy = 1.00; lamz = 1.00 !linear advection coefficients (lamx, lamy,lamz)
+         rot_corr = 0 !steady Spalart-Shur SA-noft2-RC (0=off, 1=legacy SA-R)
+
+         if (iboundary .eq. 1) then
+            lowmem = 1
+         end if
+
+         des_model = 0
+          if (rungekutta.eq.11)des_model=1
 
       case (199)
 
@@ -639,10 +752,10 @@ contains
          relax = 2 !relaxation parameter : |1:block jacobi |2: lu-sgs
          cflmax = 30 !cflmax:to be used with ramping
          cflramp = 0 !cfl ramping: |0: deactivated |1:activated
-         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         ! Mesh partitioning: option 6, 64-bit ParMETIS only.
          emetis = 6
          itold = 10000 !tolerance=n_iterations
-         gridar1 = 300000000 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar1 = 1000.0 ! greengo=0: switch viscous LS to GG when max/min centre-to-face distance exceeds this
          gridar2 = 300000000 ! limit volume cells
          fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
          !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
@@ -677,10 +790,10 @@ contains
          relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
          cflmax = 30 !cflmax:to be used with ramping
          cflramp = 0 !cfl ramping: |0: deactivated |1:activated
-         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         ! Mesh partitioning: option 6, 64-bit ParMETIS only.
          emetis = 6
          itold = 10000 !tolerance=n_iterations
-         gridar1 = 20.0 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar1 = 1000.0 ! greengo=0: switch viscous LS to GG when max/min centre-to-face distance exceeds this
          gridar2 = 50.0 ! limit volume cells
          fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
          !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
@@ -714,10 +827,10 @@ contains
          relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
          cflmax = 30 !cflmax:to be used with ramping
          cflramp = 0 !cfl ramping: |0: deactivated |1:activated
-         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         ! Mesh partitioning: option 6, 64-bit ParMETIS only.
          emetis = 6
          itold = 10000 !tolerance=n_iterations
-         gridar1 = 20.0 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar1 = 1000.0 ! greengo=0: switch viscous LS to GG when max/min centre-to-face distance exceeds this
          gridar2 = 50.0 ! limit volume cells
          fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
          !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
@@ -751,10 +864,10 @@ contains
          relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
          cflmax = 30 !cflmax:to be used with ramping
          cflramp = 0 !cfl ramping: |0: deactivated |1:activated
-         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         ! Mesh partitioning: option 6, 64-bit ParMETIS only.
          emetis = 6
          itold = 10000 !tolerance=n_iterations
-         gridar1 = 100.0 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar1 = 1000.0 ! greengo=0: switch viscous LS to GG when max/min centre-to-face distance exceeds this
          gridar2 = 200.0 ! limit volume cells
          fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
          !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
@@ -788,10 +901,10 @@ contains
          relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
          cflmax = 30 !cflmax:to be used with ramping
          cflramp = 0 !cfl ramping: |0: deactivated |1:activated
-         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         ! Mesh partitioning: option 6, 64-bit ParMETIS only.
          emetis = 6
          itold = 10000 !tolerance=n_iterations
-         gridar1 = 40.0 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar1 = 1000.0 ! greengo=0: switch viscous LS to GG when max/min centre-to-face distance exceeds this
          gridar2 = 40.0 ! limit volume cells
          fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
          !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
@@ -827,10 +940,10 @@ contains
          relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
          cflmax = 30 !cflmax:to be used with ramping
          cflramp = 0 !cfl ramping: |0: deactivated |1:activated
-         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         ! Mesh partitioning: option 6, 64-bit ParMETIS only.
          emetis = 6
          itold = 10000 !tolerance=n_iterations
-         gridar1 = 40000.0 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar1 = 1000.0 ! greengo=0: switch viscous LS to GG when max/min centre-to-face distance exceeds this
          gridar2 = 40000.0 ! limit volume cells
          fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
          !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
@@ -866,10 +979,10 @@ contains
          relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
          cflmax = 30 !cflmax:to be used with ramping
          cflramp = 0 !cfl ramping: |0: deactivated |1:activated
-         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         ! Mesh partitioning: option 6, 64-bit ParMETIS only.
          emetis = 6
          itold = 10000 !tolerance=n_iterations
-         gridar1 = 20.0 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar1 = 1000.0 ! greengo=0: switch viscous LS to GG when max/min centre-to-face distance exceeds this
          gridar2 = 40.0 ! limit volume cells
          fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
          !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
@@ -905,10 +1018,10 @@ contains
          relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
          cflmax = 30 !cflmax:to be used with ramping
          cflramp = 0 !cfl ramping: |0: deactivated |1:activated
-         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         ! Mesh partitioning: option 6, 64-bit ParMETIS only.
          emetis = 6
          itold = 10000 !tolerance=n_iterations
-         gridar1 = 10.0 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar1 = 1000.0 ! greengo=0: switch viscous LS to GG when max/min centre-to-face distance exceeds this
          gridar2 = 7.0 ! limit volume cells
          fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
          !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
@@ -942,10 +1055,10 @@ contains
          relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
          cflmax = 5 !cflmax:to be used with ramping
          cflramp = 0 !cfl ramping: |0: deactivated |1:activated
-         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         ! Mesh partitioning: option 6, 64-bit ParMETIS only.
          emetis = 6
          itold = 10000 !tolerance=n_iterations
-         gridar1 = 100000000.0 ! 0       5.0    7.0  limit aspect ratio cells,
+         gridar1 = 1000.0 ! greengo=0: switch viscous LS to GG when max/min centre-to-face distance exceeds this
          gridar2 = 700000000.0 ! limit volume cells
          fastest = 0 ! 0                             ||fastest, no coordinate mapping (1: engaged,0:with transformation)
          !0                      ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
@@ -979,10 +1092,10 @@ contains
          relax = 3 !relaxation parameter : |1:block jacobi |2: lu-sgs
          cflmax = 30 !cflmax:to be used with ramping
          cflramp = 0 !cfl ramping: |0: deactivated |1:activated
-         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         ! Mesh partitioning: option 6, 64-bit ParMETIS only.
          emetis = 6
          itold = 10000 !tolerance=n_iterations
-         gridar1 = 10000.0 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar1 = 1000.0 ! greengo=0: switch viscous LS to GG when max/min centre-to-face distance exceeds this
          gridar2 = 70000.0 ! limit volume cells
          fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
          !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
@@ -1015,10 +1128,10 @@ contains
          relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
          cflmax = 30 !cflmax:to be used with ramping
          cflramp = 0 !cfl ramping: |0: deactivated |1:activated
-         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         ! Mesh partitioning: option 6, 64-bit ParMETIS only.
          emetis = 6
          itold = 10000 !tolerance=n_iterations
-         gridar1 = 10.0 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar1 = 1000.0 ! greengo=0: switch viscous LS to GG when max/min centre-to-face distance exceeds this
          gridar2 = 7.0 ! limit volume cells
          fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
          !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
@@ -1051,10 +1164,10 @@ contains
          relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
          cflmax = 30 !cflmax:to be used with ramping
          cflramp = 0 !cfl ramping: |0: deactivated |1:activated
-         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         ! Mesh partitioning: option 6, 64-bit ParMETIS only.
          emetis = 6
          itold = 10000 !tolerance=n_iterations
-         gridar1 = 10.0 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar1 = 1000.0 ! greengo=0: switch viscous LS to GG when max/min centre-to-face distance exceeds this
          gridar2 = 10.0 ! limit volume cells
          fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
          !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
@@ -1087,10 +1200,10 @@ contains
          relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
          cflmax = 30 !cflmax:to be used with ramping
          cflramp = 0 !cfl ramping: |0: deactivated |1:activated
-         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         ! Mesh partitioning: option 6, 64-bit ParMETIS only.
          emetis = 6
          itold = 10000 !tolerance=n_iterations
-         gridar1 = 10.0 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar1 = 1000.0 ! greengo=0: switch viscous LS to GG when max/min centre-to-face distance exceeds this
          gridar2 = 10.0 ! limit volume cells
          fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
          !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
@@ -1130,10 +1243,10 @@ contains
          relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
          cflmax = 30 !cflmax:to be used with ramping
          cflramp = 0 !cfl ramping: |0: deactivated |1:activated
-         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         ! Mesh partitioning: option 6, 64-bit ParMETIS only.
          emetis = 6
          itold = 10000 !tolerance=n_iterations
-         gridar1 = 10.0 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar1 = 1000.0 ! greengo=0: switch viscous LS to GG when max/min centre-to-face distance exceeds this
          gridar2 = 10.0 ! limit volume cells
          fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
          !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
@@ -1171,10 +1284,10 @@ contains
          relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
          cflmax = 30 !cflmax:to be used with ramping
          cflramp = 0 !cfl ramping: |0: deactivated |1:activated
-         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         ! Mesh partitioning: option 6, 64-bit ParMETIS only.
          emetis = 6
          itold = 10000 !tolerance=n_iterations
-         gridar1 = 10.0 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar1 = 1000.0 ! greengo=0: switch viscous LS to GG when max/min centre-to-face distance exceeds this
          gridar2 = 10.0 ! limit volume cells
          fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
          !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
@@ -1212,10 +1325,10 @@ contains
          cflmax = 5 !cflmax:to be used with ramping
          cflramp = 0 !cfl ramping: |0: deactivated |1:activated
          if (code_profile .eq. 999) cflramp = 1 !profile 999: default settings with FV update check and no CFL ramping
-         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         ! Mesh partitioning: option 6, 64-bit ParMETIS only.
          emetis = 6
          itold = 10000 !tolerance=n_iterations
-         gridar1 = 1000000.0 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar1 = 1000.0 ! greengo=0: switch viscous LS to GG when max/min centre-to-face distance exceeds this
          gridar2 = 1000000.0 ! limit volume cells
          fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
          !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
@@ -1250,10 +1363,10 @@ contains
          relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
          cflmax = 30 !cflmax:to be used with ramping
          cflramp = 0 !cfl ramping: |0: deactivated |1:activated
-         !metis partitioner : 1: hybrid metis, 2:adaptive weights for hybrid grids, 3: uniform metis partionioner,4:nodal,6=parmets
+         ! Mesh partitioning: option 6, 64-bit ParMETIS only.
          emetis = 6
          itold = 10000 !tolerance=n_iterations
-         gridar1 = 200000.0 ! 0          5.0    7.0  limit aspect ratio cells,
+         gridar1 = 1000.0 ! greengo=0: switch viscous LS to GG when max/min centre-to-face distance exceeds this
          gridar2 = 500000.0 ! limit volume cells
          fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
          !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
@@ -1585,8 +1698,6 @@ contains
 
       if (code_profile .eq. 17) iweno = 5
 
-      ! temporal order
-      rungekutta = temporder
 
       if (iboundary .eq. 0) then
          iperiodicity = -3
@@ -1607,6 +1718,7 @@ contains
       !-------------------------end discretisation 6---------------------------------!
 
       call validate_ucns3d_configuration(n)
+      call validate_axisymmetric_options
 
       call mpi_barrier(mpi_comm_world, ierror)
 
@@ -1813,10 +1925,22 @@ contains
       logical :: valid_scheme
       logical :: xpu_recon_supported
 
+      if (rot_corr == 2 .and. turbulence == 1 .and. turbulencemodel == 1) then
+         if (rungekutta /= 5 .and. rungekutta /= 10) then
+            call abort_ucns3d_configuration(n, 'SA-RC currently requires steady RK-LTS(5) or implicit BE(10)')
+         end if
+         if (iperiodicity == 1 .or. per_rot == 1 .or. rframe /= 0 .or. movement /= 0) then
+            call abort_ucns3d_configuration(n, 'SA-RC currently requires a fixed, nonperiodic, stationary-frame mesh')
+         end if
+         if (des_model /= 0 .or. dg /= 0 .or. fastest /= 0) then
+            call abort_ucns3d_configuration(n, 'SA-RC currently requires finite-volume RANS and fastest=0')
+         end if
+      end if
+
       valid_scheme = (spatiladiscret .ge. 1) .and. (spatiladiscret .le. 3)
       valid_poly = (poly .eq. 1) .or. (poly .eq. 2) .or. (poly .eq. 4)
       valid_riemann = (iriemann .eq. 1) .or. (iriemann .eq. 2) .or. (iriemann .eq. 3) .or. &
-         & (iriemann .eq. 4) .or. (iriemann .eq. 5) .or. (iriemann .eq. 9)
+         & (iriemann .eq. 4) .or. (iriemann .eq. 5) .or. (iriemann .eq. 9) .or. (iriemann .eq. 12)
 
       if ((dimensiona .ne. 2) .and. (dimensiona .ne. 3)) then
          call abort_ucns3d_configuration(n, 'dimension must be 2 or 3')
@@ -1837,15 +1961,28 @@ contains
       end if
       if (.not. valid_riemann) then
          call abort_ucns3d_configuration(n, &
-            & 'Riemann solver must be 1(HLLC), 2(Rusanov), 3(Roe), 4(rotated Roe), 5(T-Roe), or 9(HLL)')
+            & 'Riemann solver must be 1(HLLC), 2(Rusanov), 3(Roe), 4(rotated Roe), 5(T-Roe), 9(HLL), or 12(half-dissipation Roe)')
       end if
       if ((dimensiona .eq. 2) .and. (iriemann .eq. 5)) then
          call abort_ucns3d_configuration(n, 'Riemann solver 5(T-Roe) is only implemented for 3D fluxes')
       end if
       if (((realgas .eq. 1) .or. (multispecies .eq. 1)) .and. &
-         & ((iriemann .eq. 3) .or. (iriemann .eq. 4) .or. (iriemann .eq. 5))) then
-         call abort_ucns3d_configuration(n, 'Roe-family solvers 3/4/5 use five-equation ideal-gas work arrays; '// &
+         & ((iriemann .eq. 3) .or. (iriemann .eq. 4) .or. (iriemann .eq. 5) .or. (iriemann .eq. 12))) then
+         call abort_ucns3d_configuration(n, 'Roe-family solvers 3/4/5/12 use five-equation ideal-gas work arrays; '// &
             & 'use HLLC, Rusanov, or HLL with real-gas/multispecies cases')
+      end if
+      if (iriemann == 12) then
+         if (dimensiona /= 3 .or. nof_variables /= 5) then
+            call abort_ucns3d_configuration(n, 'Riemann solver 12 requires 3D five-equation ideal gas')
+         end if
+         if (rframe /= 0 .or. movement /= 0 .or. mrf /= 0) then
+            call abort_ucns3d_configuration(n, 'Riemann solver 12 requires a fixed mesh and stationary reference frame')
+         end if
+         ! The inherited Roe kernel computes the five mean-flow fluxes only.
+         ! Extra equations use the existing separate upwind flux outside it.
+         if (icoupleturb /= 0 .and. (turbulenceequations + passivescalar > 0)) then
+            call abort_ucns3d_configuration(n, 'Riemann solver 12 requires icoupleturb=0 for turbulence/passive equations')
+         end if
       end if
       if ((turbulence .ne. 0) .and. (turbulence .ne. 1)) then
          call abort_ucns3d_configuration(n, 'turbulence activation flag must be 0 or 1')
@@ -1911,6 +2048,21 @@ contains
       end if
       if (nof_species .gt. gpu_max_species) then
          call abort_ucns3d_configuration(n, 'runtime species count exceeds compiled GPU_MAX_SPECIES')
+      end if
+      if (turbulence == 1 .or. passivescalar > 0) then
+         if (.not. all(ieee_is_finite([prtu,schmidt_lam,schmidt_turb])) .or. &
+             min(prtu,schmidt_lam,schmidt_turb) <= 0.0) &
+            call abort_ucns3d_configuration(n, 'Turbulent Prandtl and Schmidt numbers must be finite and positive')
+      end if
+      if (turbulence == 1 .and. turbulencemodel == 2) then
+         if (.not. all(ieee_is_finite([alpha_inf1, alpha_inf2, sigma_k1, sigma_k2, sigma_om1, sigma_om2, &
+             beta_i1, beta_i2, beta_starinf, aa_1, c_mu_inlet, i_turb_inlet, l_turb_inlet, init_mu_ratio]))) &
+            call abort_ucns3d_configuration(n, 'SST coefficients/inlet data must be finite')
+         if (min(alpha_inf1, alpha_inf2, sigma_k1, sigma_k2, sigma_om1, sigma_om2, &
+             beta_i1, beta_i2, beta_starinf, aa_1, c_mu_inlet) <= 0.0 .or. i_turb_inlet < 0.0) &
+            call abort_ucns3d_configuration(n, 'SST coefficients must be positive and inlet intensity nonnegative')
+         if (l_turb_inlet <= 0.0 .and. init_mu_ratio <= 0.0) &
+            call abort_ucns3d_configuration(n, 'SST needs a positive inlet length scale or viscosity ratio')
       end if
       if (turbulenceequations .gt. gpu_max_turbulence) then
          call abort_ucns3d_configuration(n, 'runtime turbulence equation count exceeds compiled GPU_MAX_TURBULENCE')

@@ -1,4 +1,5 @@
 module source
+   use mpi
    use library
    use transform
    use local
@@ -11,7 +12,269 @@ module source
    integer, parameter :: realgas_source_newton_maxiter = 12
    integer, parameter :: realgas_source_newton_linesearch = 10
 
+   ! Steady SA-RC state: local cells and existing reconstruction halos.
+   real, allocatable :: rc_xyz(:,:), rc_strain(:,:), rc_inverse(:,:,:), rc_scale(:,:)
+   real, allocatable :: rc_send(:), rc_recv(:), sa_rc_fr1(:)
+   integer, allocatable :: rc_requests(:)
+   integer :: rc_cells = 0
+#ifdef xpu
+!$omp declare target(rc_xyz, rc_strain, rc_inverse, rc_scale, rc_send, rc_recv, sa_rc_fr1, rc_cells)
+#endif
+   private :: rc_xyz, rc_strain, rc_inverse, rc_scale, rc_send, rc_recv, rc_requests
+   private :: rc_cells, rc_fail, rc_neighbour, rc_displacement, rc_exchange
+
 contains
+   subroutine axisymmetric_source_state(n,q,qt,g,gt,radius,wall,src,st)
+      ! S in dQ/dt + dFx/dx + dFr/dr = S. Planar FV areas/fluxes are unchanged.
+      ! Cell-centre quadrature is second order on smooth, regular solutions.
+#ifdef xpu
+!$omp declare target
+#endif
+      integer,intent(in) :: n
+      real,intent(in) :: q(gpu_max_nvar),qt(gpu_max_extra_transport)
+      real,intent(in) :: g(gpu_max_nvar,2),gt(gpu_max_extra_transport,2),radius,wall
+      real,intent(out) :: src(gpu_max_nvar),st(gpu_max_extra_transport)
+      real :: prim(gpu_max_nvar),mu,ktr,kve,cvv,gm,pinf,rho,u,v,hoop,mut,sk,sw
+      real :: packed(20),txx,txr,trr,ttt,coef,rmix,grada,gsum,jsum,ysum
+      real :: dif(gpu_max_species),htr(gpu_max_species),hv(gpu_max_species)
+      real :: yy(gpu_max_species),gy(gpu_max_species),jflux(gpu_max_species)
+      integer :: k,nt
+      src=0.0; st=0.0
+      prim=q; call cons2prim(n,prim(1:nof_variables),pinf,gm)
+      rho=q(1); u=q(2)/rho; v=q(3)/rho; hoop=v/radius
+      src(1:nof_variables)=-hoop*q(1:nof_variables)
+      src(4)=src(4)-hoop*prim(4)
+      nt=turbulenceequations+passivescalar
+      st(1:nt)=-hoop*qt(1:nt)
+      if(itestcase/=4) return
+
+      kve=0.0; cvv=0.0
+      if(realgas==1) then
+         call multispecies_mixtures_rg(q(1:nof_variables),mu,ktr,kve,dif,htr,hv,gm,cvv)
+      else
+         call molecular_transport(n,q(1:nof_variables),mu,ktr)
+      end if
+      mut=0.0; sk=1.0; sw=1.0
+      if(turbulence==1) then
+         packed=0.0; packed(1)=wall; packed(2:3)=qt(1:2)
+         packed(4:5)=g(1,:); packed(6:7)=g(2,:)
+         packed(8:9)=gt(1,:); packed(10:11)=gt(2,:); packed(12)=hoop
+         call eddy_viscosity_state(2,rho,mu,packed,.true.,mut,sk,sw)
+         ktr=ktr+mut*translational_cp(q(1:nof_variables))/prtu
+         kve=kve+mut*cvv/prtu
+      end if
+      call axis_stress(mu+mut,g(1,1),g(1,2),g(2,1),g(2,2),hoop,txx,txr,trr,ttt)
+      src(2)=src(2)+txr/radius
+      src(3)=src(3)+(trr-ttt)/radius
+      src(4)=src(4)+(u*txr+v*trr)/radius
+      if(realgas==1) then
+         ! Match the existing RG_RELAX transport selection in the face flux.
+         if(rg_relax>=1) then
+            yy(1:nof_species)=max(q(6:5+nof_species)/rho,0.0)
+            ysum=sum(yy(1:nof_species))
+            if(ysum>1.0e-30) then
+               yy(1:nof_species)=yy(1:nof_species)/ysum
+            else
+               yy(1:nof_species)=1.0/real(nof_species)
+            end if
+            gy(1:nof_species)=g(5:4+nof_species,2)
+            gsum=sum(gy(1:nof_species))
+            gy(1:nof_species)=gy(1:nof_species)-yy(1:nof_species)*gsum
+            rmix=sum(yy(1:nof_species)/rg_molm(1:nof_species))
+            grada=sum(gy(1:nof_species)/rg_molm(1:nof_species))
+            do k=1,nof_species
+               jflux(k)=-rho*dif(k)*(gy(k)-yy(k)*grada/rmix)-mut/schmidt_turb*gy(k)
+            end do
+            jsum=sum(jflux(1:nof_species))
+            jflux(1:nof_species)=jflux(1:nof_species)-yy(1:nof_species)*jsum
+            src(6:5+nof_species)=src(6:5+nof_species)-jflux(1:nof_species)/radius
+            src(4)=src(4)+(ktr*g(3,2)+kve*g(4,2)- &
+               sum((htr(1:nof_species)+hv(1:nof_species))*jflux(1:nof_species)))/radius
+            src(5)=src(5)+(kve*g(4,2)-sum(hv(1:nof_species)*jflux(1:nof_species)))/radius
+         end if
+      else
+         src(4)=src(4)+ktr*g(3,2)/radius
+      end if
+      do k=1,nt
+         coef=mu+mut
+         if(turbulence==1.and.k<=turbulenceequations) then
+            if(turbulencemodel==1) coef=(mu+max(qt(1),0.0))/sigma
+            if(turbulencemodel==2) then
+               if(k==1) coef=mu+mut/sk
+               if(k==2) coef=mu+mut/sw
+            end if
+         end if
+         st(k)=st(k)+coef*gt(k,2)/radius
+      end do
+   end subroutine axisymmetric_source_state
+
+   subroutine axisymmetric_cell_data(i,q,qt,g,gt,wall)
+#ifdef xpu
+!$omp declare target
+#endif
+      integer,intent(in) :: i
+      real,intent(out) :: q(gpu_max_nvar),qt(gpu_max_extra_transport)
+      real,intent(out) :: g(gpu_max_nvar,2),gt(gpu_max_extra_transport,2),wall
+      integer :: nt
+      q=0.0; qt=0.0; g=0.0; gt=0.0; wall=0.0
+      q(1:nof_variables)=u_c_val(i,1,1:nof_variables)
+      nt=turbulenceequations+passivescalar
+      if(nt>0) qt(1:nt)=u_ct_val(i,1,1:nt)
+      if(itestcase==4) then
+         g(1:nof_variables-1,:)=rec_grads(i,1:nof_variables-1,1:2)
+         if(nt>0) gt(1:nt,:)=rec_grads(i,nof_variables:nof_variables+nt-1,1:2)
+         if(turbulence==1) wall=ielem_walldist(i)
+      end if
+   end subroutine axisymmetric_cell_data
+
+   subroutine sources_axisymmetric_cell(n,i)
+#ifdef xpu
+!$omp declare target
+#endif
+      integer,intent(in) :: n,i
+      real :: q(gpu_max_nvar),qt(gpu_max_extra_transport),g(gpu_max_nvar,2),gt(gpu_max_extra_transport,2)
+      real :: src(gpu_max_nvar),st(gpu_max_extra_transport),wall
+      integer :: nt
+      call axisymmetric_cell_data(i,q,qt,g,gt,wall)
+      call axisymmetric_source_state(n,q,qt,g,gt,axis_radius(i),wall,src,st)
+      rhs_val(i,1:nof_variables)=rhs_val(i,1:nof_variables)-ielem_totvolume(i)*src(1:nof_variables)
+      nt=turbulenceequations+passivescalar
+      if(nt>0) rhst_val(i,1:nt)=rhst_val(i,1:nt)-ielem_totvolume(i)*st(1:nt)
+   end subroutine sources_axisymmetric_cell
+
+   logical function axisymmetric_source_admissible(q) result(ok)
+      ! A Jacobian probe must be in the domain of the transport laws. In
+      ! particular, positive density alone does not make Sutherland sqrt(T)
+      ! valid in a cold, high-Mach cell. Do not clip the state or temperature.
+      use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
+      implicit none
+#ifdef xpu
+!$omp declare target
+#endif
+      real,intent(in) :: q(gpu_max_nvar)
+      real :: rho,ev,etr,rmix,cv,y(gpu_max_species),vel2,temp
+      ok=.false.
+      if(.not.all(ieee_is_finite(q(1:nof_variables)))) return
+      if(q(1)<=tiny(1.0)) return
+      if(realgas==1) then
+         if(any(q(6:5+nof_species)<0.0).or.q(5)<0.0) return
+         call realgas_thermo(q(1:nof_variables),rho,y,ev,etr,rmix,cv)
+         if(.not.all(ieee_is_finite([rho,ev,etr,rmix,cv]))) return
+         if(etr<=0.0.or.cv<=0.0.or.rmix<=0.0) return
+      else
+         rho=q(1)
+         vel2=(q(2)/rho)**2+(q(3)/rho)**2
+         ! Use the same arithmetic as molecular_transport, not a pressure floor.
+         temp=(gamma-1.0)*(q(4)/rho-0.5*vel2)/r_gas
+         if(.not.ieee_is_finite(temp)) return
+         if(temp<=0.0) return
+      end if
+      ok=.true.
+   end function axisymmetric_source_admissible
+
+   subroutine axisymmetric_source_jacobian(n,i,jac,tdiag)
+      ! Local block derivative with reconstructed gradients frozen, as in the existing
+      ! approximate implicit operator. Chemistry is assembled separately, once.
+#ifdef xpu
+!$omp declare target
+#endif
+      integer,intent(in) :: n,i
+      real,intent(out) :: jac(gpu_max_nvar,gpu_max_nvar),tdiag(gpu_max_extra_transport)
+      real :: q(gpu_max_nvar),qp(gpu_max_nvar),qt(gpu_max_extra_transport),tp(gpu_max_extra_transport)
+      real :: g(gpu_max_nvar,2),gt(gpu_max_extra_transport,2),base(gpu_max_nvar),sp(gpu_max_nvar)
+      real :: bt(gpu_max_extra_transport),st(gpu_max_extra_transport),wall,h,scale(gpu_max_nvar),rho,energy,delta
+      integer :: k,nt,attempt,direction
+      logical :: evaluated
+      jac=0.0; tdiag=0.0
+      if(axisymmetric_enabled==0) return
+      call axisymmetric_cell_data(i,q,qt,g,gt,wall)
+      if(.not.axisymmetric_source_admissible(q)) error stop 'Invalid base state in axisymmetric source Jacobian'
+      call axisymmetric_source_state(n,q,qt,g,gt,axis_radius(i),wall,base,bt)
+      rho=q(1); energy=max(abs(q(4)),rho)
+      scale=rho; scale(2:3)=sqrt(rho*energy); scale(4)=energy
+      if(realgas==1) scale(5)=max(abs(q(5)),rho)
+      scale(1:nof_variables)=max(scale(1:nof_variables),abs(q(1:nof_variables)))
+      do k=1,nof_variables
+         h=sqrt(epsilon(1.0))*scale(k)
+         evaluated=.false.
+         do attempt=1,32
+            ! Keep the existing forward difference when admissible; otherwise
+            ! use the backward side before reducing the probe. This matters
+            ! when increasing momentum would consume the last internal energy.
+            do direction=1,-1,-2
+               qp=q; qp(k)=q(k)+real(direction)*h
+               delta=qp(k)-q(k)
+               if(delta==0.0) cycle
+               if(.not.axisymmetric_source_admissible(qp)) cycle
+               call axisymmetric_source_state(n,qp,qt,g,gt,axis_radius(i),wall,sp,st)
+               jac(1:nof_variables,k)=(sp(1:nof_variables)-base(1:nof_variables))/delta
+               evaluated=.true.
+               exit
+            end do
+            if(evaluated) exit
+            h=0.5*h
+         end do
+         if(.not.evaluated) error stop 'No admissible axisymmetric Jacobian perturbation'
+      end do
+      nt=turbulenceequations+passivescalar
+      do k=1,nt
+         h=sqrt(epsilon(1.0))*max(abs(qt(k)),1.0e-8*rho)
+         tp=qt; tp(k)=tp(k)+h
+         call axisymmetric_source_state(n,q,tp,g,gt,axis_radius(i),wall,sp,st)
+         tdiag(k)=(st(k)-bt(k))/h
+      end do
+   end subroutine axisymmetric_source_jacobian
+
+   subroutine add_axisymmetric_implicit(n,i,block)
+#ifdef xpu
+!$omp declare target
+#endif
+      integer,intent(in) :: n,i
+      real,intent(inout) :: block(:,:)
+      real :: jac(gpu_max_nvar,gpu_max_nvar),td(gpu_max_extra_transport)
+      if(axisymmetric_enabled==0) return
+      call axisymmetric_source_jacobian(n,i,jac,td)
+      block(1:nof_variables,1:nof_variables)=block(1:nof_variables,1:nof_variables)- &
+         ielem_totvolume(i)*jac(1:nof_variables,1:nof_variables)
+   end subroutine add_axisymmetric_implicit
+
+   subroutine add_axisymmetric_transport_implicit(n,i,diag)
+#ifdef xpu
+!$omp declare target
+#endif
+      integer,intent(in) :: n,i
+      real,intent(inout) :: diag(:)
+      real :: jac(gpu_max_nvar,gpu_max_nvar),td(gpu_max_extra_transport),floor_value
+      integer :: k
+      if(axisymmetric_enabled==0) return
+      call axisymmetric_source_jacobian(n,i,jac,td)
+      floor_value=max(turb_diag_abs_floor,turb_diag_floor_frac*ielem_totvolume(i)/ielem_dtl(i))
+      do k=1,turbulenceequations+passivescalar
+         diag(k)=max(floor_value,diag(k)-ielem_totvolume(i)*td(k))
+      end do
+   end subroutine add_axisymmetric_transport_implicit
+
+   real function axisymmetric_source_radius(n,i) result(rate)
+#ifdef xpu
+!$omp declare target
+#endif
+      integer,intent(in) :: n,i
+      real :: jac(gpu_max_nvar,gpu_max_nvar),td(gpu_max_extra_transport)
+      real :: scale(gpu_max_nvar),rho,energy
+      integer :: j,k
+      rate=0.0
+      if(axisymmetric_enabled==0) return
+      call axisymmetric_source_jacobian(n,i,jac,td)
+      ! Scale the block before taking a row-sum bound: its raw entries have different units.
+      rho=u_c_val(i,1,1); energy=max(abs(u_c_val(i,1,4)),rho)
+      scale=rho; scale(2:3)=sqrt(rho*energy); scale(4)=energy
+      if(realgas==1) scale(5)=max(abs(u_c_val(i,1,5)),rho)
+      do j=1,nof_variables
+         rate=max(rate,sum(abs(jac(j,1:nof_variables))*scale(1:nof_variables))/scale(j))
+      end do
+      if(turbulenceequations+passivescalar>0) rate=max(rate,maxval(abs(td(1:turbulenceequations+passivescalar))))
+   end function axisymmetric_source_radius
+
    real function realgas_arrhenius(a, b, theta, t, logkc) result(rate)
       implicit none
 #ifdef xpu
@@ -149,6 +412,7 @@ contains
       integer, intent(in) :: n
       integer :: i, kmaxe
 
+      call sa_rc_prepare(n)
       kmaxe = xmpielrank(n)
       if ((turbulence .eq. 1) .and. (kmaxe .gt. 0)) then
 #ifdef xpu
@@ -2003,6 +2267,45 @@ contains
 
    end function transition_source_factor
 
+   subroutine sources_sa_rc(n, i, src, jac)
+#ifdef xpu
+!$omp declare target
+#endif
+      integer, intent(in) :: n, i
+      real, intent(out) :: src, jac
+      real :: q(gpu_max_nvar), mu, conductivity, gu(3,3), w(3,3), om, gsq, sf
+      real :: strain, distance, delta, rd, fd, fr1, rotation_delta, mut, sigk, sigw, packed(20)
+      ! Shared SA-noft2 algebra: rot_corr=0 (SA), 1 (legacy SA-R), 2 (SA-RC).
+      q(1:nof_variables) = u_c_val(i,1,1:nof_variables)
+      call molecular_transport(n, q, mu, conductivity)
+      gu = 0.0; gu(1:dimensiona,1:dimensiona) = rec_grads(i,1:dimensiona,1:dimensiona)
+      if (dimensiona==2 .and. axisymmetric_enabled==1) &
+         gu(3,3)=q(3)/(q(1)*axis_radius(i))
+      w = 0.5*(gu-transpose(gu)); om = sqrt(2.0*sum(w*w))
+      strain = sqrt(0.5*sum((gu+transpose(gu))**2))
+      gsq = sum(rec_grads(i,nof_variables,1:dimensiona)**2)
+      fr1 = 1.0; rotation_delta = 0.0
+      if (rot_corr == 2) fr1 = sa_rc_fr1(i)
+      if (rot_corr == 1) rotation_delta = 2.0*min(0.0,strain-om)
+      distance = max(ielem_walldist(i),1.0e-11)
+      if (des_model /= 0) then
+         delta = ielem_totvolume(i)**(1.0/real(dimensiona))
+         if (des_model == 1) distance = min(distance,c_des_sa*delta)
+         if (des_model == 2) then
+            packed = 0.0; packed(2) = u_ct_val(i,1,1)
+            call eddy_viscosity_state(dimensiona,q(1),mu,packed,.true.,mut,sigk,sigw)
+            ! DDES shielding uses kinematic viscosity and the full velocity-gradient norm.
+            rd = min(10.0,(mu+mut)/(q(1)*max(sqrt(sum(gu*gu)),1.0e-15)*(kappa*distance)**2))
+            fd = 1.0-tanh((8.0*rd)**3)
+            distance = max(distance-fd*max(distance-c_des_sa*delta,0.0),1.0e-11)
+         end if
+      end if
+      ! DES distance and reconstructed gradients are frozen in this local Jacobian.
+      call sa_noft2_rc_source(q(1), mu, u_ct_val(i,1,1), om, distance, gsq, fr1, &
+                             1.0e-12*mu/q(1), cb1, cb2, cv1, cw1, cw2, cw3, kappa, sigma, src, jac, rotation_delta)
+      sf = transition_source_factor(i)
+      src = sf*src; jac = sf*jac
+   end subroutine sources_sa_rc
    subroutine sources(n, iconsidered, source_t)
       implicit none
 !> @brief
@@ -2040,7 +2343,15 @@ contains
       real, dimension(1:2) :: turbmv
       real, dimension(1) :: etvm
 
+      real :: rc_src, rc_jac
+
       i = iconsidered
+      if (turbulencemodel == 1) then
+         call sources_sa_rc(n, i, rc_src, rc_jac)
+         source_t(1) = rc_src
+         return
+      end if
+
 
       verysmall = 10e-16
 
@@ -2089,80 +2400,6 @@ contains
 
       select case (turbulencemodel)
 
-      case (1) !! spalart–almaras model (compressible ρν~ formulation)
-
-         ! optional rotation/curvature correction
-         if (rot_corr .eq. 1) then
-            omega = omega + 2.00 * min(0.00, snorm - onorm)
-         end if
-
-         eddyfl(2) = turbmv(1)
-         eddyfr(2) = turbmv(1)
-
-         call eddyvisco(n, viscl, laml, turbmv, etvm, eddyfl, eddyfr, leftv, rightv)
-
-         rho = leftv(1)
-         nu = viscl(1) / rho
-         nu_tilde = turbmv(1) / rho ! convert φ = ρ ν~  →  ν~
-
-         nu_tilde = max(nu_tilde, 1.0e-12 * visc)
-
-         ! χ = ν~/ν
-         tch_x = nu_tilde / nu
-         tch_x3 = tch_x * tch_x * tch_x
-
-         ! fv1
-         tch_fv1 = tch_x3 / (tch_x3 + (cv1 * cv1 * cv1))
-
-         ! fv2
-         tch_fv2 = 1.00 - tch_x / (1.00 + tch_x * tch_fv1)
-
-         ! physical wall distance
-         ddw = ielem_walldist(i)
-         ddw = max(ddw, 10e-12)
-
-         ! --- des correction ---
-         if (des_model .eq. 1) then
-            cell_volume = ielem_totvolume(i)
-            delta_cell = exp((1.00 / 3.00) * log(cell_volume))
-            ddw = min(ddw, c_des_sa * delta_cell)
-         end if
-
-         if (des_model .eq. 2) then
-            cell_volume = ielem_totvolume(i)
-            delta_cell = exp((1.00 / 3.00) * log(cell_volume))
-
-            r_des = min(10.00, (viscl(1) + viscl(3)) / (snorm * (kappa * ddw)**2 + 1.0e-16))
-            f_des = 1.00 - tanh((8.00 * r_des)**3)
-
-            ddw = max(ddw - f_des * max(ddw - c_des_sa * delta_cell, 1.0e-16), 1.0e-16)
-         end if
-
-         ! --- stilde ---
-         prodterm1 = (nu_tilde) / (kappa * kappa * ddw * ddw)
-         stild = max(omega + tch_fv2 * prodterm1, 0.30 * omega)
-
-         ! --- production term ---
-         prodtermfinal = cb1 * rho * nu_tilde * stild
-
-         ! --- destruction term ---
-         rr = (nu_tilde) / (kappa * kappa * ddw * ddw * stild + 1.0e-20)
-         rr = min(rr, 10.00)
-
-         gg = rr + cw2 * (rr**6 - rr)
-         fw = gg * (exp((1.00 / 6.00) * log((1.00 + cw3**6) / (gg**6 + cw3**6))))
-
-         destterm = cw1 * fw * rho * (nu_tilde / ddw)**2
-
-         ! --- diffusion model ---
-         ! 1/sigma * [ (mu+ρν~) laplacian(nu~)  +  cb2 ρ |grad(nu~)|² ]
-         ! here squaret = |grad(nu~)|²  (your notation)
-
-         difterm = (cb2 * rho * squaret) / sigma
-
-         ! total source:
-         source_t(1) = transition_source_factor(i) * (prodtermfinal + difterm - destterm)
-
       case (2) !k omega sst
 
          eddyfl(1) = ielem_walldist(i)
@@ -2175,8 +2412,8 @@ contains
 
          call eddyvisco(n, viscl, laml, turbmv, etvm, eddyfl, eddyfr, leftv, rightv)
          k_0 = (max(verysmall, u_ct_val(i, 1, 1) / leftv(1))) !first subindex makes reference to the time-stepping
-         om_0 = max(1.0e-1 * ufreestream / charlength, u_ct_val(i, 1, 2) / leftv(1))
-         wally = ielem_walldist(i)
+         om_0 = max(1.0e-6, u_ct_val(i, 1, 2) / leftv(1))
+         wally = max(ielem_walldist(i),1.0e-15)
 
          !calculate here k and omega gradients
          omx = rec_grads(i, nof_variables + 1, 1)
@@ -2188,63 +2425,20 @@ contains
 
          dervk_dervom = kx * omx + ky * omy + kz * omz
 
-         !parameters
+         call sst_blending(leftv(1), viscl(1), k_0, om_0, wally, dervk_dervom, f_1, f_2)
+         alpha_raw = f_1 * alpha_inf1 + (1.0-f_1) * alpha_inf2
+         beta_star = beta_starinf
+         beta_raw = f_1 * beta_i1 + (1.0-f_1) * beta_i2
 
-         !-----needed in diffusion--------
-         d_omplus = max(2 * leftv(1) / sigma_om2 / om_0 * dervk_dervom, 1e-10)
-         phi_2 = max(sqrt(k_0) / (0.09 * om_0 * wally), 500.0 * viscl(1) / (leftv(1) * wally * wally * om_0))
-         phi_1 = min(phi_2, 4.0 * leftv(1) * k_0 / (sigma_om2 * d_omplus * wally * wally))
-
-         f_1 = tanh(phi_1**4)
-         f_2 = tanh(phi_2**2)
-         !--------------------------------
-
-         alpha_inf = f_1 * alpha_inf1 + (1.0 - f_1) * alpha_inf2
-         alpha_star = alpha_starinf
-         alpha_raw = alpha_inf
-
-         beta_i = f_1 * beta_i1 + (1.0 - f_1) * beta_i2
-         alpha_star0_local = beta_i / 3.0
-         beta_stari = beta_starinf
-
-         lowre = 0
-         !low-re correction------------------------------------------------------------------
-
-         if (lowre .eq. 1) then
-            re_t_sst = leftv(1) * k_0 / (viscl(1) * om_0) !limiters for this???
-
-            alpha_star = alpha_starinf * (alpha_star0_local + re_t_sst / r_k_sst) / (1.0 + re_t_sst / r_k_sst)
-            alpha_raw = alpha_inf / alpha_star * (alpha_0 + re_t_sst / r_om_sst) / (1.0 + re_t_sst / r_om_sst)
-
-            beta_stari = beta_starinf * (4.0 / 15.0 + (re_t_sst / r_beta)**4) / (1.0 + (re_t_sst / r_beta)**4)
-
-         end if
-         !--------------------------------------------------------------------------
-
-         !no mach number corrections for the beta
-         beta_star = beta_stari
-         beta_raw = beta_i
-
-         !production terms
-         !production of k
-         if (vort_model .eq. 1) then
-            prod_k = viscl(3) * onorm * snorm !-2.0/3.0*leftv(1)*k_0*divnorm
-            prod_om = alpha_raw * leftv(1) * snorm * onorm
+         ! SST-2003m: use the same limited production in both equations.
+         ! vort_model=1 remains the explicitly selected Kato-Launder variant.
+         if (vort_model == 1) then
+            prod_k = viscl(3) * snorm * onorm
          else
-            !prod_k=viscl(3)*snorm**2
-            !exact formulation:
-            prod_k = viscl(3) * (snorm**2) !-2.0/3.0*divnorm*divnorm)-2.0/3.0*leftv(1)*k_0*divnorm
-            prod_k = min(prod_k, 10.0 * leftv(1) * beta_star * k_0 * om_0)
-
-            !intelligent way of limiting:
-            !prod_k=min(prod_k,max(10.0*leftv(1)*beta_star*k_0*om_0,&
-            !            viscl(3)*onorm*snorm!-2.0/3.0*leftv(1)*k_0*divnorm))
-
-            !production of omega  (menter does this before correcting prod_k,
-            !but in  article of 2003 he applies the correction to both)
-            prod_om = alpha_raw * leftv(1) * snorm**2
-            !                 prod_om=min(prod_om,10.0*leftv(1)*beta_star*om_0*om_0)
+            prod_k = viscl(3) * snorm**2
          end if
+         prod_k = min(prod_k, 10.0 * leftv(1) * beta_star * k_0 * om_0)
+         prod_om = alpha_raw * prod_k * leftv(1) / max(viscl(3),1.0e-30)
 
          !destruction terms
          !destruction of k
@@ -2313,6 +2507,36 @@ contains
 
    end subroutine sources
 
+   subroutine sst_destruction_diagonal(n, i, nd, diagonal)
+#ifdef xpu
+!$omp declare target
+#endif
+      integer, intent(in) :: n, i, nd
+      real, intent(out) :: diagonal(2)
+      real :: q(gpu_max_nvar), mu, conductivity, rho, kin, omega, cross, f1, f2, beta_sst, factor, delta
+      integer :: d
+      q(1:nof_variables) = u_c_val(i,1,1:nof_variables)
+      rho = max(q(1),1.0e-30)
+      kin = max(u_ct_val(i,1,1)/rho,1.0e-15)
+      omega = max(u_ct_val(i,1,2)/rho,1.0e-6)
+      call molecular_transport(n, q, mu, conductivity)
+      cross = 0.0
+      do d=1,nd
+         cross = cross + rec_grads(i,nof_variables,d)*rec_grads(i,nof_variables+1,d)
+      end do
+      call sst_blending(rho, mu, kin, omega, ielem_walldist(i), cross, f1, f2)
+      beta_sst = f1*beta_i1+(1.0-f1)*beta_i2
+      factor = 1.0
+      if (qsas_model == 2) then
+         delta = ielem_totvolume(i)**(1.0/3.0)
+         factor = max(1.0, sqrt(kin)/(beta_starinf*omega*c_des_sst*delta)*(1.0-f2))
+      end if
+      ! Freeze blending, production, cross diffusion and optional DES factor.
+      ! These negative terms add damping when subtracted from the implicit matrix.
+      diagonal(1) = -factor*beta_starinf*omega
+      diagonal(2) = -2.0*beta_sst*omega
+   end subroutine sst_destruction_diagonal
+
    subroutine sources_derivatives(n, iconsidered, source_t)
       implicit none
 !> @brief
@@ -2350,7 +2574,15 @@ contains
       real, dimension(1:2) :: turbmv
       real, dimension(1) :: etvm
 
+      real :: rc_src, rc_jac
+
       i = iconsidered
+      if (turbulencemodel == 1) then
+         call sources_sa_rc(n, i, rc_src, rc_jac)
+         source_t(1) = rc_jac
+         return
+      end if
+
 
       verysmall = 10e-16
 
@@ -2398,262 +2630,8 @@ contains
 
       select case (turbulencemodel)
 
-      case (1) !!spalart almaras model
-
-         ! (compressible ρν~ formulation)
-
-         rho = leftv(1)
-         nu = viscl(1) / rho
-         nu_tilde = turbmv(1) / rho ! convert φ=ρν~ → ν~
-         nu_tilde = max(nu_tilde, 1.0e-12 * visc)
-         ! χ
-         tch_x = nu_tilde / nu
-         tch_x3 = tch_x * tch_x * tch_x
-
-         tch_fv1 = tch_x3 / (tch_x3 + cv1 * cv1 * cv1)
-         tch_fv2 = 1.00 - tch_x / (1.00 + tch_x * tch_fv1)
-
-         ddw = ielem_walldist(i)
-         ddw = max(ddw, 10e-12)
-
-         ! ----- des corrections -----
-         if (des_model .eq. 1) then
-            cell_volume = ielem_totvolume(i)
-            delta_cell = exp((1.00 / 3.00) * log(cell_volume))
-            ddw = min(ddw, c_des_sa * delta_cell)
-         end if
-
-         if (des_model .eq. 2) then
-            cell_volume = ielem_totvolume(i)
-            delta_cell = exp((1.00 / 3.00) * log(cell_volume))
-
-            r_des = min(10.00, (viscl(1) + viscl(3)) / &
-               & (snorm * (kappa * ddw)**2 + 1.0e-16))
-            f_des = 1.00 - tanh((8.00 * r_des)**3)
-
-            ddw = max(ddw - f_des * max(ddw - c_des_sa * delta_cell, 1.0e-16), &
-               & 1.0e-16)
-         end if
-
-         ! ----- stilde -----
-         prodterm1 = nu_tilde / (kappa * kappa * ddw * ddw)
-
-         stild = max(omega + tch_fv2 * prodterm1, 0.30 * omega)
-
-         !--------------------------
-         !       production
-         !--------------------------
-         prod = cb1 * rho * nu_tilde * stild
-
-         ! d(prod)/d(ρν~)
-         dstild_dnut = &
-            & tch_fv2 / (kappa * kappa * ddw * ddw) ! only active if stild=ω+fv2*prodterm1
-
-         if (stild .eq. 0.30 * omega) dstild_dnut = 0.00
-
-         dprod_dnut = &
-            & cb1 * (stild + nu_tilde * dstild_dnut)
-
-         !--------------------------
-         !       destruction
-         !--------------------------
-         rr = nu_tilde / (kappa * kappa * ddw * ddw * stild + 1.0e-20)
-         rr = min(rr, 10.00)
-
-         gg = rr + cw2 * (rr**6 - rr)
-         fw = gg * exp((1.00 / 6.00) * log((1.00 + cw3**6) / (gg**6 + cw3**6)))
-
-         dest = cw1 * fw * rho * (nu_tilde / ddw)**2
-
-         ! d(fw)/d(rr)
-         dgg_drr = 1.00 + cw2 * (6.00 * rr**5 - 1.00)
-
-         dfw_dgg = &
-            & exp((1.00 / 6.00) * log((1.00 + cw3**6) / (gg**6 + cw3**6))) &
-            & * (1.00 - (gg**6 / (gg**6 + cw3**6)))
-
-         dfw_drr = dfw_dgg * dgg_drr
-
-         ! drr/d(ρν~)
-         drr_dnut = &
-            & (kappa * kappa * ddw * ddw * stild - nu_tilde * kappa * kappa * ddw * ddw * dstild_dnut) &
-            & / (kappa * kappa * ddw * ddw * stild + 1.0e-20)**2
-
-         ! destruction derivative
-         ddest_dnut = &
-            & cw1 * (dfw_drr * drr_dnut * rho * (nu_tilde / ddw)**2 &
-            & + fw * rho * 2.00 * (nu_tilde / ddw**2) / ddw)
-
-         !--------------------------
-         !       diffusion
-         !--------------------------
-         ! your model:  dif = cb2*rho*|∇ν~|² / σ
-         dif = cb2 * rho * squaret / sigma
-
-         ! jacobian:
-         ! d(|grad(ν~)|²) / d(ρν~) = 0  (no dependence on ν~ itself)
-         ddif_dnut = 0.00
-
-         !--------------------------
-         !     total jacobian
-         !--------------------------
-         source_t(1) = transition_source_factor(i) * (dprod_dnut + ddif_dnut - ddest_dnut)
-
-      case (2) !k omega sst
-
-         eddyfl(1) = ielem_walldist(i)
-         eddyfl(2) = u_ct_val(i, 1, 1)
-         eddyfl(3) = u_ct_val(i, 1, 2)
-         call fill_turbulence_gradients(3, i, eddyfl)
-
-
-         eddyfr = eddyfl
-
-         call eddyvisco(n, viscl, laml, turbmv, etvm, eddyfl, eddyfr, leftv, rightv)
-         k_0 = (max(verysmall, u_ct_val(i, 1, 1) / leftv(1))) !first subindex makes reference to the time-stepping
-         om_0 = max(1.0e-1 * ufreestream / charlength, u_ct_val(i, 1, 2) / leftv(1))
-!       wally=ielem_walldist(i)
-!
-!
-!               !calculate here k and omega gradients
-!                   omx=rec_grads(i,5,1)
-!                   omy=rec_grads(i,5,2)
-!                   omz=rec_grads(i,5,3)
-!                   kx=rec_grads(i,4,1)
-!                   ky=rec_grads(i,4,2)
-!                   kz=rec_grads(i,4,3)
-!
-!                   dervk_dervom= kx*omx+ky*omy+kz*omz
-!
-!                         !parameters
-!
-!                         !-----needed in diffusion--------
-!                         d_omplus=max(2*leftv(1)/sigma_om2/om_0*dervk_dervom, 1e-10)
-!                         phi_2=max(sqrt(k_0)/(0.09*om_0*wally),500.0*viscl(1)/(leftv(1)*wally*wally*om_0))
-!                         phi_1=min(phi_2, 4.0*leftv(1)*k_0/(sigma_om2*d_omplus*wally*wally))
-!
-!                                 f_1=tanh(phi_1**4)
-!                                 f_2=tanh(phi_2**2)
-!                                 !--------------------------------
-!
-!
-!                                 alpha_inf=f_1*alpha_inf1+(1.0-f_1)*alpha_inf2
-!                                 alpha_star=alpha_starinf
-!                                 alpha_raw=alpha_inf
-!
-!
-!                                 beta_i=f_1*beta_i1+(1.0-f_1)*beta_i2
-!                                 alpha_star0_local=beta_i/3.0
-!                                 beta_stari=beta_starinf
-!
-!
-!
-!
-!                                 lowre=0
-!                                 !low-re correction------------------------------------------------------------------
-!
-!                                 if (lowre.eq.1) then
-!                                 re_t_sst=leftv(1)*k_0/(viscl(1)*om_0)  !limiters for this???
-!
-!                                 alpha_star=alpha_starinf*(alpha_star0_local+re_t_sst/r_k_sst)/(1.0+re_t_sst/r_k_sst)
-!                                 alpha_raw=alpha_inf/alpha_star*(alpha_0+re_t_sst/r_om_sst)/(1.0+re_t_sst/r_om_sst)
-!
-!                                 beta_stari=beta_starinf*(4.0/15.0+(re_t_sst/r_beta)**4)/(1.0+(re_t_sst/r_beta)**4)
-!
-!                                 end if
-!                                       !--------------------------------------------------------------------------
-!
-!                                       !no mach number corrections for the beta
-!                                       beta_star=beta_stari
-!                                       beta_raw=beta_i
-!
-!
-!                                       !production terms
-!                                               !production of k
-!                                               if (vort_model.eq.1) then
-!                                                       prod_k=viscl(3)*onorm*snorm!-2.0/3.0*leftv(1)*k_0*divnorm
-!                                                       prod_om=alpha_raw*leftv(1)*snorm*onorm
-!                                               else
-!                                                       !prod_k=viscl(3)*snorm**2
-!                                                       !exact formulation:
-!                                                       prod_k=viscl(3)*(snorm**2)!-2.0/3.0*divnorm*divnorm)-2.0/3.0*leftv(1)*k_0*divnorm
-!                                                       prod_k=min(prod_k,10.0*leftv(1)*beta_star*k_0*om_0)
-!
-!                                                       !intelligent way of limiting:
-!                                                       !prod_k=min(prod_k,max(10.0*leftv(1)*beta_star*k_0*om_0,&
-!                                                       !            viscl(3)*onorm*snorm!-2.0/3.0*leftv(1)*k_0*divnorm))
-!
-!
-!                                                       !production of omega  (menter does this before correcting prod_k,
-!                                                       !but in  article of 2003 he applies the correction to both)
-!                                                       prod_om=alpha_raw*leftv(1)*snorm**2
-!                                       !                 prod_om=min(prod_om,10.0*leftv(1)*beta_star*om_0*om_0)
-!                                               end if
-!
-!                                       !destruction terms
-!                                               !destruction of k
-!                                               ydest_k=leftv(1)*beta_star*k_0*om_0
-!                                               !destruction of omega
-!                                               ydest_om=leftv(1)*beta_raw*om_0*om_0
-!
-!                                       !crossed-diffusion term
-!                                               !crossed diffusion of omega
-!                                               diff_om=2.0*(1-f_1)*leftv(1)/(om_0*sigma_om2)*dervk_dervom
-!
-!
-!                                 !qsas term: scale adaptive
-!                                         if (qsas_model.eq.1) then  !<------------!!!!!!!!!!!!!!!!!!!
-!                                                 !calculate here second derivative of u
-!                                                 !declare all variables
-!                                                       do iex=1,3
-!                                                         vortet(iex,1:3)=rec_grads(i,3+turbulenceequations+iex,1:3)
-!
-!                                                       end do
-!
-!                                                 uxx=vortet(1,1) ; uyy=vortet(1,2); uzz=vortet(1,3)
-!                                                 vxx=vortet(2,1) ; vyy=vortet(2,2); vzz=vortet(2,3)
-!                                                 wxx=vortet(3,1) ; wyy=vortet(3,2); wzz=vortet(3,3)
-!                                                 !compute here cell volume
-!                                                 cell_volume=ielem_totvolume(i)
-!
-!                                                 u_lapl=sqrt((uxx+uyy+uzz)**2+(vxx+vyy+vzz)**2+(wxx+wyy+wzz)**2)
-!                                                 dervk2=kx*kx+ky*ky+kz*kz
-!                                                 dervom2=omx*omx+omy*omy+omz*omz
-!
-!                                                 delta_cell=cell_volume**0.333333333333333
-!
-!                                                 l_sas=sqrt(k_0)/(beta_star**0.25*om_0)
-!                                                 l_vk=max(kappa*snorm/u_lapl, &       !this switch provides high wave-number damping
-!                                                         c_smg*delta_cell*sqrt(kappa*eta2_sas/(beta_raw/beta_star-alpha_raw)))
-!
-!                                                 q_sas1=leftv(1)*eta2_sas*kappa*snorm**2*(l_sas/l_vk)**2
-!                                                 q_sas2= -c_sas*2*leftv(1)*k_0/sigma_phi*max(dervk2/k_0**2,dervom2/om_0**2)
-!
-!                                                 q_sas=max(q_sas1+q_sas2,0.0)
-!                                         else
-!                                         q_sas=zero
-!                                         end if
-!
-!                                     !final source terms
-!
-!
-!                                             !des-sst model (if qsas_model=2)
-!                                             if (qsas_model .eq.2) then
-!                                             cell_volume=ielem_totvolume(i)
-!                                             delta_cell=cell_volume**0.333333333333333
-!                                             l_t_des=sqrt(k_0)/(beta_star*om_0)
-!                                             f_des_sst=max(1.0, l_t_des/(c_des_sst*delta_cell)*(1-f_2))
-!                                             !the (1-f_2) is meant to protect the boundary layer. will result in same
-!                                             !separation point that standard s-a
-!                                             ydest_k=f_des_sst*ydest_k
-!                                             end if
-!
-!                                     srcfull_k=prod_k-ydest_k
-!                                     srcfull_om=prod_om-ydest_om+diff_om+q_sas
-
-         !filling the output vector
-         source_t(1) = beta_starinf * om_0
-         source_t(2) = beta_starinf * k_0
+      case (2) ! SST frozen-coefficient destruction Jacobian, dS/d(rho*k,rho*omega)
+         call sst_destruction_diagonal(n, i, 3, source_t)
 
       end select
 
@@ -2666,7 +2644,27 @@ contains
       integer, intent(in) :: n
       integer :: i, kmaxe
 
+      if (.not.sources_required_2d()) return
+      call sa_rc_prepare(n)
       kmaxe = xmpielrank(n)
+      if(axisymmetric_enabled==1) then
+#ifdef xpu
+!$omp target teams distribute parallel do firstprivate(n,kmaxe) private(i) &
+!$omp& map(alloc: axis_radius,ielem_totvolume,ielem_walldist,u_c_val,u_ct_val,rec_grads,rhs_val,rhst_val) &
+!$omp& map(alloc: gamma_in,mp_janaf,mp_m,mp_pinf,mp_thigh_in,mp_tlow_in,mp_tmid_in,rg_hzero,rg_molm) &
+!$omp& map(alloc: rg_thetag,rgs_ab,rgs_bb,rgs_cb,rgs_eps_over_k,rgs_mg,rgs_sigmaa)
+#else
+!$omp do private(i)
+#endif
+         do i=1,kmaxe
+            call sources_axisymmetric_cell(n,i)
+         end do
+#ifdef xpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+      end if
       if ((turbulence .eq. 1) .and. (kmaxe .gt. 0)) then
 #ifdef xpu
 !$omp target teams distribute parallel do &
@@ -2736,6 +2734,7 @@ contains
 !$omp declare target
 #endif
       integer, intent(in) :: n, iconsidered
+      if (axisymmetric_enabled==1) call sources_axisymmetric_cell(n,iconsidered)
       if (turbulence .eq. 1) call sources_computation2d_turb_cell(n, iconsidered)
       if ((realgas .eq. 1) .and. (rg_relax .eq. 2)) call sources_computation2d_realgas_cell(n, iconsidered)
 
@@ -2858,7 +2857,15 @@ contains
       real, dimension(1:2) :: turbmv
       real, dimension(1) :: etvm
 
+      real :: rc_src, rc_jac
+
       i = iconsidered
+      if (turbulencemodel == 1) then
+         call sources_sa_rc(n, i, rc_src, rc_jac)
+         source_t(1) = rc_src
+         return
+      end if
+
 
       verysmall = 10e-16
 
@@ -2883,6 +2890,9 @@ contains
          & (ovort(2, 1) * ovort(2, 1)) + (ovort(2, 2) * ovort(2, 2))))
       omega = onorm
 
+      wz=0.0
+      if (axisymmetric_enabled==1) wz=u_c_val(i,1,3)/(u_c_val(i,1,1)*axis_radius(i))
+      if (axisymmetric_enabled==1) snorm=sqrt(snorm**2+2.0*wz**2)
       divnorm = ux + vy + wz !careful with the sign. if it becomes very big, it can produce negative production
 
       usss = sqrt((2.0 * ((ux * ux) + (vy * vy))) &
@@ -2903,79 +2913,6 @@ contains
 
       select case (turbulencemodel)
 
-      case (1) !! spalart–almaras model (compressible ρν~ formulation)
-
-         ! optional rotation/curvature correction
-         if (rot_corr .eq. 1) then
-            omega = omega + 2.00 * min(0.00, snorm - onorm)
-         end if
-
-         eddyfl(2) = turbmv(1)
-         eddyfr(2) = turbmv(1)
-
-         call eddyvisco2d(n, viscl, laml, turbmv, etvm, eddyfl, eddyfr, leftv, rightv)
-
-         rho = leftv(1)
-         nu = viscl(1) / rho
-         nu_tilde = turbmv(1) / rho ! convert φ = ρ ν~  →  ν~
-         nu_tilde = max(nu_tilde, 1.0e-12 * visc)
-
-         ! χ = ν~/ν
-         tch_x = nu_tilde / nu
-         tch_x3 = tch_x * tch_x * tch_x
-
-         ! fv1
-         tch_fv1 = tch_x3 / (tch_x3 + (cv1 * cv1 * cv1))
-
-         ! fv2
-         tch_fv2 = 1.00 - tch_x / (1.00 + tch_x * tch_fv1)
-
-         ! physical wall distance
-         ddw = ielem_walldist(i)
-         ddw = max(ddw, 10e-12)
-
-         ! --- des correction ---
-         if (des_model .eq. 1) then
-            cell_volume = ielem_totvolume(i)
-            delta_cell = exp((1.00 / 3.00) * log(cell_volume))
-            ddw = min(ddw, c_des_sa * delta_cell)
-         end if
-
-         if (des_model .eq. 2) then
-            cell_volume = ielem_totvolume(i)
-            delta_cell = exp((1.00 / 3.00) * log(cell_volume))
-
-            r_des = min(10.00, (viscl(1) + viscl(3)) / (snorm * (kappa * ddw)**2 + 1.0e-16))
-            f_des = 1.00 - tanh((8.00 * r_des)**3)
-
-            ddw = max(ddw - f_des * max(ddw - c_des_sa * delta_cell, 1.0e-16), 1.0e-16)
-         end if
-
-         ! --- stilde ---
-         prodterm1 = (nu_tilde) / (kappa * kappa * ddw * ddw)
-         stild = max(omega + tch_fv2 * prodterm1, 0.30 * omega)
-
-         ! --- production term ---
-         prodtermfinal = cb1 * rho * nu_tilde * stild
-
-         ! --- destruction term ---
-         rr = (nu_tilde) / (kappa * kappa * ddw * ddw * stild + 1.0e-20)
-         rr = min(rr, 10.00)
-
-         gg = rr + cw2 * (rr**6 - rr)
-         fw = gg * (exp((1.00 / 6.00) * log((1.00 + cw3**6) / (gg**6 + cw3**6))))
-
-         destterm = cw1 * fw * rho * (nu_tilde / ddw)**2
-
-         ! --- diffusion model ---
-         ! 1/sigma * [ (mu+ρν~) laplacian(nu~)  +  cb2 ρ |grad(nu~)|² ]
-         ! here squaret = |grad(nu~)|²  (your notation)
-
-         difterm = (cb2 * rho * squaret) / sigma
-
-         ! total source:
-         source_t(1) = transition_source_factor(i) * (prodtermfinal + difterm - destterm)
-
       case (2) !k omega sst
 
          eddyfl(1) = ielem_walldist(i)
@@ -2988,8 +2925,8 @@ contains
 
          call eddyvisco2d(n, viscl, laml, turbmv, etvm, eddyfl, eddyfr, leftv, rightv)
          k_0 = (max(verysmall, u_ct_val(i, 1, 1) / leftv(1))) !first subindex makes reference to the time-stepping
-         om_0 = max(1.0e-1 * ufreestream / charlength, u_ct_val(i, 1, 2) / leftv(1))
-         wally = ielem_walldist(i)
+         om_0 = max(1.0e-6, u_ct_val(i, 1, 2) / leftv(1))
+         wally = max(ielem_walldist(i),1.0e-15)
 
          !calculate here k and omega gradients
          omx = rec_grads(i, nof_variables + 1, 1)
@@ -3000,63 +2937,20 @@ contains
 
          dervk_dervom = kx * omx + ky * omy
 
-         !parameters
+         call sst_blending(leftv(1), viscl(1), k_0, om_0, wally, dervk_dervom, f_1, f_2)
+         alpha_raw = f_1 * alpha_inf1 + (1.0-f_1) * alpha_inf2
+         beta_star = beta_starinf
+         beta_raw = f_1 * beta_i1 + (1.0-f_1) * beta_i2
 
-         !-----needed in diffusion--------
-         d_omplus = max(2 * leftv(1) / sigma_om2 / om_0 * dervk_dervom, 1e-10)
-         phi_2 = max(sqrt(k_0) / (0.09 * om_0 * wally), 500.0 * viscl(1) / (leftv(1) * wally * wally * om_0))
-         phi_1 = min(phi_2, 4.0 * leftv(1) * k_0 / (sigma_om2 * d_omplus * wally * wally))
-
-         f_1 = tanh(phi_1**4)
-         f_2 = tanh(phi_2**2)
-         !--------------------------------
-
-         alpha_inf = f_1 * alpha_inf1 + (1.0 - f_1) * alpha_inf2
-         alpha_star = alpha_starinf
-         alpha_raw = alpha_inf
-
-         beta_i = f_1 * beta_i1 + (1.0 - f_1) * beta_i2
-         alpha_star0_local = beta_i / 3.0
-         beta_stari = beta_starinf
-
-         lowre = 0
-         !low-re correction------------------------------------------------------------------
-
-         if (lowre .eq. 1) then
-            re_t_sst = leftv(1) * k_0 / (viscl(1) * om_0) !limiters for this???
-
-            alpha_star = alpha_starinf * (alpha_star0_local + re_t_sst / r_k_sst) / (1.0 + re_t_sst / r_k_sst)
-            alpha_raw = alpha_inf / alpha_star * (alpha_0 + re_t_sst / r_om_sst) / (1.0 + re_t_sst / r_om_sst)
-
-            beta_stari = beta_starinf * (4.0 / 15.0 + (re_t_sst / r_beta)**4) / (1.0 + (re_t_sst / r_beta)**4)
-
-         end if
-         !--------------------------------------------------------------------------
-
-         !no mach number corrections for the beta
-         beta_star = beta_stari
-         beta_raw = beta_i
-
-         !production terms
-         !production of k
-         if (vort_model .eq. 1) then
-            prod_k = viscl(3) * onorm * snorm !-2.0/3.0*leftv(1)*k_0*divnorm
-            prod_om = alpha_raw * leftv(1) * snorm * onorm
+         ! SST-2003m: use the same limited production in both equations.
+         ! vort_model=1 remains the explicitly selected Kato-Launder variant.
+         if (vort_model == 1) then
+            prod_k = viscl(3) * snorm * onorm
          else
-            !prod_k=viscl(3)*snorm**2
-            !exact formulation:
-            prod_k = viscl(3) * (snorm**2) !-2.0/3.0*divnorm*divnorm)-2.0/3.0*leftv(1)*k_0*divnorm
-            prod_k = min(prod_k, 10.0 * leftv(1) * beta_star * k_0 * om_0)
-
-            !intelligent way of limiting:
-            !prod_k=min(prod_k,max(10.0*leftv(1)*beta_star*k_0*om_0,&
-            !            viscl(3)*onorm*snorm!-2.0/3.0*leftv(1)*k_0*divnorm))
-
-            !production of omega  (menter does this before correcting prod_k,
-            !but in  article of 2003 he applies the correction to both)
-            prod_om = alpha_raw * leftv(1) * snorm**2
-            !                 prod_om=min(prod_om,10.0*leftv(1)*beta_star*om_0*om_0)
+            prod_k = viscl(3) * snorm**2
          end if
+         prod_k = min(prod_k, 10.0 * leftv(1) * beta_star * k_0 * om_0)
+         prod_om = alpha_raw * prod_k * leftv(1) / max(viscl(3),1.0e-30)
 
          !destruction terms
          !destruction of k
@@ -3161,7 +3055,15 @@ contains
       real, dimension(1:2) :: turbmv
       real, dimension(1) :: etvm
 
+      real :: rc_src, rc_jac
+
       i = iconsidered
+      if (turbulencemodel == 1) then
+         call sources_sa_rc(n, i, rc_src, rc_jac)
+         source_t(1) = rc_jac
+         return
+      end if
+
 
       verysmall = 10e-16
 
@@ -3186,7 +3088,10 @@ contains
          & (ovort(2, 1) * ovort(2, 1)) + (ovort(2, 2) * ovort(2, 2))))
       omega = onorm
 
-      divnorm = ux + vy !careful with the sign. if it becomes very big, it can produce negative production
+      wz=0.0
+      if (axisymmetric_enabled==1) wz=u_c_val(i,1,3)/(u_c_val(i,1,1)*axis_radius(i))
+      if (axisymmetric_enabled==1) snorm=sqrt(snorm**2+2.0*wz**2)
+      divnorm = ux + vy + wz !careful with the sign. if it becomes very big, it can produce negative production
 
       usss = sqrt((2.0 * ((ux * ux) + (vy * vy))) &
          & + ((uy + vx) * (uy + vx)) &
@@ -3205,263 +3110,8 @@ contains
 
       select case (turbulencemodel)
 
-      case (1) !!spalart almaras model
-
-         ! (compressible ρν~ formulation)
-
-         rho = leftv(1)
-         nu = viscl(1) / rho
-         nu_tilde = turbmv(1) / rho ! convert φ=ρν~ → ν~
-         nu_tilde = max(nu_tilde, 1.0e-12 * visc)
-
-         ! χ
-         tch_x = nu_tilde / nu
-         tch_x3 = tch_x * tch_x * tch_x
-
-         tch_fv1 = tch_x3 / (tch_x3 + cv1 * cv1 * cv1)
-         tch_fv2 = 1.00 - tch_x / (1.00 + tch_x * tch_fv1)
-
-         ddw = ielem_walldist(i)
-         ddw = max(ddw, 10e-12)
-
-         ! ----- des corrections -----
-         if (des_model .eq. 1) then
-            cell_volume = ielem_totvolume(i)
-            delta_cell = exp((1.00 / 3.00) * log(cell_volume))
-            ddw = min(ddw, c_des_sa * delta_cell)
-         end if
-
-         if (des_model .eq. 2) then
-            cell_volume = ielem_totvolume(i)
-            delta_cell = exp((1.00 / 3.00) * log(cell_volume))
-
-            r_des = min(10.00, (viscl(1) + viscl(3)) / &
-               & (snorm * (kappa * ddw)**2 + 1.0e-16))
-            f_des = 1.00 - tanh((8.00 * r_des)**3)
-
-            ddw = max(ddw - f_des * max(ddw - c_des_sa * delta_cell, 1.0e-16), &
-               & 1.0e-16)
-         end if
-
-         ! ----- stilde -----
-         prodterm1 = nu_tilde / (kappa * kappa * ddw * ddw)
-
-         stild = max(omega + tch_fv2 * prodterm1, 0.30 * omega)
-
-         !--------------------------
-         !       production
-         !--------------------------
-         prod = cb1 * rho * nu_tilde * stild
-
-         ! d(prod)/d(ρν~)
-         dstild_dnut = &
-            & tch_fv2 / (kappa * kappa * ddw * ddw) ! only active if stild=ω+fv2*prodterm1
-
-         if (stild .eq. 0.30 * omega) dstild_dnut = 0.00
-
-         dprod_dnut = &
-            & cb1 * (stild + nu_tilde * dstild_dnut)
-
-         !--------------------------
-         !       destruction
-         !--------------------------
-         rr = nu_tilde / (kappa * kappa * ddw * ddw * stild + 1.0e-20)
-         rr = min(rr, 10.00)
-
-         gg = rr + cw2 * (rr**6 - rr)
-         fw = gg * exp((1.00 / 6.00) * log((1.00 + cw3**6) / (gg**6 + cw3**6)))
-
-         dest = cw1 * fw * rho * (nu_tilde / ddw)**2
-
-         ! d(fw)/d(rr)
-         dgg_drr = 1.00 + cw2 * (6.00 * rr**5 - 1.00)
-
-         dfw_dgg = &
-            & exp((1.00 / 6.00) * log((1.00 + cw3**6) / (gg**6 + cw3**6))) &
-            & * (1.00 - (gg**6 / (gg**6 + cw3**6)))
-
-         dfw_drr = dfw_dgg * dgg_drr
-
-         ! drr/d(ρν~)
-         drr_dnut = &
-            & (kappa * kappa * ddw * ddw * stild - nu_tilde * kappa * kappa * ddw * ddw * dstild_dnut) &
-            & / (kappa * kappa * ddw * ddw * stild + 1.0e-20)**2
-
-         ! destruction derivative
-         ddest_dnut = &
-            & cw1 * (dfw_drr * drr_dnut * rho * (nu_tilde / ddw)**2 &
-            & + fw * rho * 2.00 * (nu_tilde / ddw**2) / ddw)
-
-         !--------------------------
-         !       diffusion
-         !--------------------------
-         ! your model:  dif = cb2*rho*|∇ν~|² / σ
-         dif = cb2 * rho * squaret / sigma
-
-         ! jacobian:
-         ! d(|grad(ν~)|²) / d(ρν~) = 0  (no dependence on ν~ itself)
-         ddif_dnut = 0.00
-
-         !--------------------------
-         !     total jacobian
-         !--------------------------
-         source_t(1) = transition_source_factor(i) * (dprod_dnut + ddif_dnut - ddest_dnut)
-
-      case (2) !k omega sst
-
-         eddyfl(1) = ielem_walldist(i)
-         eddyfl(2) = u_ct_val(i, 1, 1)
-         eddyfl(3) = u_ct_val(i, 1, 2)
-         call fill_turbulence_gradients(2, i, eddyfl)
-
-
-         eddyfr = eddyfl
-
-         call eddyvisco2d(n, viscl, laml, turbmv, etvm, eddyfl, eddyfr, leftv, rightv)
-         k_0 = (max(verysmall, u_ct_val(i, 1, 1) / leftv(1))) !first subindex makes reference to the time-stepping
-         om_0 = max(1.0e-1 * ufreestream / charlength, u_ct_val(i, 1, 2) / leftv(1))
-!       wally=ielem_walldist(i)
-!
-!
-!               !calculate here k and omega gradients
-!                   omx=rec_grads(i,5,1)
-!                   omy=rec_grads(i,5,2)
-!                   omz=rec_grads(i,5,3)
-!                   kx=rec_grads(i,4,1)
-!                   ky=rec_grads(i,4,2)
-!                   kz=rec_grads(i,4,3)
-!
-!                   dervk_dervom= kx*omx+ky*omy+kz*omz
-!
-!                         !parameters
-!
-!                         !-----needed in diffusion--------
-!                         d_omplus=max(2*leftv(1)/sigma_om2/om_0*dervk_dervom, 1e-10)
-!                         phi_2=max(sqrt(k_0)/(0.09*om_0*wally),500.0*viscl(1)/(leftv(1)*wally*wally*om_0))
-!                         phi_1=min(phi_2, 4.0*leftv(1)*k_0/(sigma_om2*d_omplus*wally*wally))
-!
-!                                 f_1=tanh(phi_1**4)
-!                                 f_2=tanh(phi_2**2)
-!                                 !--------------------------------
-!
-!
-!                                 alpha_inf=f_1*alpha_inf1+(1.0-f_1)*alpha_inf2
-!                                 alpha_star=alpha_starinf
-!                                 alpha_raw=alpha_inf
-!
-!
-!                                 beta_i=f_1*beta_i1+(1.0-f_1)*beta_i2
-!                                 alpha_star0_local=beta_i/3.0
-!                                 beta_stari=beta_starinf
-!
-!
-!
-!
-!                                 lowre=0
-!                                 !low-re correction------------------------------------------------------------------
-!
-!                                 if (lowre.eq.1) then
-!                                 re_t_sst=leftv(1)*k_0/(viscl(1)*om_0)  !limiters for this???
-!
-!                                 alpha_star=alpha_starinf*(alpha_star0_local+re_t_sst/r_k_sst)/(1.0+re_t_sst/r_k_sst)
-!                                 alpha_raw=alpha_inf/alpha_star*(alpha_0+re_t_sst/r_om_sst)/(1.0+re_t_sst/r_om_sst)
-!
-!                                 beta_stari=beta_starinf*(4.0/15.0+(re_t_sst/r_beta)**4)/(1.0+(re_t_sst/r_beta)**4)
-!
-!                                 end if
-!                                       !--------------------------------------------------------------------------
-!
-!                                       !no mach number corrections for the beta
-!                                       beta_star=beta_stari
-!                                       beta_raw=beta_i
-!
-!
-!                                       !production terms
-!                                               !production of k
-!                                               if (vort_model.eq.1) then
-!                                                       prod_k=viscl(3)*onorm*snorm!-2.0/3.0*leftv(1)*k_0*divnorm
-!                                                       prod_om=alpha_raw*leftv(1)*snorm*onorm
-!                                               else
-!                                                       !prod_k=viscl(3)*snorm**2
-!                                                       !exact formulation:
-!                                                       prod_k=viscl(3)*(snorm**2)!-2.0/3.0*divnorm*divnorm)-2.0/3.0*leftv(1)*k_0*divnorm
-!                                                       prod_k=min(prod_k,10.0*leftv(1)*beta_star*k_0*om_0)
-!
-!                                                       !intelligent way of limiting:
-!                                                       !prod_k=min(prod_k,max(10.0*leftv(1)*beta_star*k_0*om_0,&
-!                                                       !            viscl(3)*onorm*snorm!-2.0/3.0*leftv(1)*k_0*divnorm))
-!
-!
-!                                                       !production of omega  (menter does this before correcting prod_k,
-!                                                       !but in  article of 2003 he applies the correction to both)
-!                                                       prod_om=alpha_raw*leftv(1)*snorm**2
-!                                       !                 prod_om=min(prod_om,10.0*leftv(1)*beta_star*om_0*om_0)
-!                                               end if
-!
-!                                       !destruction terms
-!                                               !destruction of k
-!                                               ydest_k=leftv(1)*beta_star*k_0*om_0
-!                                               !destruction of omega
-!                                               ydest_om=leftv(1)*beta_raw*om_0*om_0
-!
-!                                       !crossed-diffusion term
-!                                               !crossed diffusion of omega
-!                                               diff_om=2.0*(1-f_1)*leftv(1)/(om_0*sigma_om2)*dervk_dervom
-!
-!
-!                                 !qsas term: scale adaptive
-!                                         if (qsas_model.eq.1) then  !<------------!!!!!!!!!!!!!!!!!!!
-!                                                 !calculate here second derivative of u
-!                                                 !declare all variables
-!                                                       do iex=1,3
-!                                                         vortet(iex,1:3)=rec_grads(i,3+turbulenceequations+iex,1:3)
-!
-!                                                       end do
-!
-!                                                 uxx=vortet(1,1) ; uyy=vortet(1,2); uzz=vortet(1,3)
-!                                                 vxx=vortet(2,1) ; vyy=vortet(2,2); vzz=vortet(2,3)
-!                                                 wxx=vortet(3,1) ; wyy=vortet(3,2); wzz=vortet(3,3)
-!                                                 !compute here cell volume
-!                                                 cell_volume=ielem_totvolume(i)
-!
-!                                                 u_lapl=sqrt((uxx+uyy+uzz)**2+(vxx+vyy+vzz)**2+(wxx+wyy+wzz)**2)
-!                                                 dervk2=kx*kx+ky*ky+kz*kz
-!                                                 dervom2=omx*omx+omy*omy+omz*omz
-!
-!                                                 delta_cell=cell_volume**0.333333333333333
-!
-!                                                 l_sas=sqrt(k_0)/(beta_star**0.25*om_0)
-!                                                 l_vk=max(kappa*snorm/u_lapl, &       !this switch provides high wave-number damping
-!                                                         c_smg*delta_cell*sqrt(kappa*eta2_sas/(beta_raw/beta_star-alpha_raw)))
-!
-!                                                 q_sas1=leftv(1)*eta2_sas*kappa*snorm**2*(l_sas/l_vk)**2
-!                                                 q_sas2= -c_sas*2*leftv(1)*k_0/sigma_phi*max(dervk2/k_0**2,dervom2/om_0**2)
-!
-!                                                 q_sas=max(q_sas1+q_sas2,0.0)
-!                                         else
-!                                         q_sas=zero
-!                                         end if
-!
-!                                     !final source terms
-!
-!
-!                                             !des-sst model (if qsas_model=2)
-!                                             if (qsas_model .eq.2) then
-!                                             cell_volume=ielem_totvolume(i)
-!                                             delta_cell=cell_volume**0.333333333333333
-!                                             l_t_des=sqrt(k_0)/(beta_star*om_0)
-!                                             f_des_sst=max(1.0, l_t_des/(c_des_sst*delta_cell)*(1-f_2))
-!                                             !the (1-f_2) is meant to protect the boundary layer. will result in same
-!                                             !separation point that standard s-a
-!                                             ydest_k=f_des_sst*ydest_k
-!                                             end if
-!
-!                                     srcfull_k=prod_k-ydest_k
-!                                     srcfull_om=prod_om-ydest_om+diff_om+q_sas
-
-         !filling the output vector
-         source_t(1) = beta_starinf * om_0
-         source_t(2) = beta_starinf * k_0
+      case (2) ! SST frozen-coefficient destruction Jacobian, dS/d(rho*k,rho*omega)
+         call sst_destruction_diagonal(n, i, 2, source_t)
 
       end select
 
@@ -3471,4 +3121,368 @@ contains
 ! tables are unchanged after startup and already have valid host copies.
 
 
+   ! Spalart--Shur SA-noft2-RC algebra, shared by CPU and OpenMP target callers.
+   ! Shur et al., AIAA J. 38(5), 2000. Geometry preparation assumes a fixed mesh.
+   real function sa_rc_factor(grad_u, material_strain) result(fr1)
+#ifdef xpu
+!$omp declare target
+#endif
+      real, intent(in) :: grad_u(3,3), material_strain(3,3)
+      real :: s(3,3), w(3,3), a(3,3), ds(3,3), scale, sn, wn, d2, rt
+      integer :: i, j, k
+      scale = maxval(abs(grad_u))
+      fr1 = 1.0
+      if (scale <= tiny(1.0)**0.25) return
+      a = grad_u / scale
+      s = 0.5*(a + transpose(a)); w = 0.5*(a - transpose(a))
+      ! Scaling avoids fourth powers of dimensional strain/vorticity.
+      ds = (material_strain / scale) / scale
+      sn = sqrt(2.0*sum(s*s)); wn = sqrt(2.0*sum(w*w))
+      d2 = 0.5*(sn*sn + wn*wn)
+      rt = 0.0
+      do k = 1, 3
+         do j = 1, 3
+            do i = 1, 3
+               rt = rt + 2.0*w(i,k)*s(j,k)*ds(i,j)
+            end do
+         end do
+      end do
+      rt = rt/(d2*d2)
+      ! cr1=1, cr2=12, cr3=1. No Fluent-style [0,1.25] clipping.
+      ! S/(S+omega) is r*/(1+r*) without division by zero at omega=0.
+      fr1 = 4.0*sn/(sn+wn)*(1.0-atan(12.0*rt))-1.0
+   end function sa_rc_factor
+
+   subroutine sa_noft2_rc_source(rho, mu, phi, omega, distance, grad_nut_sq, fr1, nut_floor, &
+                               cb1, cb2, cv1, cw1, cw2, cw3, kap, sig, src, jac, rotation_delta)
+#ifdef xpu
+!$omp declare target
+#endif
+      real, intent(in) :: rho, mu, phi, omega, distance, grad_nut_sq, fr1, nut_floor
+      real, intent(in) :: cb1, cb2, cv1, cw1, cw2, cw3, kap, sig
+      real, intent(out) :: src, jac
+      real, intent(in), optional :: rotation_delta
+      real :: rotprod
+      real :: nut, nu, chi, chi3, cv13, fv1, fv2, dfv1, dfv2, den, kd2
+      real :: st, dst, rr, dr, gg, dg, fw, dfw, ff, d, prod, dest, dif
+      nut = max(phi/rho, nut_floor); nu = mu/rho
+      d = max(distance, 1.0e-11); kd2 = (kap*d)**2
+      chi = nut/nu; chi3 = chi**3; cv13 = cv1**3
+      fv1 = chi3/(chi3+cv13)
+      dfv1 = 3.0*chi**2*cv13/((chi3+cv13)**2*nu)
+      den = 1.0+chi*fv1
+      fv2 = 1.0-chi/den
+      dfv2 = -(1.0/nu-chi*chi*dfv1)/(den*den)
+      st = omega + fv2*nut/kd2
+      dst = (fv2+nut*dfv2)/kd2
+      if (st <= 0.30*omega) then
+         st = 0.30*omega; dst = 0.0
+      end if
+      ! The destruction model uses UNCORRECTED, nonnegative stilde.
+      rr = 10.0; dr = 0.0
+      if (st > 0.0) then
+         rr = nut/(kd2*st)
+         if (rr >= 10.0) then
+            rr = 10.0
+         else
+            dr = (1.0 - nut*dst/st)/(kd2*st)
+         end if
+      end if
+      gg = rr + cw2*(rr**6-rr)
+      dg = (1.0+cw2*(6.0*rr**5-1.0))*dr
+      ff = ((1.0+cw3**6)/(gg**6+cw3**6))**(1.0/6.0)
+      fw = gg*ff
+      dfw = ff*cw3**6/(gg**6+cw3**6)*dg
+      rotprod = 0.0
+      if (present(rotation_delta)) rotprod = rotation_delta
+      prod = cb1*rho*nut*(fr1*st+rotprod)
+      dest = cw1*rho*fw*(nut/d)**2
+      dif = cb2*rho*grad_nut_sq/sig
+      src = prod + dif - dest
+      ! d(src)/d(phi), phi=rho*nut, with rho, mu, gradients and fr1 frozen.
+      jac = cb1*(fr1*(st+nut*dst)+rotprod) - cw1*(dfw*(nut/d)**2+2.0*fw*nut/d**2)
+      if (phi/rho <= nut_floor) jac = 0.0
+   end subroutine sa_noft2_rc_source
+
+   subroutine sa_rc_inverse(a, ndim, ainv, ok)
+#ifdef xpu
+!$omp declare target
+#endif
+      real, intent(in) :: a(3,3)
+      integer, intent(in) :: ndim
+      real, intent(out) :: ainv(3,3)
+      logical, intent(out) :: ok
+      real :: work(3,6), row(6), pivot
+      integer :: i, j, k, p
+      work = 0.0; ainv = 0.0; ok = .false.
+      work(:,1:3) = a
+      do i = 1, ndim
+         work(i,3+i) = 1.0
+      end do
+      do k = 1, ndim
+         p = k
+         do i = k+1, ndim
+            if (abs(work(i,k)) > abs(work(p,k))) p = i
+         end do
+         if (abs(work(p,k)) <= 100.0*epsilon(1.0)*maxval(abs(a))) return
+         row = work(k,:); work(k,:) = work(p,:); work(p,:) = row
+         pivot = work(k,k); work(k,:) = work(k,:)/pivot
+         do j = 1, ndim
+            if (j == k) cycle
+            pivot = work(j,k); work(j,:) = work(j,:) - pivot*work(k,:)
+         end do
+      end do
+      ainv(1:ndim,1:ndim) = work(1:ndim,4:3+ndim)
+      ok = .true.
+   end subroutine sa_rc_inverse
+
+   real function sa_source_jacobian_for_diagonal(value, correction, model) result(value_used)
+#ifdef xpu
+!$omp declare target
+#endif
+      real, intent(in) :: value
+      integer, intent(in) :: correction, model
+      value_used = max(value,0.0)
+      ! Retain implicit destruction for every SA variant and SST. Callers
+      ! cap positive derivatives and retain their existing diagonal floor.
+      if (model == 1 .or. model == 2) value_used = value
+   end function sa_source_jacobian_for_diagonal
+
+   subroutine rc_fail(message)
+      character(*), intent(in) :: message
+      integer :: ierr
+      write(*,*) 'SA-RC error: ', trim(message)
+      call mpi_abort(mpi_comm_world, 72, ierr)
+   end subroutine
+
+   integer function rc_neighbour(i, q, rank) result(j)
+#ifdef xpu
+!$omp declare target
+#endif
+      integer, intent(in) :: i, q, rank
+      integer :: group
+      j = rec_ihexl(i,1,q)
+      if (rec_local(i) /= 0) then
+         if (rec_ihexb(rec_local(i),1,q) /= rank) then
+            group = rec_ihexn(rec_local(i),1,q)
+            j = rc_cells + halo_offset(group) + j - 1
+         end if
+      end if
+   end function
+
+   function rc_displacement(i,j) result(dx)
+#ifdef xpu
+!$omp declare target
+#endif
+      integer, intent(in) :: i,j
+      real :: dx(3)
+      if (j <= rc_cells) then
+         dx = [ielem_xxc(j),ielem_yyc(j),0.0]
+         if (dimensiona == 3) dx(3) = ielem_zzc(j)
+      else
+         dx = rc_xyz(j-rc_cells,:)
+      end if
+      dx(1) = dx(1)-ielem_xxc(i); dx(2) = dx(2)-ielem_yyc(i)
+      if (dimensiona == 3) dx(3) = dx(3)-ielem_zzc(i)
+   end function rc_displacement
+
+   subroutine rc_exchange()
+      ! Called by the master thread only. Buffers are packed by halo cell,
+      ! six values per cell; no noncontiguous MPI temporaries or device MPI.
+      integer :: g, nr, offset, count, ierr
+      nr = 0
+      do g = 1, ineedhalo
+         count = 6*halo_len(g)
+         if (count == 0) cycle
+         offset = 6*(halo_offset(g)-1)+1; nr = nr+1
+         call mpi_irecv(rc_recv(offset), count, mpi_double_precision, halo_proc(g), 4371, &
+                        mpi_comm_world, rc_requests(nr), ierr)
+      end do
+      do g = 1, ineedhalos
+         count = 6*halos_len(g)
+         if (count == 0) cycle
+         offset = 6*(halos_offset(g)-1)+1; nr = nr+1
+         call mpi_isend(rc_send(offset), count, mpi_double_precision, halos_proc(g), 4371, &
+                        mpi_comm_world, rc_requests(nr), ierr)
+      end do
+      call mpi_waitall(nr, rc_requests, mpi_statuses_ignore, ierr)
+   end subroutine
+
+   subroutine sa_rc_initialize(rank)
+      integer, intent(in) :: rank
+      integer :: i, j, q, a, b, bad, all_bad, ierr
+      real :: dx(3), v(3), aa(3,3), ai(3,3), scale(3), radius
+      logical :: ok
+      if (rot_corr /= 2 .or. turbulence /= 1 .or. turbulencemodel /= 1) return
+      if (allocated(sa_rc_fr1)) call rc_fail('initialization called twice')
+      if (.not. allocated(halo_len)) call rc_fail('higher-order halo layout is required')
+      if (halo_total > huge(0)/6 .or. halos_total > huge(0)/6) call rc_fail('local halo count overflow')
+      rc_cells = xmpielrank(rank)
+      allocate(rc_xyz(halo_total,3), rc_strain(rc_cells+halo_total,6))
+      allocate(rc_inverse(rc_cells,3,3), rc_scale(rc_cells,3), sa_rc_fr1(rc_cells))
+      allocate(rc_send(max(1,6*halos_total)), rc_recv(max(1,6*halo_total)))
+      allocate(rc_requests(max(1,ineedhalo+ineedhalos)))
+      rc_xyz = 0.0; rc_strain = 0.0; rc_inverse = 0.0; rc_scale = 1.0; sa_rc_fr1 = 1.0
+      rc_send = 0.0; rc_recv = 0.0
+      do i = 1, halos_total
+         j = solhi_loc(i)
+         rc_send(6*i-5:6*i-3) = [ielem_xxc(j),ielem_yyc(j),0.0]
+         if (dimensiona == 3) rc_send(6*i-3) = ielem_zzc(j)
+      end do
+      call rc_exchange()
+      do i = 1, halo_total
+         rc_xyz(i,:) = rc_recv(6*i-5:6*i-3)
+      end do
+      ! Inverse-distance weighted point LS, independently of the MUSCL/WENO
+      ! polynomial order. Column equilibration handles stretched wall cells.
+      bad = 0
+!$omp parallel do private(i,j,q,a,b,dx,v,aa,ai,scale,radius,ok) reduction(+:bad)
+      do i = 1, rc_cells
+         scale = 0.0
+         do q = 2, ielem_inumneighbours(i)
+            j = rc_neighbour(i,q,rank)
+            dx = rc_displacement(i,j)
+            radius = sqrt(sum(dx*dx))
+            if (radius <= tiny(1.0)**0.25) cycle
+            scale = max(scale,abs(dx/radius))
+         end do
+         scale = max(scale, tiny(1.0)**0.25)
+         aa = 0.0
+         do q = 2, ielem_inumneighbours(i)
+            j = rc_neighbour(i,q,rank)
+            dx = rc_displacement(i,j)
+            radius = sqrt(sum(dx*dx))
+            if (radius <= tiny(1.0)**0.25) cycle
+            v = dx/radius/scale
+            do b = 1, dimensiona
+               do a = 1, dimensiona
+                  aa(a,b) = aa(a,b) + v(a)*v(b)
+               end do
+            end do
+         end do
+         call sa_rc_inverse(aa, dimensiona, ai, ok)
+         if (.not. ok) bad = bad+1
+         rc_inverse(i,:,:) = ai; rc_scale(i,:) = scale
+      end do
+!$omp end parallel do
+      call mpi_allreduce(bad, all_bad, 1, mpi_integer, mpi_sum, mpi_comm_world, ierr)
+      if (all_bad > 0) then
+         if (rank == 0) write(*,*) 'SA-RC rank-deficient central stencils: ', all_bad
+         call rc_fail('strain-gradient stencil cannot resolve all spatial directions')
+      end if
+#ifdef xpu
+!$omp target enter data map(to: rc_xyz, rc_strain, rc_inverse, rc_scale, rc_send, rc_recv, sa_rc_fr1, rc_cells)
+#endif
+      if (rank == 0) write(*,*) 'SA-noft2-RC: steady Spalart-Shur; cr=(1,12,1); unclipped fr1; strain LS + MPI halos'
+   end subroutine
+
+   subroutine sa_rc_prepare(rank)
+      integer, intent(in) :: rank
+      integer :: i, j, a, b, k, q, c
+      real :: gu(3,3), strain(3,3), ds(3,3), material(6), rhs(3,6), grad(3), dx(3), v(3), vel(3), radius
+      if (rot_corr /= 2 .or. turbulence /= 1 .or. turbulencemodel /= 1) return
+      ! Every thread enters this routine; all MPI calls are funneled to master.
+#ifdef xpu
+!$omp target teams distribute parallel do private(i,gu,strain) firstprivate(dimensiona,rc_cells) &
+!$omp& map(alloc: rec_grads,rc_strain)
+#else
+!$omp do private(i,gu,strain)
+#endif
+      do i = 1, rc_cells
+         gu = 0.0; gu(1:dimensiona,1:dimensiona) = rec_grads(i,1:dimensiona,1:dimensiona)
+         strain = 0.5*(gu+transpose(gu))
+         rc_strain(i,:) = [strain(1,1),strain(2,2),strain(3,3),strain(1,2),strain(1,3),strain(2,3)]
+      end do
+#ifdef xpu
+!$omp end target teams distribute parallel do
+!$omp target teams distribute parallel do private(i,c) firstprivate(halos_total) &
+!$omp& map(alloc: rc_send,rc_strain,solhi_loc)
+#else
+!$omp end do
+!$omp do private(i,c)
+#endif
+      do i = 1, halos_total
+         do c = 1, 6
+            rc_send(6*(i-1)+c) = rc_strain(solhi_loc(i),c)
+         end do
+      end do
+#ifdef xpu
+!$omp end target teams distribute parallel do
+!$omp target update from(rc_send)
+#else
+!$omp end do
+#endif
+!$omp master
+      call rc_exchange()
+!$omp end master
+!$omp barrier
+#ifdef xpu
+!$omp target update to(rc_recv)
+!$omp target teams distribute parallel do private(i,c) firstprivate(halo_total,rc_cells) &
+!$omp& map(alloc: rc_recv,rc_strain)
+#else
+!$omp do private(i,c)
+#endif
+      do i = 1, halo_total
+         do c = 1, 6
+            rc_strain(rc_cells+i,c) = rc_recv(6*(i-1)+c)
+         end do
+      end do
+#ifdef xpu
+!$omp end target teams distribute parallel do
+!$omp target teams distribute parallel do &
+!$omp& private(i,j,a,b,k,q,c,gu,ds,material,rhs,grad,dx,v,vel,radius) &
+!$omp& firstprivate(rank,dimensiona,rc_cells) &
+!$omp& map(alloc: rc_xyz,rc_strain,rc_inverse,rc_scale,sa_rc_fr1,rec_grads,u_c_val) &
+!$omp& map(alloc: ielem_xxc,ielem_yyc,ielem_zzc) &
+!$omp& map(alloc: rec_ihexl,rec_local,rec_ihexb,rec_ihexn,halo_offset,ielem_inumneighbours)
+#else
+!$omp end do
+!$omp do private(i,j,a,b,k,q,c,gu,ds,material,rhs,grad,dx,v,vel,radius)
+#endif
+      do i = 1, rc_cells
+         rhs = 0.0; vel = 0.0
+         vel(1:dimensiona) = u_c_val(i,1,2:dimensiona+1)/u_c_val(i,1,1)
+         do q = 2, ielem_inumneighbours(i)
+            j = rc_neighbour(i,q,rank)
+            dx = rc_displacement(i,j)
+            radius = sqrt(sum(dx*dx))
+            if (radius <= tiny(1.0)**0.25) cycle
+            v = dx/radius/rc_scale(i,:)
+            do c = 1, 6
+               rhs(:,c) = rhs(:,c) + v*(rc_strain(j,c)-rc_strain(i,c))/radius
+            end do
+         end do
+         do c = 1, 6
+            grad = 0.0
+            do a = 1, dimensiona
+               do b = 1, dimensiona
+                  grad(a) = grad(a) + rc_inverse(i,a,b)*rhs(b,c)
+               end do
+            end do
+            grad = grad/rc_scale(i,:)
+            material(c) = sum(vel*grad)
+         end do
+         ds(1,:) = [material(1),material(4),material(5)]
+         ds(2,:) = [material(4),material(2),material(6)]
+         ds(3,:) = [material(5),material(6),material(3)]
+         gu = 0.0; gu(1:dimensiona,1:dimensiona) = rec_grads(i,1:dimensiona,1:dimensiona)
+         sa_rc_fr1(i) = sa_rc_factor(gu,ds)
+      end do
+#ifdef xpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+   end subroutine
+
+
+   subroutine sa_rc_release()
+      if (.not. allocated(sa_rc_fr1)) return
+#ifdef xpu
+!$omp target exit data map(delete: rc_xyz,rc_strain,rc_inverse,rc_scale,rc_send,rc_recv,sa_rc_fr1,rc_cells)
+#endif
+      deallocate(rc_xyz,rc_strain,rc_inverse,rc_scale,rc_send,rc_recv,sa_rc_fr1,rc_requests)
+      rc_cells = 0
+   end subroutine
 end module source

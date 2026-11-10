@@ -9,6 +9,17 @@ module declaration
 
    implicit none
 
+   ! Axisymmetric FV geometry. Absent AXISSYMMETRIC.DAT leaves every flag off.
+   integer :: axisymmetric_enabled = 0
+   real :: axis_y = 0.0, axis_tolerance_relative = 1.0e-10, axis_tolerance = 0.0
+   real :: axis_heat_load = 0.0, axis_wall_area = 0.0
+   real, allocatable :: axis_radius(:), axis_face_radius(:,:,:)
+   logical, allocatable :: axis_face(:,:)
+#ifdef xpu
+!$omp declare target(axisymmetric_enabled, axis_y, axis_tolerance, axis_tolerance_relative)
+!$omp declare target(axis_radius, axis_face_radius, axis_face)
+#endif
+
 ! Compile-time upper bounds for fixed-size local work arrays.
 ! XPU builds should pass case-specific GPU_MAX_* values from gpu_max_flags.py.
 ! CPU builds do not need UCNS3D.DAT at compile time, so their fallback values
@@ -181,8 +192,7 @@ module declaration
    real, allocatable, dimension(:) :: weights_q, weights_t, weights_l
    integer :: lowmemory ! memory usage flag
    integer :: fastest ! fastest mode flag for the code
-   integer :: emetis ! type of metis partitioning
-   integer :: allnodesgloball ! total number of nodes in the domain
+   integer :: emetis ! mesh partitioner: 6 (64-bit ParMETIS only)
    integer :: spatiladiscret ! spatial discretisation
    integer :: spatialorder ! spatial order
    integer :: jk !index
@@ -433,6 +443,7 @@ module declaration
    real :: vectorx !setting up with respect to which plane the aoa is defined x
    real :: vectory !setting up with respect to which plane the aoa is defined y
    real :: vectorz !setting up with respect to which plane the aoa is defined z
+   real :: grid_curvature_limit ! host setup: negative disables curvature-based viscous GG fallback
    real :: gridar1 !aspect ratio of grid
    real :: gridar2 !maximum volume aspect ratio of stencils
    real :: t !time
@@ -891,6 +902,7 @@ module declaration
    ! (cell, diagnostic component): vorticity diagnostics
    real, allocatable :: ielem_vortex(:, :)
    real, allocatable :: ielem_walldist(:) ! (kmaxe)  wall distance
+   real, allocatable :: sst_halo_wall(:) ! static wall distances in the existing flat halo ordering
    real, allocatable :: ielem_walltrans(:) ! (kmaxe)  signed nearest-wall distance from transition location
    real, allocatable :: ielem_wcx(:) ! (kmaxe)
    real, allocatable :: ielem_xxc(:) ! (kmaxe)  cell centre coordinates in x
@@ -1080,6 +1092,7 @@ module declaration
 !$omp declare target (rg_t_ref, rg_t_wall_init, rg_thetag, rg_ttr, rg_tv_coef, rg_tve, rg_vf, rgs_ab, rgs_bb, rgs_cb)
 !$omp declare target (rgs_eps_over_k, rgs_mg, rgs_sigmaa, rhs_sol_mm_dg, rhs_val, rhs_valdg, rhst_val, rot_corr, schmidt_lam, &
 !$omp& schmidt_turb)
+!$omp declare target (sst_halo_wall)
 !$omp declare target (sht_rg, sigma_k1, sigma_k2, sigma_om1, sigma_om2, sigma_phi, source_active, srf_origin, srf_velocity)
 !$omp declare target (stencil_io, taylor_ens, taylor_ensx, temp_model, thread_n, tol_per, typ_countn, typ_countn_global, &
 !$omp& typ_countn_global_w)
@@ -1088,7 +1101,7 @@ module declaration
 !$omp declare target (u_e_val, v_ref, viscous_s, vort_model, wall_temp, weight_lsqr)
 !$omp declare target (wnodes_part, wpart1_end, wpart2_end, wpart3_end, wpart4_end, wpart5_end, write_variables, &
 !$omp& write_variables_av, write_variables_av_w, write_variables_w)
-!$omp declare target (zero_turb_init, zeta_star, adda, allnodesgloball, allres, allresdt, alls, alpha, aoa, averaging)
+!$omp declare target (zero_turb_init, zeta_star, adda, allres, allresdt, alls, alpha, aoa, averaging)
 !$omp declare target (transition_model, transition_axis, transition_direction, transition_ramp_type, transition_location, &
 !$omp& transition_ramp_length)
 !$omp declare target (beta, betaas, binio, bleed, boundtype, cascade, cavitation, origin)

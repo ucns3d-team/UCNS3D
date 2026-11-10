@@ -978,10 +978,15 @@ contains
 
 #ifdef xpu
       ! Initialize persistent module data before main enters its target-data region.
+      !$omp target enter data map(alloc: axisymmetric_enabled,axis_y,axis_tolerance,axis_tolerance_relative)
+      !$omp target update to(axisymmetric_enabled,axis_y,axis_tolerance,axis_tolerance_relative)
+      if(allocated(axis_radius)) then
+         !$omp target enter data map(to: axis_radius,axis_face_radius,axis_face)
+      end if
       !$omp target enter data map(alloc: n, aa_1, adda, adda_1, adda_1_s, adda_2, adda_2_s, adda_alpha_1, adda_alpha_2)
       !$omp target update to(n, aa_1, adda, adda_1, adda_1_s, adda_2, adda_2_s, adda_alpha_1, adda_alpha_2)
-      !$omp target enter data map(alloc: adda_type, allnodesgloball, allres, allresdt, alls, alpha, alpha_0, alpha_inf1)
-      !$omp target update to(adda_type, allnodesgloball, allres, allresdt, alls, alpha, alpha_0, alpha_inf1)
+      !$omp target enter data map(alloc: adda_type, allres, allresdt, alls, alpha, alpha_0, alpha_inf1)
+      !$omp target update to(adda_type, allres, allresdt, alls, alpha, alpha_0, alpha_inf1)
       !$omp target enter data map(alloc: alpha_inf2, alpha_star0, alpha_starinf, angle_per, aoa, average_restart, averaging)
       !$omp target update to(alpha_inf2, alpha_star0, alpha_starinf, angle_per, aoa, average_restart, averaging)
       !$omp target enter data map(alloc: beta, beta_i1, beta_i2, beta_starinf, beta_t, betaas, binio, bleed, bleed_number)
@@ -1492,6 +1497,10 @@ contains
       if (allocated(ielem_vortex)) then
          !$omp target enter data map(alloc: ielem_vortex)
          !$omp target update to(ielem_vortex)
+      end if
+      if (allocated(sst_halo_wall)) then
+         !$omp target enter data map(alloc: sst_halo_wall)
+         !$omp target update to(sst_halo_wall)
       end if
       if (allocated(ielem_walldist)) then
          !$omp target enter data map(alloc: ielem_walldist)

@@ -1568,11 +1568,6 @@ contains
 
          close (63)
 
-         if ((emetis .eq. 1) .or. (emetis .eq. 2)) then
-            allnodesgloball = (k * 8) + (l * 4) + (m * 5) + (kk * 6)
-         else
-            allnodesgloball = 8 * imaxe
-         end if
 
       end if
 
