@@ -441,10 +441,29 @@ contains
       integer :: i, j, k, kmaxe, icpuid, kj, tempi, tempt
       real :: xv, yc, zc
       real, dimension(1:dimensiona) :: cords
+      integer, allocatable, dimension(:) :: ids_flat
 
       if (mesh_distributed) then
          call cells_geometry()
-         call cells_fetch(reshape(ielem_ineighg, [size(ielem_ineighg)]), .true.)
+         ! Flatten the positive neighbour IDs into a heap array with explicit loops.
+         ! reshape() as an actual argument creates a full-size array temporary,
+         ! which Intel compilers place on the stack (kmaxe*max_faces*4 bytes per rank).
+         kj = 0
+         do j = 1, size(ielem_ineighg, 2)
+            do k = 1, size(ielem_ineighg, 1)
+               if (ielem_ineighg(k, j) > 0) kj = kj + 1
+            end do
+         end do
+         allocate(ids_flat(kj)); kj = 0
+         do j = 1, size(ielem_ineighg, 2)
+            do k = 1, size(ielem_ineighg, 1)
+               if (ielem_ineighg(k, j) > 0) then
+                  kj = kj + 1; ids_flat(kj) = ielem_ineighg(k, j)
+               end if
+            end do
+         end do
+         call cells_fetch(ids_flat, .true.)
+         deallocate(ids_flat)
          allocate(cand(0:isize - 1)); cand = 1
          return
       end if
@@ -763,9 +782,28 @@ contains
       integer :: ifst, imax_cpu, imax_cput, sumcentral, sumcentral_t, approx
       real :: xv, yc, zc
       real, dimension(1:dimensiona) :: cords
+      integer, allocatable, dimension(:) :: ids_flat
       if (mesh_distributed) then
          call cells_geometry()
-         call cells_fetch(reshape(ielem_ineighg, [size(ielem_ineighg)]), .true.)
+         ! Flatten the positive neighbour IDs into a heap array with explicit loops.
+         ! reshape() as an actual argument creates a full-size array temporary,
+         ! which Intel compilers place on the stack (kmaxe*max_faces*4 bytes per rank).
+         kj = 0
+         do j = 1, size(ielem_ineighg, 2)
+            do k = 1, size(ielem_ineighg, 1)
+               if (ielem_ineighg(k, j) > 0) kj = kj + 1
+            end do
+         end do
+         allocate(ids_flat(kj)); kj = 0
+         do j = 1, size(ielem_ineighg, 2)
+            do k = 1, size(ielem_ineighg, 1)
+               if (ielem_ineighg(k, j) > 0) then
+                  kj = kj + 1; ids_flat(kj) = ielem_ineighg(k, j)
+               end if
+            end do
+         end do
+         call cells_fetch(ids_flat, .true.)
+         deallocate(ids_flat)
          allocate(cand(0:isize - 1)); cand = 1
          return
       end if

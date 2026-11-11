@@ -2343,7 +2343,7 @@ contains
       real :: uxx, uyy, uzz, vxx, vyy, vzz, wxx, wyy, wzz !for sas only
       real, dimension(3, 3) :: vortet, tvort, svort, ovort
 !declarations for k-omega
-      real :: srcfull_k, srcfull_om, prod_k, prod_om, ydest_k, ydest_om, diff_om, q_sas
+      real :: srcfull_k, srcfull_om, prod_k, prod_om, ydest_k, ydest_om, diff_om, q_sas, sprod
       real :: sigma_k, sigma_om, f_1, f_2, phi_1, phi_2, d_omplus !-------------- those are for diffusion too!
       real :: alpha_raw, alpha_star, re_t_sst, alpha_inf
       real :: beta_stari, beta_i, beta_raw, beta_star
@@ -2447,13 +2447,20 @@ contains
 
          ! SST-2003m: use the same limited production in both equations.
          ! vort_model=1 remains the explicitly selected Kato-Launder variant.
+         ! sprod = P/mu_t (S**2, or S*Omega for Kato-Launder).
          if (vort_model == 1) then
-            prod_k = viscl(3) * snorm * onorm
+            sprod = snorm * onorm
          else
-            prod_k = viscl(3) * snorm**2
+            sprod = snorm**2
          end if
-         prod_k = min(prod_k, 10.0 * leftv(1) * beta_star * k_0 * om_0)
-         prod_om = alpha_raw * prod_k * leftv(1) / max(viscl(3),1.0e-30)
+         prod_k = min(viscl(3) * sprod, 10.0 * leftv(1) * beta_star * k_0 * om_0)
+         ! omega production alpha*P~k/nu_t written as alpha*rho*min(sprod, 10*beta*k*omega/nu_t),
+         ! identical for mu_t>0 and tending to alpha*rho*sprod (not zero) as mu_t -> 0.
+         if (viscl(3) > 0.0) then
+            prod_om = alpha_raw * leftv(1) * min(sprod, 10.0 * beta_star * k_0 * om_0 * leftv(1) / viscl(3))
+         else
+            prod_om = alpha_raw * leftv(1) * sprod
+         end if
 
          !destruction terms
          !destruction of k
@@ -2865,7 +2872,7 @@ contains
       real :: uxx, uyy, uzz, vxx, vyy, vzz, wxx, wyy, wzz !for sas only
       real, dimension(2, 2) :: vortet, tvort, svort, ovort
 !declarations for k-omega
-      real :: srcfull_k, srcfull_om, prod_k, prod_om, ydest_k, ydest_om, diff_om, q_sas
+      real :: srcfull_k, srcfull_om, prod_k, prod_om, ydest_k, ydest_om, diff_om, q_sas, sprod
       real :: sigma_k, sigma_om, f_1, f_2, phi_1, phi_2, d_omplus !-------------- those are for diffusion too!
       real :: alpha_raw, alpha_star, re_t_sst, alpha_inf
       real :: beta_stari, beta_i, beta_raw, beta_star
@@ -2967,13 +2974,20 @@ contains
 
          ! SST-2003m: use the same limited production in both equations.
          ! vort_model=1 remains the explicitly selected Kato-Launder variant.
+         ! sprod = P/mu_t (S**2, or S*Omega for Kato-Launder).
          if (vort_model == 1) then
-            prod_k = viscl(3) * snorm * onorm
+            sprod = snorm * onorm
          else
-            prod_k = viscl(3) * snorm**2
+            sprod = snorm**2
          end if
-         prod_k = min(prod_k, 10.0 * leftv(1) * beta_star * k_0 * om_0)
-         prod_om = alpha_raw * prod_k * leftv(1) / max(viscl(3),1.0e-30)
+         prod_k = min(viscl(3) * sprod, 10.0 * leftv(1) * beta_star * k_0 * om_0)
+         ! omega production alpha*P~k/nu_t written as alpha*rho*min(sprod, 10*beta*k*omega/nu_t),
+         ! identical for mu_t>0 and tending to alpha*rho*sprod (not zero) as mu_t -> 0.
+         if (viscl(3) > 0.0) then
+            prod_om = alpha_raw * leftv(1) * min(sprod, 10.0 * beta_star * k_0 * om_0 * leftv(1) / viscl(3))
+         else
+            prod_om = alpha_raw * leftv(1) * sprod
+         end if
 
          !destruction terms
          !destruction of k
