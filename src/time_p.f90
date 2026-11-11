@@ -621,7 +621,8 @@ contains
 !$omp& firstprivate(ccfl, dg, gamma, iorder, multispecies, nof_variables, realgas) &
 !$omp& firstprivate(kmaxe, n) &
 !$omp& private(i) &
-!$omp& map(alloc: gamma_in, mp_janaf, mp_m, mp_pinf, mp_thigh_in, mp_tlow_in, mp_tmid_in, rg_hzero, rg_molm)
+!$omp& map(alloc: gamma_in, mp_janaf, mp_m, mp_pinf, mp_thigh_in, mp_tlow_in, mp_tmid_in, rg_hzero, rg_molm) &
+!$omp& map(alloc: axis_radius)
 #else
          !$omp barrier
          !$omp do reduction (min:dt) &
@@ -672,7 +673,8 @@ contains
 !$omp& firstprivate(multispecies, realgas) &
 !$omp& private(i) &
 !$omp& map(alloc: gamma_in, mp_janaf, mp_m, mp_pinf, mp_thigh_in, mp_tlow_in, mp_tmid_in, rg_hzero, rg_molm) &
-!$omp& map(alloc: rg_thetag, rgs_ab, rgs_bb, rgs_cb, rgs_eps_over_k, rgs_mg, rgs_sigmaa, u_ct_val)
+!$omp& map(alloc: rg_thetag, rgs_ab, rgs_bb, rgs_cb, rgs_eps_over_k, rgs_mg, rgs_sigmaa, u_ct_val) &
+!$omp& map(alloc: axis_radius)
 #else
          !$omp barrier
          !$omp do reduction (min:dt) &
@@ -779,7 +781,8 @@ contains
 !$omp& firstprivate(ccfl, dg, gamma, iorder, multispecies, nof_variables, realgas) &
 !$omp& firstprivate(kmaxe, n) &
 !$omp& private(i) &
-!$omp& map(alloc: gamma_in, mp_janaf, mp_m, mp_pinf, mp_thigh_in, mp_tlow_in, mp_tmid_in, rg_hzero, rg_molm)
+!$omp& map(alloc: gamma_in, mp_janaf, mp_m, mp_pinf, mp_thigh_in, mp_tlow_in, mp_tmid_in, rg_hzero, rg_molm) &
+!$omp& map(alloc: axis_radius)
 #else
          !$omp barrier
          !$omp do &
@@ -830,7 +833,8 @@ contains
 !$omp& firstprivate(multispecies, realgas) &
 !$omp& private(i) &
 !$omp& map(alloc: gamma_in, mp_janaf, mp_m, mp_pinf, mp_thigh_in, mp_tlow_in, mp_tmid_in, rg_hzero, rg_molm) &
-!$omp& map(alloc: rg_thetag, rgs_ab, rgs_bb, rgs_cb, rgs_eps_over_k, rgs_mg, rgs_sigmaa, u_ct_val)
+!$omp& map(alloc: rg_thetag, rgs_ab, rgs_bb, rgs_cb, rgs_eps_over_k, rgs_mg, rgs_sigmaa, u_ct_val) &
+!$omp& map(alloc: axis_radius)
 #else
          !$omp barrier
          !$omp do &
@@ -7641,7 +7645,7 @@ contains
 
    subroutine fv_state_density_pressure(q, rho, pressure, state_ok)
 !> Extract density and pressure from an FV conservative state.
-      use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
+      ! Device routine: no ieee_arithmetic here (NaN/Inf tested arithmetically, as elsewhere in this module).
       implicit none
 #ifdef xpu
 !$omp declare target
@@ -7727,8 +7731,8 @@ contains
          if ((idxev + nof_species) .le. nof_variables) then
             ! Negative vibrational energy can still give positive recovered pressure.
             ! Reject the trial so the caller backtracks the entire conservative update.
-            if (.not. ieee_is_finite(q(idxev))) return
-            if (q(idxev) < zero .or. q(idxev) > fv_update_max_abs) return
+            if ((q(idxev) .ne. q(idxev)) .or. (abs(q(idxev)) .gt. fv_update_max_abs)) return
+            if (q(idxev) < zero) return
             etot = q(idxe) / rho
             evib = q(idxev) / rho
             echem = zero

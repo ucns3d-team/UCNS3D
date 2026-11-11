@@ -1570,7 +1570,8 @@ contains
 !$omp& map(alloc: mp_r_in, mp_thigh_in, mp_tlow_in, mp_tmid_in, qp_array_qp_weight, qp_array_x, qp_array_y) &
 !$omp& map(alloc: qp_array_z, rec_br2_local_lift, rec_qpoints, rec_uleft, rec_uleft_dg, rec_uleftturb, rec_volume) &
 !$omp& map(alloc: rg_hzero, rg_molm, rg_thetag, rg_vf, rgs_ab, rgs_bb, rgs_cb, u_c_br2_aux_var, u_c_val, u_c_valdg) &
-!$omp& map(alloc: u_ct_val)
+!$omp& map(alloc: u_ct_val) &
+!$omp& map(alloc: axis_face, rec_mrf)
 #else
 !$omp do &
 !$omp& private(angle1, angle2, b_code, facex) &
@@ -2859,7 +2860,8 @@ contains
 !$omp& map(alloc: mp_tlow_in, mp_tmid_in, rec_mrf, rec_qpoints, rec_rotvel, rec_uleft, rec_uleft_dg, rec_uleftturb) &
 !$omp& map(alloc: rec_uleftturbv, rec_uleftv, rec_volume, rg_hzero, rg_thetag, rgs_ab, rgs_bb, rgs_cb, rgs_eps_over_k) &
 !$omp& map(alloc: rgs_mg, rgs_sigmaa, rhs_valdg, u_ct_val) &
-!$omp& map(alloc: sst_halo_wall, ibound_icode, ielem_ibounds, ielem_ineighb, ielem_indexi, rec_local, rec_ihexn, rec_ihexl, halo_offset, u_c_val)
+!$omp& map(alloc: sst_halo_wall, ibound_icode, ielem_ibounds, ielem_ineighb, ielem_indexi, rec_local, rec_ihexn, rec_ihexl, halo_offset, u_c_val) &
+!$omp& map(alloc: axis_face_radius)
 #else
 !$omp do &
 !$omp& private(angle1, angle2, b_code, damp) &
@@ -3381,7 +3383,8 @@ contains
 !$omp& map(alloc: rec_qpoints, rec_uleft, rec_uleft_dg, rec_uleftturb, rec_uleftturbv, rec_uleftv, rec_volume) &
 !$omp& map(alloc: rg_hzero, rg_thetag, rg_vf, rgs_ab, rgs_bb, rgs_cb, rgs_eps_over_k, rgs_mg, rgs_sigmaa, rhs_valdg) &
 !$omp& map(alloc: u_ct_val) &
-!$omp& map(alloc: sst_halo_wall, ielem_indexi, rec_local, rec_ihexn, rec_ihexl, halo_offset, u_c_val)
+!$omp& map(alloc: sst_halo_wall, ielem_indexi, rec_local, rec_ihexn, rec_ihexl, halo_offset, u_c_val) &
+!$omp& map(alloc: axis_face, axis_face_radius, rec_mrf)
 #else
 !$omp do &
 !$omp& private(angle1, angle2, b_code, damp) &
@@ -4623,7 +4626,8 @@ contains
 !$omp& map(alloc: ielem_recalc, ielem_surf, ielem_walldist, inoder4_cord, mp_a_in, mp_janaf, mp_m, mp_pinf, mp_r_in) &
 !$omp& map(alloc: mp_thigh_in, mp_tlow_in, mp_tmid_in, rec_ihexl, rec_ihexn, rec_local, rec_uleft, rec_uleftturb) &
 !$omp& map(alloc: rg_hzero, rg_molm, rg_thetag, rg_vf, rgs_ab, rgs_bb, rgs_cb, rhs_val, rhs_valdg, rhst_val, solhir) &
-!$omp& map(alloc: u_c_val, u_ct_val, weights_l)
+!$omp& map(alloc: u_c_val, u_ct_val, weights_l) &
+!$omp& map(alloc: axis_face, rec_mrf)
 #else
 !$omp barrier
 !$omp do &

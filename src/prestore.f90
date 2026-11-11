@@ -1195,7 +1195,14 @@ contains
                               nnx = (nx * ainvjt(1, 1)) + (ny * ainvjt(2, 1))
                               nny = (nx * ainvjt(1, 2)) + (ny * ainvjt(2, 2))
 
-                              if (poly .eq. 4) then
+                              if (poly .eq. 2) then
+
+                                 do iq = 1, ideg
+
+                                    ws%xder(iq) = dl2dx(ax, ay, iq, i); ws%yder(iq) = dl2dy(ax, ay, iq, i);
+                                 end do
+
+                              else if (poly .eq. 4) then
 
                                  do iq = 1, ideg
 
@@ -3438,6 +3445,11 @@ contains
       real, allocatable, dimension(:, :), intent(inout) :: weff
       weff = zero
 
+      if (poly == 2) then
+         call legendre_smoothness2d(weff, inumo, inump, voltemp, qpoints, wequa3d, ideg, iconsidered)
+         return
+      end if
+
       if (poly .eq. 1) then
          select case (inumo)
          case (1)
@@ -3488,6 +3500,32 @@ contains
 
    end subroutine wenotet2d
 !
+   subroutine legendre_smoothness2d(weff, degree, nqp, volume, points, weights, ndof, cell)
+!> Integral of all squared mixed derivatives through the reconstruction degree.
+      integer, intent(in) :: degree, nqp, ndof, cell
+      real, intent(in) :: volume, points(1:dimensiona, 1:numberofpoints), weights(1:numberofpoints)
+      real, allocatable, intent(inout) :: weff(:, :)
+      real :: deriv(ndof), factor
+      integer :: q, total, dy, dx, i, j
+      weff = 0.0
+      do q = 1, nqp
+         factor = weights(q)*volume
+         do total = 1, degree
+            do dy = 0, total
+               dx = total - dy
+               do i = 1, ndof
+                  deriv(i) = basis_selected_derivative(2, points(1, q), points(2, q), 0.0, i, cell, dx, dy, 0)
+               end do
+               do j = 1, ndof
+                  do i = 1, ndof
+                     weff(i, j) = weff(i, j) + factor*deriv(i)*deriv(j)
+                  end do
+               end do
+            end do
+         end do
+      end do
+   end subroutine legendre_smoothness2d
+
    subroutine p2dh1(n, weff, inumo, inump, voltemp, qpoints, wequa3d, ideg, iconsidered)
 !> @brief
 !> this subroutine computes derivative operator for the smoothness indicator

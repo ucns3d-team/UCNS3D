@@ -17,9 +17,7 @@ module source
    real, allocatable :: rc_send(:), rc_recv(:), sa_rc_fr1(:)
    integer, allocatable :: rc_requests(:)
    integer :: rc_cells = 0
-#ifdef xpu
-!$omp declare target(rc_xyz, rc_strain, rc_inverse, rc_scale, rc_send, rc_recv, sa_rc_fr1, rc_cells)
-#endif
+   ! SA-RC state stays on the host; rot_corr=2 is rejected in XPU builds.
    private :: rc_xyz, rc_strain, rc_inverse, rc_scale, rc_send, rc_recv, rc_requests
    private :: rc_cells, rc_fail, rc_neighbour, rc_displacement, rc_exchange
 
@@ -146,27 +144,31 @@ contains
       ! A Jacobian probe must be in the domain of the transport laws. In
       ! particular, positive density alone does not make Sutherland sqrt(T)
       ! valid in a cold, high-Mach cell. Do not clip the state or temperature.
-      use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
+      ! Device routine: no ieee_arithmetic (NaN/Inf tested arithmetically).
       implicit none
 #ifdef xpu
 !$omp declare target
 #endif
       real,intent(in) :: q(gpu_max_nvar)
       real :: rho,ev,etr,rmix,cv,y(gpu_max_species),vel2,temp
+      integer :: k
       ok=.false.
-      if(.not.all(ieee_is_finite(q(1:nof_variables)))) return
+      do k=1,nof_variables
+         if(q(k)/=q(k).or.abs(q(k))>huge(q(k))) return
+      end do
       if(q(1)<=tiny(1.0)) return
       if(realgas==1) then
          if(any(q(6:5+nof_species)<0.0).or.q(5)<0.0) return
          call realgas_thermo(q(1:nof_variables),rho,y,ev,etr,rmix,cv)
-         if(.not.all(ieee_is_finite([rho,ev,etr,rmix,cv]))) return
+         if(rho/=rho.or.ev/=ev.or.etr/=etr.or.rmix/=rmix.or.cv/=cv) return
+         if(max(abs(rho),abs(ev),abs(etr),abs(rmix),abs(cv))>huge(rho)) return
          if(etr<=0.0.or.cv<=0.0.or.rmix<=0.0) return
       else
          rho=q(1)
          vel2=(q(2)/rho)**2+(q(3)/rho)**2
          ! Use the same arithmetic as molecular_transport, not a pressure floor.
          temp=(gamma-1.0)*(q(4)/rho-0.5*vel2)/r_gas
-         if(.not.ieee_is_finite(temp)) return
+         if(temp/=temp.or.abs(temp)>huge(temp)) return
          if(temp<=0.0) return
       end if
       ok=.true.
@@ -420,7 +422,8 @@ contains
 !$omp& firstprivate(kmaxe, n) &
 !$omp& private(i) &
 !$omp& map(alloc: ielem_totvolume, ielem_walldist, ielem_walltrans, mp_janaf, mp_m, mp_thigh_in, mp_tlow_in) &
-!$omp& map(alloc: mp_tmid_in, rec_grads, rg_hzero, rg_molm, rgs_ab, rgs_bb, rgs_cb, rhst_val, u_c_val, u_ct_val)
+!$omp& map(alloc: mp_tmid_in, rec_grads, rg_hzero, rg_molm, rgs_ab, rgs_bb, rgs_cb, rhst_val, u_c_val, u_ct_val) &
+!$omp& map(alloc: axis_radius)
 #else
 !$omp do &
 !$omp& private(i)
@@ -2205,7 +2208,8 @@ contains
 !$omp& firstprivate(kmaxe, n) &
 !$omp& private(i) &
 !$omp& map(alloc: ielem_totvolume, ielem_walldist, ielem_walltrans, mp_janaf, mp_m, mp_thigh_in, mp_tlow_in) &
-!$omp& map(alloc: mp_tmid_in, rec_grads, rg_hzero, rg_molm, rgs_ab, rgs_bb, rgs_cb, sht, u_c_val, u_ct_val)
+!$omp& map(alloc: mp_tmid_in, rec_grads, rg_hzero, rg_molm, rgs_ab, rgs_bb, rgs_cb, sht, u_c_val, u_ct_val) &
+!$omp& map(alloc: axis_radius)
 #else
 !$omp do &
 !$omp& private(i)
@@ -2275,17 +2279,28 @@ contains
       real, intent(out) :: src, jac
       real :: q(gpu_max_nvar), mu, conductivity, gu(3,3), w(3,3), om, gsq, sf
       real :: strain, distance, delta, rd, fd, fr1, rotation_delta, mut, sigk, sigw, packed(20)
+      integer :: ia, ib
       ! Shared SA-noft2 algebra: rot_corr=0 (SA), 1 (legacy SA-R), 2 (SA-RC).
       q(1:nof_variables) = u_c_val(i,1,1:nof_variables)
       call molecular_transport(n, q, mu, conductivity)
       gu = 0.0; gu(1:dimensiona,1:dimensiona) = rec_grads(i,1:dimensiona,1:dimensiona)
       if (dimensiona==2 .and. axisymmetric_enabled==1) &
          gu(3,3)=q(3)/(q(1)*axis_radius(i))
-      w = 0.5*(gu-transpose(gu)); om = sqrt(2.0*sum(w*w))
-      strain = sqrt(0.5*sum((gu+transpose(gu))**2))
+      ! Written out (no transpose temporaries in device code).
+      om = 0.0; strain = 0.0
+      do ib = 1, 3
+         do ia = 1, 3
+            w(ia,ib) = 0.5*(gu(ia,ib)-gu(ib,ia))
+            om = om + w(ia,ib)*w(ia,ib)
+            strain = strain + (gu(ia,ib)+gu(ib,ia))**2
+         end do
+      end do
+      om = sqrt(2.0*om); strain = sqrt(0.5*strain)
       gsq = sum(rec_grads(i,nof_variables,1:dimensiona)**2)
       fr1 = 1.0; rotation_delta = 0.0
+#ifndef xpu
       if (rot_corr == 2) fr1 = sa_rc_fr1(i)
+#endif
       if (rot_corr == 1) rotation_delta = 2.0*min(0.0,strain-om)
       distance = max(ielem_walldist(i),1.0e-11)
       if (des_model /= 0) then
@@ -2502,6 +2517,9 @@ contains
          !filling the output vector
          source_t(1) = srcfull_k
          source_t(2) = srcfull_om
+         ! Prescribed trip: use the same full-source activation as SA.
+         ! This scales k and omega production, destruction and cross diffusion.
+         source_t(1:2) = transition_source_factor(i) * source_t(1:2)
 
       end select
 
@@ -2535,6 +2553,9 @@ contains
       ! These negative terms add damping when subtracted from the implicit matrix.
       diagonal(1) = -factor*beta_starinf*omega
       diagonal(2) = -2.0*beta_sst*omega
+      ! The trip is prescribed geometry, so its factor is frozen in the Jacobian.
+      ! Match the SST residual; upstream cells must receive no source damping.
+      diagonal = transition_source_factor(i) * diagonal
    end subroutine sst_destruction_diagonal
 
    subroutine sources_derivatives(n, iconsidered, source_t)
@@ -2671,7 +2692,8 @@ contains
 !$omp& firstprivate(kmaxe, n) &
 !$omp& private(i) &
 !$omp& map(alloc: ielem_totvolume, ielem_walldist, ielem_walltrans, mp_janaf, mp_m, mp_thigh_in, mp_tlow_in) &
-!$omp& map(alloc: mp_tmid_in, rec_grads, rg_hzero, rg_molm, rgs_ab, rgs_bb, rgs_cb, rhst_val, u_c_val, u_ct_val)
+!$omp& map(alloc: mp_tmid_in, rec_grads, rg_hzero, rg_molm, rgs_ab, rgs_bb, rgs_cb, rhst_val, u_c_val, u_ct_val) &
+!$omp& map(alloc: axis_radius)
 #else
 !$omp do &
 !$omp& private(i)
@@ -2788,7 +2810,8 @@ contains
 !$omp& firstprivate(kmaxe, n) &
 !$omp& private(i) &
 !$omp& map(alloc: ielem_totvolume, ielem_walldist, ielem_walltrans, mp_janaf, mp_m, mp_thigh_in, mp_tlow_in) &
-!$omp& map(alloc: mp_tmid_in, rec_grads, rg_hzero, rg_molm, rgs_ab, rgs_bb, rgs_cb, sht, u_c_val, u_ct_val)
+!$omp& map(alloc: mp_tmid_in, rec_grads, rg_hzero, rg_molm, rgs_ab, rgs_bb, rgs_cb, sht, u_c_val, u_ct_val) &
+!$omp& map(alloc: axis_radius)
 #else
 !$omp do &
 !$omp& private(i)
@@ -3013,6 +3036,9 @@ contains
          !filling the output vector
          source_t(1) = srcfull_k
          source_t(2) = srcfull_om
+         ! Prescribed trip: use the same full-source activation as SA.
+         ! This scales k and omega production, destruction and cross diffusion.
+         source_t(1:2) = transition_source_factor(i) * source_t(1:2)
 
       end select
 
@@ -3124,9 +3150,6 @@ contains
    ! Spalart--Shur SA-noft2-RC algebra, shared by CPU and OpenMP target callers.
    ! Shur et al., AIAA J. 38(5), 2000. Geometry preparation assumes a fixed mesh.
    real function sa_rc_factor(grad_u, material_strain) result(fr1)
-#ifdef xpu
-!$omp declare target
-#endif
       real, intent(in) :: grad_u(3,3), material_strain(3,3)
       real :: s(3,3), w(3,3), a(3,3), ds(3,3), scale, sn, wn, d2, rt
       integer :: i, j, k
@@ -3205,9 +3228,6 @@ contains
    end subroutine sa_noft2_rc_source
 
    subroutine sa_rc_inverse(a, ndim, ainv, ok)
-#ifdef xpu
-!$omp declare target
-#endif
       real, intent(in) :: a(3,3)
       integer, intent(in) :: ndim
       real, intent(out) :: ainv(3,3)
@@ -3256,9 +3276,6 @@ contains
    end subroutine
 
    integer function rc_neighbour(i, q, rank) result(j)
-#ifdef xpu
-!$omp declare target
-#endif
       integer, intent(in) :: i, q, rank
       integer :: group
       j = rec_ihexl(i,1,q)
@@ -3271,9 +3288,6 @@ contains
    end function
 
    function rc_displacement(i,j) result(dx)
-#ifdef xpu
-!$omp declare target
-#endif
       integer, intent(in) :: i,j
       real :: dx(3)
       if (j <= rc_cells) then
@@ -3314,6 +3328,10 @@ contains
       real :: dx(3), v(3), aa(3,3), ai(3,3), scale(3), radius
       logical :: ok
       if (rot_corr /= 2 .or. turbulence /= 1 .or. turbulencemodel /= 1) return
+#ifdef xpu
+      call rc_fail('SA-RC (rot_corr=2) is CPU-only; rebuild without -Dxpu')
+      return
+#endif
       if (allocated(sa_rc_fr1)) call rc_fail('initialization called twice')
       if (.not. allocated(halo_len)) call rc_fail('higher-order halo layout is required')
       if (halo_total > huge(0)/6 .or. halos_total > huge(0)/6) call rc_fail('local halo count overflow')
@@ -3370,9 +3388,6 @@ contains
          if (rank == 0) write(*,*) 'SA-RC rank-deficient central stencils: ', all_bad
          call rc_fail('strain-gradient stencil cannot resolve all spatial directions')
       end if
-#ifdef xpu
-!$omp target enter data map(to: rc_xyz, rc_strain, rc_inverse, rc_scale, rc_send, rc_recv, sa_rc_fr1, rc_cells)
-#endif
       if (rank == 0) write(*,*) 'SA-noft2-RC: steady Spalart-Shur; cr=(1,12,1); unclipped fr1; strain LS + MPI halos'
    end subroutine
 
@@ -3381,65 +3396,37 @@ contains
       integer :: i, j, a, b, k, q, c
       real :: gu(3,3), strain(3,3), ds(3,3), material(6), rhs(3,6), grad(3), dx(3), v(3), vel(3), radius
       if (rot_corr /= 2 .or. turbulence /= 1 .or. turbulencemodel /= 1) return
-      ! Every thread enters this routine; all MPI calls are funneled to master.
 #ifdef xpu
-!$omp target teams distribute parallel do private(i,gu,strain) firstprivate(dimensiona,rc_cells) &
-!$omp& map(alloc: rec_grads,rc_strain)
-#else
-!$omp do private(i,gu,strain)
+      call rc_fail('SA-RC (rot_corr=2) is CPU-only; rebuild without -Dxpu')
+      return
 #endif
+      ! Every thread enters this routine; all MPI calls are funneled to master.
+!$omp do private(i,gu,strain)
       do i = 1, rc_cells
          gu = 0.0; gu(1:dimensiona,1:dimensiona) = rec_grads(i,1:dimensiona,1:dimensiona)
          strain = 0.5*(gu+transpose(gu))
          rc_strain(i,:) = [strain(1,1),strain(2,2),strain(3,3),strain(1,2),strain(1,3),strain(2,3)]
       end do
-#ifdef xpu
-!$omp end target teams distribute parallel do
-!$omp target teams distribute parallel do private(i,c) firstprivate(halos_total) &
-!$omp& map(alloc: rc_send,rc_strain,solhi_loc)
-#else
 !$omp end do
 !$omp do private(i,c)
-#endif
       do i = 1, halos_total
          do c = 1, 6
             rc_send(6*(i-1)+c) = rc_strain(solhi_loc(i),c)
          end do
       end do
-#ifdef xpu
-!$omp end target teams distribute parallel do
-!$omp target update from(rc_send)
-#else
 !$omp end do
-#endif
 !$omp master
       call rc_exchange()
 !$omp end master
 !$omp barrier
-#ifdef xpu
-!$omp target update to(rc_recv)
-!$omp target teams distribute parallel do private(i,c) firstprivate(halo_total,rc_cells) &
-!$omp& map(alloc: rc_recv,rc_strain)
-#else
 !$omp do private(i,c)
-#endif
       do i = 1, halo_total
          do c = 1, 6
             rc_strain(rc_cells+i,c) = rc_recv(6*(i-1)+c)
          end do
       end do
-#ifdef xpu
-!$omp end target teams distribute parallel do
-!$omp target teams distribute parallel do &
-!$omp& private(i,j,a,b,k,q,c,gu,ds,material,rhs,grad,dx,v,vel,radius) &
-!$omp& firstprivate(rank,dimensiona,rc_cells) &
-!$omp& map(alloc: rc_xyz,rc_strain,rc_inverse,rc_scale,sa_rc_fr1,rec_grads,u_c_val) &
-!$omp& map(alloc: ielem_xxc,ielem_yyc,ielem_zzc) &
-!$omp& map(alloc: rec_ihexl,rec_local,rec_ihexb,rec_ihexn,halo_offset,ielem_inumneighbours)
-#else
 !$omp end do
 !$omp do private(i,j,a,b,k,q,c,gu,ds,material,rhs,grad,dx,v,vel,radius)
-#endif
       do i = 1, rc_cells
          rhs = 0.0; vel = 0.0
          vel(1:dimensiona) = u_c_val(i,1,2:dimensiona+1)/u_c_val(i,1,1)
@@ -3469,19 +3456,12 @@ contains
          gu = 0.0; gu(1:dimensiona,1:dimensiona) = rec_grads(i,1:dimensiona,1:dimensiona)
          sa_rc_fr1(i) = sa_rc_factor(gu,ds)
       end do
-#ifdef xpu
-!$omp end target teams distribute parallel do
-#else
 !$omp end do
-#endif
    end subroutine
 
 
    subroutine sa_rc_release()
       if (.not. allocated(sa_rc_fr1)) return
-#ifdef xpu
-!$omp target exit data map(delete: rc_xyz,rc_strain,rc_inverse,rc_scale,rc_send,rc_recv,sa_rc_fr1,rc_cells)
-#endif
       deallocate(rc_xyz,rc_strain,rc_inverse,rc_scale,rc_send,rc_recv,sa_rc_fr1,rc_requests)
       rc_cells = 0
    end subroutine

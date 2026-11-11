@@ -547,7 +547,7 @@ contains
    end subroutine extrapolate_bound_muscl
 
    subroutine close_realgas_trace_species(q)
-      ! Primitive MUSCL limits species separately. Balance only a trace-sized
+      ! Primitive reconstruction treats species separately. Balance only a trace-sized
       ! closure residual in the largest species, before rebuilding total energy.
       implicit none
 #ifdef xpu
@@ -841,6 +841,7 @@ contains
 
             do ngp = 1, iqp
                leftv(1:nof_variables) = rec_uleft(i, 1:nof_variables, l, ngp)
+               if (realgas == 1) call close_realgas_trace_species(leftv)
                call prim2cons(n, leftv)
                rec_uleft(i, 1:nof_variables, l, ngp) = leftv(1:nof_variables)
             end do
@@ -1966,6 +1967,7 @@ contains
 
             do ngp = 1, iqp
                leftv(1:nof_variables) = rec_uleft(i, 1:nof_variables, l, ngp)
+               if (realgas == 1) call close_realgas_trace_species(leftv)
                call prim2cons(n, leftv)
                rec_uleft(i, 1:nof_variables, l, ngp) = leftv(1:nof_variables)
             end do
@@ -2188,7 +2190,8 @@ contains
 !$omp& map(alloc: integ_basis_dg_value, integ_basis_value, integ_basis_valuec, mp_a_in, mp_janaf, mp_m, mp_pinf) &
 !$omp& map(alloc: mp_r_in, mp_thigh_in, mp_tlow_in, mp_tmid_in, rec_gradients, rec_gradientsc, rec_ihexl, rec_ihexn) &
 !$omp& map(alloc: rec_indicator, rec_indicatorc, rec_local, rec_mrf, rec_qpoints, rec_rotvel, rec_uleft, rec_volume) &
-!$omp& map(alloc: rg_hzero, rg_molm, rg_thetag, rg_vf, rgs_ab, rgs_bb, rgs_cb, solhir, u_c_val)
+!$omp& map(alloc: rg_hzero, rg_molm, rg_thetag, rg_vf, rgs_ab, rgs_bb, rgs_cb, solhir, u_c_val) &
+!$omp& map(alloc: axis_face)
 #else
 !$omp do &
 !$omp& private(i, iconsidered)
@@ -2222,7 +2225,8 @@ contains
 !$omp& map(alloc: integ_basis_dg_value, integ_basis_value, integ_basis_valuec, mp_a_in, mp_janaf, mp_m, mp_pinf) &
 !$omp& map(alloc: mp_r_in, mp_thigh_in, mp_tlow_in, mp_tmid_in, rec_gradients, rec_ihexl, rec_ihexn, rec_indicator) &
 !$omp& map(alloc: rec_local, rec_mrf, rec_qpoints, rec_rotvel, rec_uleft, rec_volume, rg_hzero, rg_molm, rg_thetag) &
-!$omp& map(alloc: rg_vf, rgs_ab, rgs_bb, rgs_cb, solhir, u_c_val)
+!$omp& map(alloc: rg_vf, rgs_ab, rgs_bb, rgs_cb, solhir, u_c_val) &
+!$omp& map(alloc: axis_face)
 #else
 !$omp do &
 !$omp& private(i, iconsidered)
@@ -3472,7 +3476,18 @@ contains
                                  end do
                               end select
                            else
+#ifndef xpu
+                              if (poly .eq. 2) then
+                                 do k = 1, ideg
+                                    dx = dl2dx(ax, ay, k, i); dy = dl2dy(ax, ay, k, i)
+                                    gk = rec_gradientsturb(i, 1, k, nvar)
+                                    ugradloc(1) = ugradloc(1) + gk * dx
+                                    ugradloc(2) = ugradloc(2) + gk * dy
+                                 end do
+                              else if (poly .eq. 4) then
+#else
                               if (poly .eq. 4) then
+#endif
                                  do k = 1, ideg
                                     dx = tl2dx(ax, ay, k, i); dy = tl2dy(ax, ay, k, i)
                                     gk = rec_gradientsturb(i, 1, k, nvar)
@@ -3533,7 +3548,18 @@ contains
                               end do
                            end select
                         else
+#ifndef xpu
+                           if (poly .eq. 2) then
+                              do k = 1, ideg
+                                 dx = dl2dx(ax, ay, k, i); dy = dl2dy(ax, ay, k, i)
+                                 gk = rec_gradf(i, iex, k)
+                                 ugradloc(1) = ugradloc(1) + gk * dx
+                                 ugradloc(2) = ugradloc(2) + gk * dy
+                              end do
+                           else if (poly .eq. 4) then
+#else
                            if (poly .eq. 4) then
+#endif
                               do k = 1, ideg
                                  dx = tl2dx(ax, ay, k, i); dy = tl2dy(ax, ay, k, i)
                                  gk = rec_gradf(i, iex, k)
@@ -3643,7 +3669,18 @@ contains
                         end do
                      end select
                   else
+#ifndef xpu
+                     if (poly .eq. 2) then
+                        do k = 1, ideg
+                           dx = dl2dx(ax, ay, k, i); dy = dl2dy(ax, ay, k, i)
+                           gk = rec_gradf(i, iex, k)
+                           ugradloc(1) = ugradloc(1) + gk * dx
+                           ugradloc(2) = ugradloc(2) + gk * dy
+                        end do
+                     else if (poly .eq. 4) then
+#else
                      if (poly .eq. 4) then
+#endif
                         do k = 1, ideg
                            dx = tl2dx(ax, ay, k, i); dy = tl2dy(ax, ay, k, i)
                            gk = rec_gradf(i, iex, k)
@@ -3702,7 +3739,18 @@ contains
                            end do
                         end select
                      else
+#ifndef xpu
+                        if (poly .eq. 2) then
+                           do k = 1, ideg
+                              dx = dl2dx(ax, ay, k, i); dy = dl2dy(ax, ay, k, i)
+                              gk = rec_gradientsturb(i, 1, k, iex)
+                              ugradloc(1) = ugradloc(1) + gk * dx
+                              ugradloc(2) = ugradloc(2) + gk * dy
+                           end do
+                        else if (poly .eq. 4) then
+#else
                         if (poly .eq. 4) then
+#endif
                            do k = 1, ideg
                               dx = tl2dx(ax, ay, k, i); dy = tl2dy(ax, ay, k, i)
                               gk = rec_gradientsturb(i, 1, k, iex)
@@ -3937,7 +3985,8 @@ contains
 !$omp& map(alloc: rec_invmat_stencilt, rec_invmat_stenciltc, rec_k0, rec_local, rec_mrf, rec_periodicflag, rec_rotvel) &
 !$omp& map(alloc: rec_stencils, rec_tempsq, rec_tempsqmat, rec_velinvlsqmat, rec_vellsq, rec_volume_w, rec_wall) &
 !$omp& map(alloc: rec_wallcoeff, rec_wallcoefg, rec_weightl, rg_hzero, rg_molm, rg_thetag, rg_vf, rgs_ab, rgs_bb) &
-!$omp& map(alloc: rgs_cb, solhir, u_c_val, u_ct_val)
+!$omp& map(alloc: rgs_cb, solhir, u_c_val, u_ct_val) &
+!$omp& map(alloc: axis_face)
 #else
 !$omp do private(i) &
 !$omp& private(ii)
@@ -4449,7 +4498,8 @@ contains
 !$omp& map(alloc: ielem_ibounds, ielem_ifca, ielem_indexi, ielem_ineigh, ielem_ineighb, ielem_nodes_faces, ielem_surf) &
 !$omp& map(alloc: ielem_totvolume, ielem_types_faces, ielem_walldist, inoder4_cord, mp_a_in, mp_janaf, mp_m, mp_pinf) &
 !$omp& map(alloc: mp_r_in, mp_thigh_in, mp_tlow_in, mp_tmid_in, rec_grads, rec_ihexl, rec_ihexn, rec_local, rec_mrf) &
-!$omp& map(alloc: rec_rotvel, rg_hzero, rg_molm, rg_thetag, rg_vf, rgs_ab, rgs_bb, rgs_cb, solhir, u_c_val)
+!$omp& map(alloc: rec_rotvel, rg_hzero, rg_molm, rg_thetag, rg_vf, rgs_ab, rgs_bb, rgs_cb, solhir, u_c_val) &
+!$omp& map(alloc: axis_face)
 #else
 !$omp do private(ii, i, number_of_dog, number_of_nei)
 #endif
@@ -4543,7 +4593,8 @@ contains
 !$omp& map(alloc: ielem_ibounds, ielem_ifca, ielem_indexi, ielem_ineigh, ielem_ineighb, ielem_nodes_faces, ielem_surf) &
 !$omp& map(alloc: ielem_totvolume, ielem_types_faces, ielem_walldist, inoder4_cord, mp_a_in, mp_janaf, mp_m, mp_pinf) &
 !$omp& map(alloc: mp_r_in, mp_thigh_in, mp_tlow_in, mp_tmid_in, rec_grads, rec_ihexl, rec_ihexn, rec_local, rec_mrf) &
-!$omp& map(alloc: rec_rotvel, rg_hzero, rg_molm, rg_thetag, rg_vf, rgs_ab, rgs_bb, rgs_cb, solhir, u_c_val)
+!$omp& map(alloc: rec_rotvel, rg_hzero, rg_molm, rg_thetag, rg_vf, rgs_ab, rgs_bb, rgs_cb, solhir, u_c_val) &
+!$omp& map(alloc: axis_face)
 #else
 !$omp do private(ii, i, number_of_dog, number_of_nei)
 #endif
@@ -4576,7 +4627,8 @@ contains
 !$omp& map(alloc: ielem_indexi, ielem_ineigh, ielem_ineighb, ielem_nodes_faces, ielem_surf, ielem_totvolume) &
 !$omp& map(alloc: ielem_types_faces, ielem_walldist, inoder4_cord, mp_a_in, mp_janaf, mp_m, mp_pinf, mp_r_in) &
 !$omp& map(alloc: mp_thigh_in, mp_tlow_in, mp_tmid_in, rec_gradientsturb, rec_grads, rec_ihexl, rec_ihexn, rec_local) &
-!$omp& map(alloc: rec_mrf, rg_hzero, rg_molm, rg_thetag, rg_vf, rgs_ab, rgs_bb, rgs_cb, solhir, u_c_val, u_ct_val)
+!$omp& map(alloc: rec_mrf, rg_hzero, rg_molm, rg_thetag, rg_vf, rgs_ab, rgs_bb, rgs_cb, solhir, u_c_val, u_ct_val) &
+!$omp& map(alloc: axis_face)
 #else
 !$omp do private(ii, i, number_of_dog, number_of_nei)
 #endif
@@ -4728,7 +4780,8 @@ contains
 !$omp& map(alloc: ielem_indexi, ielem_ineigh, ielem_ineighb, ielem_nodes_faces, ielem_surf, ielem_totvolume) &
 !$omp& map(alloc: ielem_types_faces, ielem_walldist, inoder4_cord, mp_a_in, mp_janaf, mp_m, mp_pinf, mp_r_in) &
 !$omp& map(alloc: mp_thigh_in, mp_tlow_in, mp_tmid_in, rec_gradientsturb, rec_grads, rec_ihexl, rec_ihexn, rec_local) &
-!$omp& map(alloc: rec_mrf, rg_hzero, rg_molm, rg_thetag, rg_vf, rgs_ab, rgs_bb, rgs_cb, solhir, u_c_val, u_ct_val)
+!$omp& map(alloc: rec_mrf, rg_hzero, rg_molm, rg_thetag, rg_vf, rgs_ab, rgs_bb, rgs_cb, solhir, u_c_val, u_ct_val) &
+!$omp& map(alloc: axis_face)
 #else
 !$omp do private(ii, i, number_of_dog, number_of_nei)
 #endif
@@ -5380,7 +5433,7 @@ contains
    end subroutine checksol
 
    subroutine checksolx(n)
-      use, intrinsic :: ieee_arithmetic, only: ieee_is_finite
+      ! The loop below is a device kernel: no ieee_arithmetic (NaN/Inf tested arithmetically).
       implicit none
 !> @brief
 !> subroutine for checking the reconstructed solution
@@ -5552,7 +5605,7 @@ contains
                                  leftv(1) = rec_uleftturb(i, iex, l, ngp)
                                  rightv(1) = u_ct_val(i, 1, iex)
                                  if (turbulencemodel == 2) then
-                                    if (.not. ieee_is_finite(leftv(1))) then
+                                    if ((leftv(1) /= leftv(1)) .or. (abs(leftv(1)) > huge(leftv(1)))) then
                                        reduce1 = 1
                                        cycle
                                     end if

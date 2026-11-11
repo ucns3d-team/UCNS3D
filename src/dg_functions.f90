@@ -128,6 +128,11 @@ contains
          if (poly == 1) then
             if (axis == 1) value = df2dx(x, y, k, cell)
             if (axis == 2) value = df2dy(x, y, k, cell)
+#ifndef xpu
+         elseif (poly == 2) then
+            if (axis == 1) value = dl2dx(x, y, k, cell)
+            if (axis == 2) value = dl2dy(x, y, k, cell)
+#endif
          elseif (poly == 4) then
             if (axis == 1) value = tl2dx(x, y, k, cell)
             if (axis == 2) value = tl2dy(x, y, k, cell)
@@ -489,6 +494,15 @@ contains
                         & iconsidered))
                   end do
                end if
+#ifndef xpu
+               if (poly .eq. 2) then
+                  do i_var = 1, nof_variables
+                     dg_vol_integral_out(i + 1, i_var) = dg_vol_integral_out(i + 1, i_var) + qp_array_qp_weight(iconsidered, &
+                        & i_qp) * (flux_term_x(i_var) * dl2dx(x1, y1, i, iconsidered) + flux_term_y(i_var) * dl2dy(x1, y1, i, &
+                        & iconsidered))
+                  end do
+               end if
+#endif
                if (poly .eq. 4) then
                   do i_var = 1, nof_variables
                      dg_vol_integral_out(i + 1, i_var) = dg_vol_integral_out(i + 1, i_var) + qp_array_qp_weight(iconsidered, &
@@ -623,6 +637,15 @@ contains
                      rhs_valdg(iconsidered, i + 1, i_var) = rhs_valdg(iconsidered, i + 1, i_var) + weighted_flux
                   end do
                end if
+#ifndef xpu
+               if (poly .eq. 2) then
+                  do i_var = 1, nof_variables
+                     weighted_flux = scale * qp_array_qp_weight(iconsidered, i_qp) * (flux_term_x(i_var) * dl2dx(x1, y1, i, &
+                        & iconsidered) + flux_term_y(i_var) * dl2dy(x1, y1, i, iconsidered))
+                     rhs_valdg(iconsidered, i + 1, i_var) = rhs_valdg(iconsidered, i + 1, i_var) + weighted_flux
+                  end do
+               end if
+#endif
                if (poly .eq. 4) then
                   do i_var = 1, nof_variables
                      weighted_flux = scale * qp_array_qp_weight(iconsidered, i_qp) * (flux_term_x(i_var) * tl2dx(x1, y1, i, &
@@ -884,7 +907,8 @@ contains
 !$omp& map(alloc: rec_br2_aux_var, rec_br2_local_lift, rec_mrf, rec_qpoints, rec_rotvel, rec_uleft, rec_uleft_dg) &
 !$omp& map(alloc: rec_uleftturb, rec_uleftv, rec_volume, rg_hzero, rg_molm, rg_thetag, rg_vf, rgs_ab, rgs_bb, rgs_cb) &
 !$omp& map(alloc: u_c_br2_aux_var, u_c_valdg, u_ct_val, weights_l, weights_q, weights_t, xmpielrank) &
-!$omp& private(i_elem)
+!$omp& private(i_elem) &
+!$omp& map(alloc: axis_face, u_c_val)
 #else
 !$omp do private(i_elem)
 #endif
