@@ -7,6 +7,166 @@ module basis
 
 contains
 
+   ! Selected Legendre/Taylor helpers are CPU-only; XPU validation requires poly=1.
+   subroutine basis_selected_powers(nd, kbasis, powers)
+!> Mode ordering must match the legacy prestore and derivative tables.
+      integer, intent(in) :: nd, kbasis
+      integer, intent(out) :: powers(3)
+      integer :: degree, k, yp
+      integer, parameter :: legendre_powers(3, 219) = reshape([ &
+         & 1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, 0, 1, 1, 0, 1, 0, 1, &
+         & 0, 2, 0, 0, 1, 1, 0, 0, 2, 3, 0, 0, 2, 1, 0, 1, 2, 0, &
+         & 0, 3, 0, 0, 2, 1, 0, 1, 2, 0, 0, 3, 1, 1, 1, 2, 0, 1, &
+         & 1, 0, 2, 4, 0, 0, 3, 1, 0, 3, 0, 1, 2, 2, 0, 2, 1, 1, &
+         & 2, 0, 2, 1, 3, 0, 1, 2, 1, 1, 1, 2, 1, 0, 3, 0, 3, 1, &
+         & 0, 2, 2, 0, 1, 3, 0, 0, 4, 0, 4, 0, 5, 0, 0, 4, 1, 0, &
+         & 4, 0, 1, 3, 2, 0, 3, 0, 2, 3, 1, 1, 2, 3, 0, 2, 2, 1, &
+         & 2, 1, 2, 2, 0, 3, 1, 4, 0, 1, 3, 1, 1, 1, 3, 1, 2, 2, &
+         & 0, 5, 0, 0, 4, 1, 0, 3, 2, 0, 2, 3, 0, 1, 4, 0, 0, 5, &
+         & 1, 0, 4, 6, 0, 0, 5, 1, 0, 5, 0, 1, 4, 2, 0, 4, 1, 1, &
+         & 4, 0, 2, 3, 3, 0, 3, 2, 1, 3, 1, 2, 3, 0, 3, 2, 4, 0, &
+         & 2, 3, 1, 2, 2, 2, 2, 1, 3, 2, 0, 4, 1, 5, 0, 1, 4, 1, &
+         & 1, 3, 2, 1, 2, 3, 1, 1, 4, 1, 0, 5, 0, 6, 0, 0, 5, 1, &
+         & 0, 4, 2, 0, 3, 3, 0, 2, 4, 0, 1, 5, 0, 0, 6, 7, 0, 0, &
+         & 6, 1, 0, 6, 0, 1, 5, 2, 0, 5, 1, 1, 5, 0, 2, 4, 3, 0, &
+         & 4, 2, 1, 4, 1, 2, 4, 0, 3, 3, 4, 0, 3, 3, 1, 3, 2, 2, &
+         & 3, 1, 3, 3, 0, 4, 2, 5, 0, 2, 4, 1, 2, 3, 2, 2, 2, 3, &
+         & 2, 1, 4, 2, 0, 5, 1, 6, 0, 1, 5, 1, 1, 4, 2, 1, 3, 3, &
+         & 1, 2, 4, 1, 1, 5, 1, 0, 6, 0, 7, 0, 0, 6, 1, 0, 5, 2, &
+         & 0, 4, 3, 0, 3, 4, 0, 2, 5, 0, 1, 6, 0, 0, 7, 8, 0, 0, &
+         & 7, 1, 0, 7, 0, 1, 6, 2, 0, 6, 1, 1, 6, 0, 2, 5, 3, 0, &
+         & 5, 2, 1, 5, 1, 2, 5, 0, 3, 4, 4, 0, 4, 3, 1, 4, 2, 2, &
+         & 4, 1, 3, 4, 0, 4, 3, 5, 0, 3, 4, 1, 3, 3, 2, 3, 2, 3, &
+         & 3, 1, 4, 3, 0, 5, 2, 6, 0, 2, 5, 1, 2, 4, 2, 2, 3, 3, &
+         & 2, 2, 4, 2, 1, 5, 2, 0, 6, 1, 7, 0, 1, 6, 1, 1, 5, 2, &
+         & 1, 4, 3, 1, 3, 4, 1, 2, 5, 1, 1, 6, 1, 0, 7, 0, 8, 0, &
+         & 0, 7, 1, 0, 6, 2, 0, 5, 3, 0, 4, 4, 0, 3, 5, 0, 2, 6, &
+         & 0, 1, 7, 0, 0, 8, 9, 0, 0, 8, 1, 0, 8, 0, 1, 7, 2, 0, &
+         & 7, 1, 1, 7, 0, 2, 6, 3, 0, 6, 2, 1, 6, 0, 3, 6, 1, 2, &
+         & 5, 4, 0, 5, 3, 1, 5, 2, 2, 5, 1, 3, 5, 0, 4, 4, 5, 0, &
+         & 4, 4, 1, 4, 3, 2, 4, 2, 3, 4, 1, 4, 4, 0, 5, 3, 6, 0, &
+         & 3, 5, 1, 3, 4, 2, 3, 3, 3, 3, 2, 4, 3, 1, 5, 3, 0, 6, &
+         & 2, 7, 0, 2, 6, 1, 2, 5, 2, 2, 4, 3, 2, 3, 4, 2, 2, 5, &
+         & 2, 1, 6, 2, 0, 7, 1, 8, 0, 1, 7, 1, 1, 6, 2, 1, 5, 3, &
+         & 1, 4, 4, 1, 3, 5, 1, 2, 6, 1, 1, 7, 1, 0, 8, 0, 9, 0, &
+         & 0, 8, 1, 0, 7, 2, 0, 6, 3, 0, 5, 4, 0, 4, 5, 0, 3, 6, &
+         & 0, 2, 7, 0, 1, 8, 0, 0, 9 ], [3, 219])
+      integer, parameter :: taylor_powers(3, 83) = reshape([ &
+         & 1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, 0, 1, 1, 0, 1, 0, 1, &
+         & 0, 2, 0, 0, 1, 1, 0, 0, 2, 3, 0, 0, 2, 1, 0, 2, 0, 1, &
+         & 1, 2, 0, 1, 0, 2, 1, 1, 1, 0, 3, 0, 0, 2, 1, 0, 1, 2, &
+         & 0, 0, 3, 4, 0, 0, 3, 1, 0, 3, 0, 1, 2, 2, 0, 2, 0, 2, &
+         & 2, 1, 1, 1, 3, 0, 1, 0, 3, 1, 2, 1, 1, 1, 2, 0, 4, 0, &
+         & 0, 3, 1, 0, 2, 2, 0, 1, 3, 0, 0, 4, 5, 0, 0, 4, 1, 0, &
+         & 4, 0, 1, 3, 2, 0, 3, 0, 2, 3, 1, 1, 2, 3, 0, 2, 2, 1, &
+         & 2, 1, 2, 2, 0, 3, 1, 4, 0, 1, 3, 1, 1, 2, 2, 1, 1, 3, &
+         & 1, 0, 4, 0, 5, 0, 0, 4, 1, 0, 3, 2, 0, 2, 3, 0, 1, 4, &
+         & 0, 0, 5, 6, 0, 0, 5, 1, 0, 5, 0, 1, 4, 2, 0, 4, 1, 1, &
+         & 4, 0, 2, 3, 3, 0, 3, 2, 1, 3, 1, 2, 3, 0, 3, 2, 4, 0, &
+         & 2, 3, 1, 2, 2, 2, 2, 1, 3, 2, 0, 4, 1, 5, 0, 1, 4, 1, &
+         & 1, 3, 2, 1, 2, 3, 1, 1, 4, 1, 0, 5, 0, 6, 0, 0, 5, 1, &
+         & 0, 4, 2, 0, 3, 3, 0, 2, 4, 0, 1, 5, 0, 0, 6 ], [3, 83])
+      powers = -1
+      if (kbasis < 1) return
+      if (nd == 2) then
+         k = 0
+         do degree = 1, 9
+            do yp = 0, degree
+               k = k + 1
+               if (k == kbasis) then
+                  powers = [degree - yp, yp, 0]
+                  return
+               end if
+            end do
+         end do
+      else if (poly == 2) then
+         if (kbasis <= size(legendre_powers, 2)) powers = legendre_powers(:, kbasis)
+      else if (poly == 4) then
+         if (kbasis <= size(taylor_powers, 2)) powers = taylor_powers(:, kbasis)
+      end if
+   end subroutine basis_selected_powers
+
+   real function basis_legendre_derivative(x, degree, deriv) result(value)
+!> Derivative of the shifted Legendre polynomial P_degree(2*x-1).
+!> Differentiate the three-term recurrence, avoiding expanded high-degree polynomials.
+      real, intent(in) :: x
+      integer, intent(in) :: degree, deriv
+      real :: previous(0:9), current(0:9), next(0:9), xi
+      integer :: k, r
+      value = 0.0
+      if (deriv < 0 .or. deriv > degree .or. degree > 9) return
+      previous = 0.0
+      previous(0) = 1.0
+      if (degree == 0) then
+         value = previous(deriv)
+         return
+      end if
+      xi = 2.0*x - 1.0
+      current = 0.0
+      current(0) = xi
+      current(1) = 2.0
+      do k = 2, degree
+         next = 0.0
+         do r = 0, min(k, deriv)
+            next(r) = (2*k - 1)*xi*current(r) - (k - 1)*previous(r)
+            if (r > 0) next(r) = next(r) + (2*k - 1)*2*r*current(r - 1)
+            next(r) = next(r)/real(k)
+         end do
+         previous = current
+         current = next
+      end do
+      value = current(deriv)
+   end function basis_legendre_derivative
+
+   real function basis_selected_derivative(nd, x, y, z, kbasis, cell, dx, dy, dz) result(value)
+!> Raw poly=2/4 mode or mixed derivative, in reconstruction coordinates.
+!> Cell-mean subtraction is constant and therefore absent for derivatives.
+      integer, intent(in) :: nd, kbasis, cell, dx, dy, dz
+      real, intent(in) :: x, y, z
+      integer :: powers(3), derivs(3), axis, j
+      real :: coords(3), h, factor
+      call basis_selected_powers(nd, kbasis, powers)
+      value = 0.0
+      if (any(powers < 0)) return
+      coords = [x, y, z]
+      derivs = [dx, dy, dz]
+      if (any(derivs < 0) .or. any(derivs > powers)) return
+      value = 1.0
+      if (poly == 2) then
+         do axis = 1, nd
+            value = value*basis_legendre_derivative(coords(axis), powers(axis), derivs(axis))
+         end do
+      else if (poly == 4) then
+         ! Retain the existing Taylor length scale used by prestore and der_r.
+         h = sqrt(ielem_totvolume(cell))
+         do axis = 1, nd
+            factor = 1.0
+            do j = 1, powers(axis) - derivs(axis)
+               factor = factor*(coords(axis)/h)/real(j)
+            end do
+            do j = 1, derivs(axis)
+               factor = factor/h
+            end do
+            value = value*factor
+         end do
+      else
+         value = 0.0
+      end if
+   end function basis_selected_derivative
+
+   real function dl2dx(x, y, kbasis, cell) result(value)
+      real, intent(in) :: x, y
+      integer, intent(in) :: kbasis, cell
+      value = basis_selected_derivative(2, x, y, 0.0, kbasis, cell, 1, 0, 0)
+   end function dl2dx
+
+   real function dl2dy(x, y, kbasis, cell) result(value)
+      real, intent(in) :: x, y
+      integer, intent(in) :: kbasis, cell
+      value = basis_selected_derivative(2, x, y, 0.0, kbasis, cell, 0, 1, 0)
+   end function dl2dy
+
+
    real function basis_real_power(x, p)
       implicit none
 !> @brief
@@ -28,7 +188,7 @@ contains
    real function basis_rec_value(n, x1, y1, z1, number, iconsidered, number_of_dog, icompwrt, kbasis)
       implicit none
 !> @brief
-!> scalar 3D generic monomial basis value for linear-scheme GPU isolation
+!> scalar 3D basis value consistent with the selected prestore basis
 #ifdef xpu
 !$omp declare target
 #endif
@@ -43,6 +203,12 @@ contains
 
       k = 0
       raw = zero
+#ifndef xpu
+      if (poly == 2 .or. poly == 4) then
+         if (kbasis <= (number + 1)*(number + 2)*(number + 3)/6 - 1) &
+            & raw = basis_selected_derivative(3, x1, y1, z1, kbasis, iconsidered, 0, 0, 0)
+      else
+#endif
       degree_loop: do degree = 1, number
          do zpow = 0, degree
             do ypow = 0, degree - zpow
@@ -55,6 +221,9 @@ contains
             end do
          end do
       end do degree_loop
+#ifndef xpu
+      end if
+#endif
 
       if (icompwrt .eq. -2) then
          oov = 1.00 / (ielem_totvolume(iconsidered))
@@ -74,7 +243,7 @@ contains
    real function basis_rec2d_value(n, x1, y1, number, iconsidered, number_of_dog, icompwrt, kbasis)
       implicit none
 !> @brief
-!> scalar 2D generic monomial basis value for linear-scheme GPU isolation
+!> scalar 2D basis value consistent with the selected prestore basis
 #ifdef xpu
 !$omp declare target
 #endif
@@ -89,6 +258,12 @@ contains
 
       k = 0
       raw = zero
+#ifndef xpu
+      if (poly == 2 .or. poly == 4) then
+         if (kbasis <= (number + 1)*(number + 2)/2 - 1) &
+            & raw = basis_selected_derivative(2, x1, y1, 0.0, kbasis, iconsidered, 0, 0, 0)
+      else
+#endif
       degree_loop_2d: do degree = 1, number
          do ypow = 0, degree
             xpow = degree - ypow
@@ -99,6 +274,9 @@ contains
             end if
          end do
       end do degree_loop_2d
+#ifndef xpu
+      end if
+#endif
 
       if (icompwrt .eq. -2) then
          oov = 1.00 / (ielem_totvolume(iconsidered))
@@ -130,6 +308,14 @@ contains
       real :: raw, oov, xterm, yterm, zterm
 
       basis_out = zero
+#ifndef xpu
+      if (poly == 2 .or. poly == 4) then
+         do k = 1, number_of_dog
+            basis_out(k) = basis_rec_value(n, x1, y1, z1, number, iconsidered, number_of_dog, icompwrt, k)
+         end do
+         return
+      end if
+#endif
       oov = 1.00 / (rec_volume(1, 1, iconsidered))
       if (icompwrt .eq. -2) oov = 1.00 / (ielem_totvolume(iconsidered))
 
@@ -199,6 +385,14 @@ contains
       real :: raw, oov, xterm, yterm
 
       basis_out = zero
+#ifndef xpu
+      if (poly == 2 .or. poly == 4) then
+         do k = 1, number_of_dog
+            basis_out(k) = basis_rec2d_value(n, x1, y1, number, iconsidered, number_of_dog, icompwrt, k)
+         end do
+         return
+      end if
+#endif
       oov = 1.00 / (rec_volume(1, 1, iconsidered))
       if (icompwrt .eq. -2) oov = 1.00 / (ielem_totvolume(iconsidered))
 
@@ -2103,7 +2297,7 @@ contains
       integer, intent(in) :: n
       integer, intent(in) :: number, iconsidered, number_of_dog, icompwrt
       real, intent(in) :: x1, y1
-      integer :: i_node, i_qp, n_qp
+      integer :: i_node, i_qp, n_qp, k
       real :: oov, hxc
       real, dimension(number_of_dog) :: basis_rec2d
       real, dimension(number_of_dog) :: sb
@@ -2214,34 +2408,10 @@ contains
 
          end select
 
-      case (2) ! legendre
-         select case (number)
-         case (1)
-            !first order functions (2nd-order of accuracy 3)
-            sb(1) = -1.00 + 2.00 * x1
-            sb(2) = -1.00 + 2.00 * y1
-
-         case (2)
-            ! second order functions (3rd-order of accuracy 4-9)
-            sb(1) = -1.00 + 2.00 * x1
-            sb(2) = -1.00 + 2.00 * y1
-            sb(3) = 1.00 - 6.00 * x1 + 6.00 * x1**2
-            sb(4) = sb(1) * sb(2)
-            sb(5) = 1.00 - 6.00 * y1 + 6.00 * y1**2
-
-         case (3)
-            ! third order functions (4th-order of accuracy  10-19)
-            sb(1) = -1.00 + 2.00 * x1
-            sb(2) = -1.00 + 2.00 * y1
-            sb(3) = 1.00 - 6.00 * x1 + 6.00 * x1**2
-            sb(4) = sb(1) * sb(2)
-            sb(5) = 1.00 - 6.00 * y1 + 6.00 * y1**2
-            sb(6) = -1.00 + 12.00 * x1 - 30.00 * x1**2 + 20.00 * x1**3
-            sb(7) = sb(3) * sb(2)
-            sb(8) = sb(1) * sb(5)
-            sb(9) = -1.00 + 12.00 * y1 - 30.00 * y1**2 + 20.00 * y1**3
-         end select
-
+      case (2) ! shifted Legendre tensor products, ordered by total degree
+         do k = 1, min(number_of_dog, (number + 1)*(number + 2)/2 - 1)
+            sb(k) = basis_selected_derivative(2, x1, y1, 0.0, k, iconsidered, 0, 0, 0)
+         end do
       case (4) ! !taylor
          select case (number)
 

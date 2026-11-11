@@ -617,7 +617,7 @@ contains
          end if
          icompact = 0 !compact stencil mode(0 not true,1 true)
          extf = 3 !stencils stability values from 1.2 to 3 (default 2)
-         weight_lsqr = 1 !weighted least squares(0 not true,1 true)
+         weight_lsqr = 0 !weighted least squares(0 not true,1 true)
          guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
          fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
          relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
@@ -660,7 +660,7 @@ contains
          end if
          icompact = 0 !compact stencil mode(0 not true,1 true)
          extf = 3 !stencils stability values from 1.2 to 3 (default 2)
-         weight_lsqr = 1 !weighted least squares(0 not true,1 true)
+         weight_lsqr = 0 !weighted least squares(0 not true,1 true)
          guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
          fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
          relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
@@ -704,7 +704,7 @@ contains
          end if
          icompact = 0 !compact stencil mode(0 not true,1 true)
          extf = 3 !stencils stability values from 1.2 to 3 (default 2)
-         weight_lsqr = 1 !weighted least squares(0 not true,1 true)
+         weight_lsqr = 0 !weighted least squares(0 not true,1 true)
          guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
          fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
          relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
@@ -934,7 +934,7 @@ contains
          if (initcond .eq. 405) iadapt = 1
          icompact = 0 !compact stencil mode(0 not true,1 true)
          extf = 3 !stencils stability values from 1.2 to 3 (default 2)
-         weight_lsqr = 1 !weighted least squares(0 not true,1 true)
+         weight_lsqr = 0 !weighted least squares(0 not true,1 true)
          guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
          fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
          relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
@@ -973,7 +973,7 @@ contains
          if (initcond .eq. 405) iadapt = 1
          icompact = 0 !compact stencil mode(0 not true,1 true)
          extf = 2 !stencils stability values from 1.2 to 3 (default 2)
-         weight_lsqr = 1 !weighted least squares(0 not true,1 true)
+         weight_lsqr = 0 !weighted least squares(0 not true,1 true)
          guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
          fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
          relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
@@ -1049,7 +1049,7 @@ contains
          if (initcond .eq. 405) iadapt = 1
          icompact = 0 !compact stencil mode(0 not true,1 true)
          extf = 3 !stencils stability values from 1.2 to 3 (default 2)
-         weight_lsqr = 1 !weighted least squares(0 not true,1 true)
+         weight_lsqr = 0 !weighted least squares(0 not true,1 true)
          guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
          fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
          relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
@@ -1086,7 +1086,7 @@ contains
          if (initcond .eq. 405) iadapt = 1
          icompact = 0 !compact stencil mode(0 not true,1 true)
          extf = 3 !stencils stability values from 1.2 to 3 (default 2)
-         weight_lsqr = 1 !weighted least squares(0 not true,1 true)
+         weight_lsqr = 0 !weighted least squares(0 not true,1 true)
          guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
          fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
          relax = 3 !relaxation parameter : |1:block jacobi |2: lu-sgs
@@ -1318,7 +1318,7 @@ contains
          if (initcond .eq. 101) iadapt = 1
          icompact = 0 !compact stencil mode(0 not true,1 true)
          extf = 3 !stencils stability values from 1.2 to 3 (default 2)
-         weight_lsqr = 1 !weighted least squares(0 not true,1 true)
+         weight_lsqr = 0 !weighted least squares(0 not true,1 true)
          guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
          fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
          relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
@@ -1357,7 +1357,7 @@ contains
          if (initcond .eq. 405) iadapt = 1
          icompact = 0 !compact stencil mode(0 not true,1 true)
          extf = 2 !stencils stability values from 1.2 to 3 (default 2)
-         weight_lsqr = 1 !weighted least squares(0 not true,1 true)
+         weight_lsqr = 0 !weighted least squares(0 not true,1 true)
          guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
          fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
          relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
@@ -1926,6 +1926,9 @@ contains
       logical :: xpu_recon_supported
 
       if (rot_corr == 2 .and. turbulence == 1 .and. turbulencemodel == 1) then
+#ifdef xpu
+         call abort_ucns3d_configuration(n, 'SA-RC (rot_corr=2) is CPU-only; rebuild without -Dxpu')
+#endif
          if (rungekutta /= 5 .and. rungekutta /= 10) then
             call abort_ucns3d_configuration(n, 'SA-RC currently requires steady RK-LTS(5) or implicit BE(10)')
          end if
@@ -2095,6 +2098,10 @@ contains
       end if
       if (dg == 1 .and. (rungekutta < 1 .or. rungekutta > 5)) then
          call abort_ucns3d_configuration(n, 'XPU DG supports explicit Runge-Kutta methods 1..5')
+      end if
+      ! Conservative XPU scope: selected Legendre/Taylor bases remain CPU-only.
+      if (poly /= 1) then
+         call abort_ucns3d_configuration(n, 'XPU requires poly=1; poly=2 and poly=4 are CPU-only')
       end if
       xpu_recon_supported = ((dg == 0) .or. (dg == 1)) .and. (poly == 1) .and. (firstorder == 0) .and. &
          & ((iweno .eq. -1) .or. (iweno .eq. 0) .or. &

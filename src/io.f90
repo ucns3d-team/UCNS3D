@@ -15660,8 +15660,10 @@ contains
 #ifdef xpu
 !$omp target teams distribute parallel do private(f,j,bc,q,prim,mu,ktr,kve,gm,pinf,g,txx,txr,trr,ttt,nx,ny,qheat,area,weight) &
 !$omp& firstprivate(n) reduction(+:axial_sum,heat_sum,area_sum) &
+!$omp& map(tofrom: axial_sum,heat_sum,area_sum) &
 !$omp& map(alloc: axis_face_radius,ielem_ibounds,ibound_icode,ielem_ifca,ielem_surf,ielem_faceanglex,ielem_faceangley, &
-!$omp& rec_uleft,rec_uleftv,weights_l,xmpielrank,rg_molm,rg_hzero,rg_thetag,rgs_ab,rgs_bb,rgs_cb)
+!$omp& rec_uleft,rec_uleftv,weights_l,xmpielrank,rg_molm,rg_hzero,rg_thetag,rgs_ab,rgs_bb,rgs_cb) &
+!$omp& map(alloc: u_c_val)
 #else
 !$omp do reduction(+:forcex,axis_heat_load,axis_wall_area) &
 !$omp& private(i,f,j,bc,q,prim,mu,ktr,kve,gm,pinf,g,txx,txr,trr,ttt,nx,ny,qheat,area,weight)

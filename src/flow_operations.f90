@@ -74,13 +74,15 @@ contains
 !$omp declare target
 #endif
       integer, intent(in) :: n
-      real, intent(in) :: q(nof_variables)
+      ! Assumed shape: callers pass the strided section u_c_val(i,1,1:nof_variables);
+      ! an explicit-shape dummy would need a run-time sized copy-in temporary on the device.
+      real, intent(in) :: q(:)
       real, intent(out) :: mu, conductivity
       real :: qw(gpu_max_nvar), qt(gpu_max_nvar), pinf, gm, temperature
-      qw(1:nof_variables) = q
+      qw(1:nof_variables) = q(1:nof_variables)
       if (thermal == 1) then
          if (wall_temp > 0.0) then
-            qt(1:nof_variables) = q
+            qt(1:nof_variables) = q(1:nof_variables)
             call cons2div(n, qt, pinf, gm)
             temperature = max(qt(dimensiona+2),1.0e-15)
             call cons2prim(n, qw, pinf, gm)
@@ -96,7 +98,7 @@ contains
 !$omp declare target
 #endif
       integer, intent(in) :: n
-      real, intent(in) :: q(nof_variables), distance
+      real, intent(in) :: q(:), distance ! assumed shape, see sst_wall_transport
       real :: mu, conductivity
       call sst_wall_transport(n, q, mu, conductivity)
       omega_wall = 60.0 * mu / (max(q(1),1.0e-30) * beta_i1 * max(distance,1.0e-15)**2)
@@ -1817,14 +1819,14 @@ contains
       real :: mp_pinfl, gammal
       real, dimension(1:nof_variables), intent(inout) :: rightv
       real :: mp_pinfr, gammar
-      real :: priml(nof_variables), primr(nof_variables)
+      real :: priml(gpu_max_nvar), primr(gpu_max_nvar) ! fixed bound: no automatic arrays in device routines
       real :: q2l, q2r, uul, uur, vvl, vvr, wwr, wwl, rhol, rhor, duu, dvv, dww
       real :: mach2, mach, cma, dus, dvs, dws, diff, c1o2, ssl, ssr, ppl, ppr
 
       ! Only face momenta are corrected. Keep total energy and every other
       ! conservative component (including rho*ev and rho*Ys) unchanged.
-      priml = leftv
-      primr = rightv
+      priml(1:nof_variables) = leftv(1:nof_variables)
+      primr(1:nof_variables) = rightv(1:nof_variables)
       call cons2prim2(n, priml, primr, mp_pinfl, mp_pinfr, gammal, gammar)
 
       c1o2 = 0.500
@@ -1911,14 +1913,14 @@ contains
       real :: mp_pinfl, gammal
       real, dimension(1:nof_variables), intent(inout) :: rightv
       real :: mp_pinfr, gammar
-      real :: priml(nof_variables), primr(nof_variables)
+      real :: priml(gpu_max_nvar), primr(gpu_max_nvar) ! fixed bound: no automatic arrays in device routines
       real :: q2l, q2r, uul, uur, vvl, vvr, rhol, rhor, duu, dvv
       real :: mach2, mach, cma, dus, dvs, diff, c1o2, ssl, ssr, ppl, ppr
 
       ! Only face momenta are corrected. Keep total energy and every other
       ! conservative component (including rho*ev and rho*Ys) unchanged.
-      priml = leftv
-      primr = rightv
+      priml(1:nof_variables) = leftv(1:nof_variables)
+      primr(1:nof_variables) = rightv(1:nof_variables)
       call cons2prim2(n, priml, primr, mp_pinfl, mp_pinfr, gammal, gammar)
 
       c1o2 = 0.50
@@ -3778,7 +3780,8 @@ contains
 !$omp target teams distribute parallel do &
 !$omp& firstprivate(n, kmaxe) &
 !$omp& map(alloc: rec_grads, ielem_vortex) &
-!$omp& private(i, ihgt, ihgj, snorm, onorm)
+!$omp& private(i, ihgt, ihgj, snorm, onorm) &
+!$omp& map(alloc: axis_radius, u_c_val)
 #else
 !$omp do &
 !$omp& private(i, ihgj, ihgt, onorm, snorm)

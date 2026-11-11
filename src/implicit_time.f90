@@ -103,7 +103,8 @@ contains
 !$omp& map(alloc: lm_offt, mp_a_in, mp_janaf, mp_m, mp_pinf, mp_r_in, mp_thigh_in, mp_tlow_in, mp_tmid_in, rec_grads) &
 !$omp& map(alloc: rec_ihexl, rec_ihexn, rec_local, rec_mrf, rec_rotvel, rg_hzero, rg_molm, rg_thetag, rg_vf, rgs_ab) &
 !$omp& map(alloc: rgs_bb, rgs_cb, rgs_eps_over_k, rgs_mg, rgs_sigmaa, rhs_val, rhst_val, sht, solhir, u_c_val) &
-!$omp& map(alloc: u_ct_val)
+!$omp& map(alloc: u_ct_val) &
+!$omp& map(alloc: axis_face, axis_radius, sst_halo_wall)
 #else
 !$omp do private(i, slot) &
 !$omp& private(at)

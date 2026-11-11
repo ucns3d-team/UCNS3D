@@ -19,12 +19,13 @@ contains
 !$omp declare target
 #endif
       integer, intent(in) :: n
-      real, intent(in) :: qcell(nof_variables), normal(3)
+      ! qcell is assumed shape: callers pass the strided section u_c_val(i,1,1:nof_variables).
+      real, intent(in) :: qcell(:), normal(3)
       real, intent(inout) :: block(:, :), off(:, :)
       real :: qp(gpu_max_nvar), qm(gpu_max_nvar), gp(gpu_max_nvar), gm(gpu_max_nvar)
       real :: db(gpu_max_nvar, gpu_max_nvar), scale(gpu_max_nvar)
       real :: rho, energy, h
-      integer :: j, nv
+      integer :: j, k, m, nv
       if (initcond /= 4440 .or. realgas /= 0 .or. multispecies /= 0) return
       nv = nof_variables
       rho = max(abs(qcell(1)), tolsmall)
@@ -32,17 +33,26 @@ contains
       scale = rho
       scale(2:dimensiona + 1) = sqrt(rho * energy)
       scale(dimensiona + 2) = energy
-      scale(1:nv) = max(scale(1:nv), abs(qcell))
+      scale(1:nv) = max(scale(1:nv), abs(qcell(1:nv)))
       db = 0.0e0
       do j = 1, nv
          h = 1.0e-6 * scale(j)
-         qp(1:nv) = qcell; qm(1:nv) = qcell
+         qp(1:nv) = qcell(1:nv); qm(1:nv) = qcell(1:nv)
          qp(j) = qp(j) + h; qm(j) = qm(j) - h
          call inflow_4440_from_left(n, qp(1:nv), normal, gp(1:nv))
          call inflow_4440_from_left(n, qm(1:nv), normal, gm(1:nv))
          db(1:nv, j) = (gp(1:nv) - gm(1:nv)) / (2.0e0 * h)
       end do
-      block(1:nv, 1:nv) = block(1:nv, 1:nv) + matmul(off(1:nv, 1:nv), db(1:nv, 1:nv))
+      ! block = block + off*db, written out: matmul needs a run-time sized temporary on the device.
+      do j = 1, nv
+         do k = 1, nv
+            h = 0.0e0
+            do m = 1, nv
+               h = h + off(k, m) * db(m, j)
+            end do
+            block(k, j) = block(k, j) + h
+         end do
+      end do
       off(1:nv, 1:nv) = 0.0e0
    end subroutine add_duct_inlet_coupling
 
@@ -119,7 +129,8 @@ contains
 !$omp& map(alloc: ibound_icode, ielem_ibounds, ielem_ineighb, ielem_indexi, rec_local, rec_ihexn, rec_ihexl, halo_offset) &
 !$omp& map(alloc: sst_halo_wall, ielem_surf, ielem_walldist, impdiag, impdiagt, impoff, impofft, mp_janaf, mp_m, mp_pinf) &
 !$omp& map(alloc: mp_thigh_in, mp_tlow_in, mp_tmid_in, rec_grads, rec_mrf, rec_rotvel, rg_hzero, rg_molm, rg_thetag) &
-!$omp& map(alloc: rgs_ab, rgs_bb, rgs_cb, rgs_eps_over_k, rgs_mg, rgs_sigmaa, u_c_val, u_ct_val)
+!$omp& map(alloc: rgs_ab, rgs_bb, rgs_cb, rgs_eps_over_k, rgs_mg, rgs_sigmaa, u_c_val, u_ct_val) &
+!$omp& map(alloc: axis_radius)
 #else
 !$omp do &
 !$omp& private(ii)
@@ -142,7 +153,8 @@ contains
 !$omp& map(alloc: impofft, inoder4_cord, mp_a_in, mp_janaf, mp_m, mp_pinf, mp_r_in, mp_thigh_in, mp_tlow_in) &
 !$omp& map(alloc: mp_tmid_in, rec_grads, rec_ihexl, rec_ihexn, rec_local, rec_mrf, rec_rotvel, rg_hzero, rg_molm) &
 !$omp& map(alloc: rg_thetag, rg_vf, rgs_ab, rgs_bb, rgs_cb, rgs_eps_over_k, rgs_mg, rgs_sigmaa, solhir, u_c_val) &
-!$omp& map(alloc: u_ct_val)
+!$omp& map(alloc: u_ct_val) &
+!$omp& map(alloc: axis_radius)
 #else
 !$omp do &
 !$omp& private(ii)
@@ -199,7 +211,8 @@ contains
 !$omp target teams distribute parallel do firstprivate(n) private(i) &
 !$omp& firstprivate(kmaxe) &
 !$omp& map(alloc: gamma_in, ielem_dtl, ielem_totvolume, impdiag, mp_janaf, mp_m, mp_pinf, mp_thigh_in, mp_tlow_in) &
-!$omp& map(alloc: mp_tmid_in, rg_hzero, rg_molm, rg_thetag, u_c_val)
+!$omp& map(alloc: mp_tmid_in, rg_hzero, rg_molm, rg_thetag, u_c_val) &
+!$omp& map(alloc: axis_radius, ielem_walldist, rec_grads, u_ct_val)
 #else
 !$omp do &
 !$omp& private(i)
@@ -217,7 +230,8 @@ contains
 !$omp target teams distribute parallel do firstprivate(n) private(i) &
 !$omp& firstprivate(kmaxe) &
 !$omp& map(alloc: gamma_in, ielem_dtl, ielem_totvolume, impdiag, mp_janaf, mp_m, mp_pinf, mp_thigh_in, mp_tlow_in) &
-!$omp& map(alloc: mp_tmid_in, rg_hzero, rg_molm, rg_thetag, u_c_val)
+!$omp& map(alloc: mp_tmid_in, rg_hzero, rg_molm, rg_thetag, u_c_val) &
+!$omp& map(alloc: axis_radius, ielem_walldist, rec_grads, u_ct_val)
 #else
 !$omp do &
 !$omp& private(i)
@@ -1031,7 +1045,8 @@ contains
 !$omp& map(alloc: ibound_icode, ielem_ibounds, ielem_ineighb, ielem_indexi, rec_local, rec_ihexn, rec_ihexl, halo_offset) &
 !$omp& map(alloc: sst_halo_wall, ielem_surf, ielem_walldist, impdiag, impdiagt, impoff, impofft, mp_janaf, mp_m, mp_pinf) &
 !$omp& map(alloc: mp_thigh_in, mp_tlow_in, mp_tmid_in, rec_grads, rg_hzero, rg_molm, rg_thetag, rgs_ab, rgs_bb) &
-!$omp& map(alloc: rgs_cb, rgs_eps_over_k, rgs_mg, rgs_sigmaa, u_c_val, u_ct_val)
+!$omp& map(alloc: rgs_cb, rgs_eps_over_k, rgs_mg, rgs_sigmaa, u_c_val, u_ct_val) &
+!$omp& map(alloc: axis_radius)
 #else
 !$omp do &
 !$omp& private(ii)
@@ -1054,7 +1069,8 @@ contains
 !$omp& map(alloc: sst_halo_wall, ielem_walldist, impdiag, impdiagt, impoff, impofft, inoder4_cord, mp_a_in, mp_janaf, mp_m, mp_pinf) &
 !$omp& map(alloc: mp_r_in, mp_thigh_in, mp_tlow_in, mp_tmid_in, rec_grads, rec_ihexl, rec_ihexn, rec_local, rg_hzero) &
 !$omp& map(alloc: rg_molm, rg_thetag, rg_vf, rgs_ab, rgs_bb, rgs_cb, rgs_eps_over_k, rgs_mg, rgs_sigmaa, solhir) &
-!$omp& map(alloc: u_c_val, u_ct_val)
+!$omp& map(alloc: u_c_val, u_ct_val) &
+!$omp& map(alloc: axis_face, axis_radius, rec_mrf)
 #else
 !$omp do &
 !$omp& private(ii)
@@ -1074,7 +1090,8 @@ contains
 #ifdef xpu
 !$omp target teams distribute parallel do firstprivate(n) private(i) &
 !$omp& firstprivate(kmaxe) &
-!$omp& map(alloc: ielem_dtl, ielem_totvolume, impdiag)
+!$omp& map(alloc: ielem_dtl, ielem_totvolume, impdiag) &
+!$omp& map(alloc: axis_radius, ielem_walldist, rec_grads, u_c_val, u_ct_val)
 #else
 !$omp do &
 !$omp& private(i)
@@ -1091,7 +1108,8 @@ contains
 #ifdef xpu
 !$omp target teams distribute parallel do firstprivate(n) private(i) &
 !$omp& firstprivate(kmaxe) &
-!$omp& map(alloc: ielem_dtl, ielem_totvolume, impdiag)
+!$omp& map(alloc: ielem_dtl, ielem_totvolume, impdiag) &
+!$omp& map(alloc: axis_radius, ielem_walldist, rec_grads, u_c_val, u_ct_val)
 #else
 !$omp do &
 !$omp& private(i)
@@ -1114,7 +1132,8 @@ contains
 !$omp target teams distribute parallel do firstprivate(n) private(i) &
 !$omp& firstprivate(kmaxe) &
 !$omp& map(alloc: gamma_in, ielem_dtl, ielem_totvolume, impdiag, mp_janaf, mp_m, mp_pinf, mp_thigh_in, mp_tlow_in) &
-!$omp& map(alloc: mp_tmid_in, rg_hzero, rg_molm, rg_thetag, u_c_val)
+!$omp& map(alloc: mp_tmid_in, rg_hzero, rg_molm, rg_thetag, u_c_val) &
+!$omp& map(alloc: axis_radius, ielem_walldist, rec_grads, u_ct_val)
 #else
 !$omp do &
 !$omp& private(i)
@@ -1132,7 +1151,8 @@ contains
 !$omp target teams distribute parallel do firstprivate(n) private(i) &
 !$omp& firstprivate(kmaxe) &
 !$omp& map(alloc: gamma_in, ielem_dtl, ielem_totvolume, impdiag, mp_janaf, mp_m, mp_pinf, mp_thigh_in, mp_tlow_in) &
-!$omp& map(alloc: mp_tmid_in, rg_hzero, rg_molm, rg_thetag, u_c_val)
+!$omp& map(alloc: mp_tmid_in, rg_hzero, rg_molm, rg_thetag, u_c_val) &
+!$omp& map(alloc: axis_radius, ielem_walldist, rec_grads, u_ct_val)
 #else
 !$omp do &
 !$omp& private(i)
@@ -1156,7 +1176,8 @@ contains
 #ifdef xpu
 !$omp target teams distribute parallel do firstprivate(n) private(i) &
 !$omp& firstprivate(kmaxe) &
-!$omp& map(alloc: ielem_dtl, ielem_totvolume, impdiagt, sht)
+!$omp& map(alloc: ielem_dtl, ielem_totvolume, impdiagt, sht) &
+!$omp& map(alloc: axis_radius, ielem_walldist, rec_grads, u_c_val, u_ct_val)
 #else
 !$omp do &
 !$omp& private(i)
@@ -1173,7 +1194,8 @@ contains
 #ifdef xpu
 !$omp target teams distribute parallel do firstprivate(n) private(i) &
 !$omp& firstprivate(kmaxe) &
-!$omp& map(alloc: ielem_dtl, ielem_totvolume, impdiagt, sht)
+!$omp& map(alloc: ielem_dtl, ielem_totvolume, impdiagt, sht) &
+!$omp& map(alloc: axis_radius, ielem_walldist, rec_grads, u_c_val, u_ct_val)
 #else
 !$omp do &
 !$omp& private(i)

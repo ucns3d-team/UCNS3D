@@ -863,30 +863,33 @@ contains
 
    subroutine compute_gradients_mix_mean_ggs_viscous_acc(n)
 !> @brief
-!> Ideal-gas Green-Gauss primitive gradients for bounded/mixed cells.
+!> Green-Gauss viscous gradients with separate temperature and species wall conditions.
       implicit none
       ! In a guarded 3D branch, dimensiona is the z-component index.
       ! Shared work arrays retain their two-component capacity in 2D builds.
       integer, intent(in) :: n
       real :: oov2, mp_pinfl, gammal, angle1, angle2, nx, ny, nz
-      integer :: ii, i, j, k, b_code, facex, n_node, nf, lf, rowf, ibfc, nvt
+      integer :: ii, i, j, k, b_code, facex, n_node, nf, lf, rowf, ibfc, nvt, temp_hi
 
 #ifdef xpu
 !$omp target teams distribute parallel do &
 !$omp& firstprivate(n) &
 !$omp& firstprivate(nof_bounded, nof_variables, turbulenceequations, passivescalar, dimensiona, zero, oo2) &
 !$omp& firstprivate(per_rot, angle_per, thermal, wall_temp, initcond, boundtype, gamma, tolsmall, turbulence) &
+!$omp& firstprivate(nof_species, multispecies, realgas, catalytic_wall) &
 !$omp& map(alloc: el_bnd, ielem_ggs, u_c_val, u_ct_val, solhir, ielem_totvolume, rec_grads) &
 !$omp& map(alloc: ielem_ifca, ielem_faceanglex, ielem_faceangley, ielem_surf, ielem_ineighb, ielem_ibounds) &
 !$omp& map(alloc: ibound_icode, ielem_ineigh, rec_local, rec_ihexn, rec_ihexl, halo_offset, ielem_indexi) &
 !$omp& map(alloc: rec_mrf, rec_rotvel, ielem_types_faces, ielem_nodes_faces, inoder4_cord) &
-!$omp& private(ii, i, j, k, b_code, facex, n_node, nf, lf, rowf, ibfc, nvt) &
+!$omp& private(ii, i, j, k, b_code, facex, n_node, nf, lf, rowf, ibfc, nvt, temp_hi) &
 !$omp& private(oov2, mp_pinfl, gammal, angle1, angle2, nx, ny, nz) &
 !$omp& map(alloc: bleed_end, bleed_plenum, bleed_porosity, bleed_start, catalytic_con, gamma_in, ielem_bleedn) &
 !$omp& map(alloc: ielem_walldist, mp_a_in, mp_janaf, mp_m, mp_pinf, mp_r_in, mp_thigh_in, mp_tlow_in, mp_tmid_in) &
-!$omp& map(alloc: rg_hzero, rg_molm, rg_thetag, rg_vf, rgs_ab, rgs_bb, rgs_cb)
+!$omp& map(alloc: rg_hzero, rg_molm, rg_thetag, rg_vf, rgs_ab, rgs_bb, rgs_cb) &
+!$omp& map(alloc: axis_face)
 #else
-!$omp do private(ii, i, j, k, b_code, facex, n_node, nf, lf, rowf, ibfc, nvt, oov2, mp_pinfl, gammal, angle1, angle2, nx, ny, nz)
+!$omp do private(ii, i, j, k, b_code, facex, n_node, nf, lf, rowf, ibfc, nvt, temp_hi) &
+!$omp& private(oov2, mp_pinfl, gammal, angle1, angle2, nx, ny, nz)
 #endif
       do ii = 1, nof_bounded
          block
@@ -904,6 +907,8 @@ contains
                sols2 = zero
                rec_grads(i, :, :) = zero
                oov2 = 1.00 / ielem_totvolume(i)
+               temp_hi = nof_variables - 1
+               if ((multispecies .eq. 1) .or. (realgas .eq. 1)) temp_hi = nof_variables - nof_species - 1
 
                leftv(1:nof_variables) = u_c_val(i, 1, 1:nof_variables)
                call cons2div(n, leftv, mp_pinfl, gammal)
@@ -998,8 +1003,11 @@ contains
                   ! B(U) is the outlet face value; mirror only for this arithmetic GG average.
                   if (b_code == 9 .and. duct_outlet_face_flux_enabled()) &
                      & sols2(1:nof_variables - 1) = 2.0e0 * sols2(1:nof_variables - 1) - sols1(1:nof_variables - 1)
+                  ! Mirror only temperature fields; species retain their own wall condition.
                   if ((b_code .eq. 4) .and. (thermal .eq. 1)) &
-                     & sols2(dimensiona + 1:nof_variables - 1) = 2.00 * wall_temp - sols1(dimensiona + 1:nof_variables - 1)
+                     & sols2(dimensiona + 1:temp_hi) = 2.00 * wall_temp - sols1(dimensiona + 1:temp_hi)
+                  if ((b_code .eq. 4) .and. (catalytic_wall .eq. 1) .and. (temp_hi .lt. nof_variables - 1)) &
+                     & sols2(temp_hi + 1:nof_variables - 1) = catalytic_con(1:nof_variables - temp_hi - 1)
 
                   do k = 1, dimensiona
                      sols_f(1:nof_variables - 1, k) = sols_f(1:nof_variables - 1, k) + &
@@ -1044,7 +1052,8 @@ contains
 !$omp& private(oov2, angle1, angle2, nx, ny, nz) &
 !$omp& map(alloc: bleed_end, bleed_plenum, bleed_porosity, bleed_start, catalytic_con, gamma_in, ielem_bleedn) &
 !$omp& map(alloc: ielem_walldist, mp_a_in, mp_janaf, mp_m, mp_pinf, mp_r_in, mp_thigh_in, mp_tlow_in, mp_tmid_in) &
-!$omp& map(alloc: rg_hzero, rg_molm, rg_thetag, rg_vf, rgs_ab, rgs_bb, rgs_cb)
+!$omp& map(alloc: rg_hzero, rg_molm, rg_thetag, rg_vf, rgs_ab, rgs_bb, rgs_cb) &
+!$omp& map(alloc: axis_face)
 #else
 !$omp do private(ii, i, j, k, var2, b_code, facex, n_node, nf, lf, rowf, ibfc, nvt, oov2, angle1, angle2, nx, ny, nz)
 #endif
