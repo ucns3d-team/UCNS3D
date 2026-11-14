@@ -661,6 +661,10 @@ contains
       end if
 
       allocate (rec_grads(1:kmaxe, nof_variables - 1 + turbulenceequations + passivescalar, 1:dimensiona)); rec_grads = zero
+      if (gg_correction .ge. 2) then
+         allocate (rec_grads_gg(1:kmaxe, nof_variables - 1 + turbulenceequations + passivescalar, 1:dimensiona))
+         rec_grads_gg = zero
+      end if
       allocate (rec_uleft(1:kmaxe, 1:nof_variables, idx, 1:numberofpoints2)); rec_uleft = zero
 
       if (dg .eq. 1) then
@@ -1706,6 +1710,11 @@ contains
          !$omp target enter data map(alloc: rec_grads)
          !$omp target update to(rec_grads)
       end if
+      !$omp target update to(gg_correction)
+      if (allocated(rec_grads_gg)) then
+         !$omp target enter data map(alloc: rec_grads_gg)
+         !$omp target update to(rec_grads_gg)
+      end if
       if (allocated(rec_gradsav)) then
          !$omp target enter data map(alloc: rec_gradsav)
          !$omp target update to(rec_gradsav)
@@ -1793,6 +1802,12 @@ contains
       if (allocated(rec_qpoints)) then
          !$omp target enter data map(alloc: rec_qpoints)
          !$omp target update to(rec_qpoints)
+      end if
+      !$omp target update to(limiter_points)
+      !$omp target update to(checksol_extra, checksol_ratio)
+      if (allocated(rec_vpoints)) then
+         !$omp target enter data map(alloc: rec_vpoints, rec_nvpoints)
+         !$omp target update to(rec_vpoints, rec_nvpoints)
       end if
       if (allocated(rec_qpoints_p)) then
          !$omp target enter data map(alloc: rec_qpoints_p)
@@ -2175,6 +2190,29 @@ contains
          end if
       end if
 
+      ! hybrid hll-hllc riemann solver (iriemann 8)
+      if (allocated(ielem_hllsw)) then
+         !$omp target enter data map(alloc: ielem_hllsw)
+         !$omp target update to(ielem_hllsw)
+      end if
+      if (allocated(hllsw_p)) then
+         !$omp target enter data map(alloc: hllsw_p)
+         !$omp target update to(hllsw_p)
+      end if
+      if (allocated(hllsw_phalo)) then
+         !$omp target enter data map(alloc: hllsw_phalo)
+         !$omp target update to(hllsw_phalo)
+      end if
+      if (allocated(hllsw_halo)) then
+         !$omp target enter data map(alloc: hllsw_halo)
+         !$omp target update to(hllsw_halo)
+      end if
+      if (allocated(hllsw_send)) then
+         !$omp target enter data map(alloc: hllsw_send)
+         !$omp target update to(hllsw_send)
+      end if
+      !$omp target enter data map(alloc: hllsw_lo, hllsw_hi)
+      !$omp target update to(hllsw_lo, hllsw_hi)
       if (allocated(solhird)) then
          if (size(solhird) > 0) then
             !$omp target enter data map(alloc: solhird)

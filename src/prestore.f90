@@ -21,6 +21,7 @@ module prestore
 contains
 
    subroutine allocate_prestore_workspace(ws, neighbour_capacity)
+      implicit none
       type(prestore_workspace), intent(out) :: ws
       integer, intent(in), optional :: neighbour_capacity
       integer :: d, neighbours
@@ -41,6 +42,7 @@ contains
    end subroutine allocate_prestore_workspace
 
    subroutine release_prestore_workspace(ws)
+      implicit none
       type(prestore_workspace), intent(inout) :: ws
       ! Release optional components as well as the always-allocated buffers.
       ! Allocation guards also make repeated or partial cleanup safe.
@@ -3501,6 +3503,7 @@ contains
    end subroutine wenotet2d
 !
    subroutine legendre_smoothness2d(weff, degree, nqp, volume, points, weights, ndof, cell)
+      implicit none
 !> Integral of all squared mixed derivatives through the reconstruction degree.
       integer, intent(in) :: degree, nqp, ndof, cell
       real, intent(in) :: volume, points(1:dimensiona, 1:numberofpoints), weights(1:numberofpoints)

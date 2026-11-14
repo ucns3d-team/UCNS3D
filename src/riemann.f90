@@ -327,6 +327,67 @@ contains
 
    end subroutine hllc_riemann_solver
 
+   real function hybrid_hll_fraction(n, i, face) result(w)
+      ! HLL fraction of a face for the hybrid HLL-HLLC solver: larger of the two cells' shock sensors.
+      implicit none
+#ifdef xpu
+!$omp declare target
+#endif
+      integer, intent(in) :: n, i, face
+      integer :: bc, group, row
+      w = ielem_hllsw(i)
+      if (ielem_ibounds(i, face) > 0) then
+         bc = ibound_icode(ielem_ibounds(i, face))
+         if (bc /= 5 .and. bc /= 50) return
+      end if
+      if (ielem_ineighb(i, face) == n) then
+         w = max(w, ielem_hllsw(ielem_ineigh(i, face)))
+      else
+         group = rec_ihexn(rec_local(i), 1, ielem_indexi(i, face))
+         row = halo_offset(group) + rec_ihexl(i, 1, ielem_indexi(i, face)) - 1
+         w = max(w, hllsw_halo(row))
+      end if
+   end function hybrid_hll_fraction
+
+   subroutine hybrid_hll_hllc_riemann_solver(n, iconsidered, facex, cleft_rot, cright_rot, hllcflux, mp_source1, srf_speedrot, &
+      & cleft_raw, cright_raw)
+      ! Riemann solver 8: flux = w*HLL + (1-w)*HLLC, in 2D and 3D.
+      ! w comes from the pressure-jump sensor of the two cells sharing the face (hybrid_riemann_sensor):
+      ! HLL in and next to shocks, HLLC (contact and shear preserving) everywhere else, e.g. in boundary layers.
+      implicit none
+#ifdef xpu
+!$omp declare target
+#endif
+      integer, intent(in) :: n, iconsidered, facex
+      real, intent(in) :: cleft_rot(nof_variables + turbulenceequations + passivescalar)
+      real, intent(in) :: cright_rot(nof_variables + turbulenceequations + passivescalar), srf_speedrot(nof_variables)
+      real, intent(inout) :: hllcflux(nof_variables + turbulenceequations + passivescalar), mp_source1
+      real, intent(in), optional :: cleft_raw(nof_variables), cright_raw(nof_variables)
+      real :: fhll(gpu_max_nvar_total), w, src_hll
+      integer :: nt
+
+      nt = nof_variables + turbulenceequations + passivescalar
+      w = hybrid_hll_fraction(n, iconsidered, facex)
+      if (w < 1.0e0) then
+         if (dimensiona == 3) then
+            call hllc_riemann_solver(n, iconsidered, facex, cleft_rot, cright_rot, hllcflux, mp_source1, srf_speedrot)
+         else
+            call hllc_riemann_solver2d(n, cleft_rot, cright_rot, hllcflux, mp_source1, srf_speedrot)
+         end if
+         if (w <= 0.0e0) return
+      end if
+      src_hll = mp_source1
+      fhll(1:nt) = 0.0e0
+      call hll_riemann_solver(n, cleft_rot, cright_rot, fhll(1:nt), src_hll, srf_speedrot, cleft_raw, cright_raw)
+      if (w >= 1.0e0) then
+         hllcflux(1:nt) = fhll(1:nt)
+         mp_source1 = src_hll
+      else
+         hllcflux(1:nt) = w * fhll(1:nt) + (1.0e0 - w) * hllcflux(1:nt)
+         mp_source1 = w * src_hll + (1.0e0 - w) * mp_source1
+      end if
+   end subroutine hybrid_hll_hllc_riemann_solver
+
    subroutine roe_riemann_solver(n, iconsidered, facex, cleft, cright, hllcflux, mp_source1, srf_speedrot, nx, ny, nz, dissipation_factor)
       implicit none
 !> @brief

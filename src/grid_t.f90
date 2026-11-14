@@ -9,6 +9,7 @@ contains
 ! ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! ! ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    subroutine alloc_weights(n)
+      implicit none
       integer, intent(in) :: n
       real, dimension(1:8, 1:dimensiona) :: vext
       real, dimension(1:dimensiona, 1:numberofpoints2) :: qpoints2d
@@ -244,6 +245,7 @@ contains
    end function tetravolume
 
    subroutine find_angles(n)
+      implicit none
       integer, intent(in) :: n
       integer :: i, j, k, l, jj, kmaxe
 

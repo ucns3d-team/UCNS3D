@@ -22,6 +22,7 @@ module local
 contains
 
    subroutine build_stencil_remote_lookup(table)
+      implicit none
       type(stencil_remote_lookup), intent(out) :: table
       integer(kind=lookup_int64) :: entries
       integer :: group, row, gid, owner, slot, capacity
@@ -58,12 +59,14 @@ contains
    end subroutine build_stencil_remote_lookup
 
    pure integer function stencil_remote_hash(gid, owner, capacity) result(slot)
+      implicit none
       integer, intent(in) :: gid, owner, capacity
       slot = int(modulo(int(gid, lookup_int64) + 104729_lookup_int64 * int(owner, lookup_int64), &
          int(capacity, lookup_int64))) + 1
    end function stencil_remote_hash
 
    subroutine find_stencil_remote(gid, owner, group, row, table)
+      implicit none
       integer, intent(in) :: gid, owner
       integer, intent(out) :: group, row
       type(stencil_remote_lookup), intent(in) :: table
@@ -83,6 +86,7 @@ contains
    end subroutine find_stencil_remote
 
    subroutine release_stencil_remote_lookup(table)
+      implicit none
       type(stencil_remote_lookup), intent(out) :: table
    end subroutine release_stencil_remote_lookup
 
@@ -225,6 +229,7 @@ contains
    end subroutine exch_cords
 
    subroutine exchange_cordx(n, ineedt, tneedt, i_cnt4, i_cnt3)
+      implicit none
       integer, intent(in) :: n, ineedt, tneedt, i_cnt4, i_cnt3
       integer :: i, j, k, l, icpuid, ixflag, itee, iteedum, iavc, iavt
       real, dimension(1) :: dumts, rumts
@@ -2119,6 +2124,7 @@ contains
    end subroutine direct_side2d
 
    subroutine grads_assign(n)
+      implicit none
       integer, intent(in) :: n
       integer :: i, j, k, l, jj, kmaxe, previous_gg
 
@@ -2586,6 +2592,7 @@ contains
    end subroutine checkgrads2d
 
    subroutine lsq_diagnostic_begin(n)
+      implicit none
       integer, intent(in) :: n
       character(32) :: setting
       integer :: status
@@ -2609,6 +2616,7 @@ contains
    end subroutine lsq_diagnostic_begin
 
    pure function lsq_cross(a,b) result(c)
+      implicit none
       real, intent(in) :: a(3), b(3)
       real :: c(3)
       c = [a(2)*b(3)-a(3)*b(2), a(3)*b(1)-a(1)*b(3), a(1)*b(2)-a(2)*b(1)]
@@ -2616,6 +2624,7 @@ contains
 
    ! Host geometry only. No solver state, flow values, or derived types.
    pure subroutine lsq_layer_geometry(shape, xyz, centre, axis, thickness, aspect, dominance, alignment, valid)
+      implicit none
       integer, intent(in) :: shape
       real, intent(in) :: xyz(3,8)
       real, intent(out) :: centre(3), axis(3), thickness, aspect, dominance, alignment
@@ -2704,6 +2713,7 @@ contains
    end subroutine lsq_layer_geometry
 
    pure subroutine lsq_curvature_pair(ci, ni, hi, cj, nj, gamma_pair, span, angle)
+      implicit none
       real, intent(in) :: ci(3), ni(3), hi, cj(3), nj(3)
       real, intent(out) :: gamma_pair, span, angle
       real :: delta(3), sine_angle, cosine_angle
@@ -2716,6 +2726,7 @@ contains
    end subroutine lsq_curvature_pair
 
    subroutine lsq_diagnostic_cell(i, shapes, gids, xx, yy, zz, values)
+      implicit none
       integer, intent(in) :: i, shapes(:,:), gids(:,:)
       real, intent(out) :: values(lsq_diag_fields)
       real, intent(in) :: xx(:,:,:), yy(:,:,:), zz(:,:,:)
@@ -2783,6 +2794,7 @@ contains
    end subroutine lsq_diagnostic_cell
 
    subroutine lsq_diagnostic_write(n)
+      implicit none
       integer, intent(in) :: n
       integer, allocatable :: output_nodes(:,:)
       integer :: i,k

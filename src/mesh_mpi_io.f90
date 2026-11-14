@@ -27,6 +27,7 @@ module mesh_mpi_io
    character(len=8), parameter :: names(3) = ['GRID.cel', 'GRID.vrt', 'GRID.bnd']
 contains
    subroutine mesh_fail(message)
+      implicit none
       character(len=*), intent(in) :: message
       integer :: ierr
       write(*,'(A,I0,2A)') 'MPI mesh error on rank ', rank_id, ': ', trim(message)
@@ -35,12 +36,14 @@ contains
    end subroutine
 
    subroutine checked(ierr, operation)
+      implicit none
       integer, intent(in) :: ierr
       character(len=*), intent(in) :: operation
       if (ierr /= MPI_SUCCESS) call mesh_fail(operation)
    end subroutine
 
    subroutine block_range(total, first, count)
+      implicit none
       integer, intent(in) :: total
       integer, intent(out) :: first, count
       integer :: base
@@ -51,6 +54,7 @@ contains
    end subroutine
 
    integer function vertex_owner(id) result(owner)
+      implicit none
       integer, intent(in) :: id
       integer :: base
       if (id < 1 .or. id > totals(2)) call mesh_fail('vertex ID outside GRID.vrt')
@@ -60,6 +64,7 @@ contains
    end function
 
    integer(int64) function record_marker(bytes) result(value)
+      implicit none
       integer(int8), intent(in) :: bytes(:)
       value = -1_int64
       if (size(bytes) == 4) value = int(transfer(bytes, 0_int32), int64)
@@ -67,6 +72,7 @@ contains
    end function
 
    subroutine probe_file(which, payload, valid)
+      implicit none
       integer, intent(in) :: which, payload
       logical, intent(out) :: valid
       integer :: fh, ierr, status(MPI_STATUS_SIZE), m, got, trial, nread
@@ -121,6 +127,7 @@ contains
    end subroutine
 
    subroutine mesh_start(dimension, binary_io, partitioner, nc, nv, nb)
+      implicit none
       integer, intent(in) :: dimension, binary_io, partitioner
       integer, intent(out) :: nc, nv, nb
       integer :: ierr, payloads(3), k, first, count
@@ -165,6 +172,7 @@ contains
    end subroutine
 
    subroutine read_records(which, records)
+      implicit none
       integer, intent(in) :: which
       integer, allocatable, intent(out) :: records(:, :)
       integer :: fh, ierr, status(MPI_STATUS_SIZE), first, count, max_count, start, take, stride, m, words
@@ -207,6 +215,7 @@ contains
    end subroutine
 
    subroutine mesh_cell_nodes(record, nodes, nn, shape, faces)
+      implicit none
       integer, intent(in) :: record(:)
       integer, intent(out) :: nodes(8), nn, shape, faces
       integer :: v(8)
@@ -236,6 +245,7 @@ contains
    end subroutine
 
    subroutine mesh_shapes(shapes, global_counts, global_offsets_required)
+      implicit none
       integer, intent(out) :: shapes(:), global_counts(6)
       logical, intent(in), optional :: global_offsets_required
       integer :: i, nn, faces, nodes(8), counts(6), ierr
@@ -273,6 +283,7 @@ contains
    end subroutine
 
    integer function cell_directory(id) result(owner)
+      implicit none
       integer, intent(in) :: id
       integer :: base
       if (id < 1 .or. id > totals(1)) call mesh_fail('cell ID outside GRID.cel')
@@ -282,6 +293,7 @@ contains
    end function
 
    subroutine mesh_store_partition(parts)
+      implicit none
       integer, intent(in) :: parts(:)
       integer, allocatable :: counts(:), received(:)
       integer :: i, count, ierr
@@ -301,6 +313,7 @@ contains
    end subroutine
 
    subroutine mesh_register_cells()
+      implicit none
       integer, allocatable :: records(:, :), destinations(:), received(:, :)
       integer :: i, slot
       allocate(records(3, size(mesh_cells, 2)), destinations(size(mesh_cells, 2)))
@@ -318,6 +331,7 @@ contains
    end subroutine
 
    subroutine mesh_query_cells(ids, owners, indices)
+      implicit none
       integer, intent(in) :: ids(:)
       integer, allocatable, intent(out) :: owners(:), indices(:)
       integer, allocatable :: requests(:, :), destinations(:), received(:, :), replies(:, :), returned(:, :)
@@ -342,10 +356,12 @@ contains
    end subroutine
 
    subroutine mesh_owner_release()
+      implicit none
       if (allocated(directory_owner)) deallocate(directory_owner, directory_index)
    end subroutine
 
    subroutine mesh_prepare(owners)
+      implicit none
       integer, intent(in) :: owners(:)
       integer, allocatable :: pairs(:, :), destinations(:), received(:, :), cursor(:)
       integer :: i, j, k, nv, slot
@@ -396,6 +412,7 @@ contains
    end subroutine
 
    subroutine load_vertices()
+      implicit none
       integer, allocatable :: records(:, :)
       integer :: i, d
       if (allocated(vertex_xyz)) return
@@ -410,6 +427,7 @@ contains
    end subroutine
 
    subroutine mesh_vertices(ids, xyz)
+      implicit none
       integer, intent(in) :: ids(:)
       real, allocatable, intent(out) :: xyz(:, :)
       integer, allocatable :: requests(:, :), destinations(:), received(:, :), returned(:, :), indices(:, :)
@@ -437,6 +455,7 @@ contains
    end subroutine
 
    subroutine mesh_incidence(ids, ptr, cells)
+      implicit none
       integer, intent(in) :: ids(:)
       integer, allocatable, intent(out) :: ptr(:), cells(:)
       integer, allocatable :: requests(:, :), destinations(:), received(:, :), replies(:, :), returned(:, :), cursor(:)
@@ -486,6 +505,7 @@ contains
    end subroutine
 
    subroutine mesh_load_boundaries(owners, scale, need_walls)
+      implicit none
       integer, intent(in) :: owners(:)
       real, intent(in) :: scale
       logical, intent(in) :: need_walls
@@ -584,6 +604,7 @@ contains
    end subroutine
 
    subroutine mesh_node_owners(ids, owners)
+      implicit none
       integer, intent(in) :: ids(:)
       integer, allocatable, intent(out) :: owners(:)
       integer, allocatable :: requests(:, :), destinations(:), received(:, :), replies(:, :), returned(:, :), maximum(:)
@@ -612,16 +633,19 @@ contains
    end subroutine
 
    subroutine mesh_release_boundaries()
+      implicit none
       if (allocated(mesh_boundaries)) deallocate(mesh_boundaries)
       if (allocated(vertex_ptr)) deallocate(vertex_ptr, vertex_cells)
       mesh_boundary_count = 0
    end subroutine
 
    subroutine mesh_release_vertices()
+      implicit none
       if (allocated(vertex_xyz)) deallocate(vertex_xyz)
    end subroutine
 
    subroutine mesh_finish()
+      implicit none
       integer :: ierr
       integer(int64) :: records(3)
       real :: seconds(3)
@@ -643,6 +667,7 @@ contains
    end subroutine
 
    subroutine offsets(counts, disps, total)
+      implicit none
       integer, intent(in) :: counts(0:)
       integer, intent(out) :: disps(0:), total
       integer :: i
@@ -658,6 +683,7 @@ contains
    end subroutine
 
    subroutine route_integer(values, destinations, received)
+      implicit none
       integer, intent(in) :: values(:, :)
       integer, intent(in) :: destinations(:)
       integer, allocatable, intent(out) :: received(:, :)
@@ -694,6 +720,7 @@ contains
    end subroutine
 
    subroutine route_real(values, destinations, received)
+      implicit none
       real, intent(in) :: values(:, :)
       integer, intent(in) :: destinations(:)
       real, allocatable, intent(out) :: received(:, :)

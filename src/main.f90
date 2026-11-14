@@ -738,6 +738,7 @@ PROGRAM UCNS3D
 !this creates a flat array for receiving data from mpi neighbours!
    call flat_comm(n)
    call exchange_sst_wall_distance(n)
+   call hybrid_riemann_setup(n)
    call alloc_weights(n)
 
    call mpi_barrier(mpi_comm_world, ierror)
@@ -779,14 +780,16 @@ PROGRAM UCNS3D
 !$omp& datatypey, datatypeyy, datatypez, des_model, dg, dimensiona, dims, dt, ees, ek_time, emetis, eta2_sas, every_time, &
 !$omp& extended_bounds, extf, fastest, fastest_q, fastmovie, fil_alpha, fil_nc, fil_s, filter_type, filtering, firstorder, &
 !$omp& firstrese, firstresk, firstresomega, firstrespass, firstresr, firstrest, firstresu, firstresv, firstresw, forcex, &
-!$omp& forcey, forcez, gamma, governingequations, greengo, gridar1, gridar2, guassianquadra, hybridist, i_turb_inlet, iadapt, &
+!$omp& forcey, forcez, gamma, governingequations, greengo, &
+!$omp& gg_correction, gridar1, gridar2, guassianquadra, hybridist, i_turb_inlet, iadapt, &
 !$omp& ibcode, iboundary, ibside, icarlos1, icarlos2, icompact, icong, iconimp, iconsgvq, iconsr, icoupleturb, idegfree, &
 !$omp& idegfree2, idegfree3, ievery, ievery2, ieveryav, iforce, igianagraps, igqrules, ihax1, ihybrid, iloop, iloopx, ilx, &
 !$omp& imaxb, imaxdegfree, imaxdegfree2, imaxe, imaxn, in, ind1, indicator_type, init_mu_ratio, initcond, initialres, inum2, &
 !$omp& inwhichel, iorder, iorder2, ioverst, ioverto, iperiodicity, ires_turb, ires_unsteady, iriemann, irs, ischeme, &
 !$omp& iscoun, iselem, ispal, isplit, issf, istn, it, itestcase, itold, itotalb, itt, ivortex, iweightlsqr, iweno, iwmaxe, &
 !$omp& jk, jtotal, jtotal1, jtotal2, jtotal3, jump_cond1, jump_cond2, jump_cond3, kappa, kappa_sst, kdum1, kdum2, kdum3, &
-!$omp& kill, kinit_srf, kloopx, kmaxn, l0norm, l1norm, l2norm, l_turb_inlet, lam, lamps, ccfl, lamx, lamy, lamz, limiter, lmach, &
+!$omp& kill, kinit_srf, kloopx, kmaxn, l0norm, l1norm, l2norm, l_turb_inlet, lam, lamps, ccfl, lamx, lamy, lamz, limiter, &
+!$omp& limiter_points, checksol_extra, checksol_ratio, lmach, &
 !$omp& lmach_style, lowmem, lowmemory, lwci1, m_t0, Mach_in, modeio, momentx, momenty, momentz, max_faces, max_fnodes, max_nodes, &
 !$omp& mood, mood_mode, mood_var1, &
 !$omp& mood_var2, mood_var3, mood_var4, movement, mp_modelc, mrf, multispecies, n_boundaries, nderivative, nodes_i, &
@@ -838,10 +841,11 @@ PROGRAM UCNS3D
 !$omp& qp_array_qp_weight, qp_array_x, qp_array_y, qp_array_z, radius_gl, &
 !$omp& rec_br2_aux_var, rec_br2_local_lift, rec_cgradientstemp, rec_cond, rec_findw, rec_g0, rec_gradf, rec_gradients, &
 !$omp& rec_gradients2, rec_gradientsc, rec_gradientsc2, rec_gradientstemp, rec_gradientstemp_wall, rec_gradientsturb, &
-!$omp& rec_gradientsturb_wall, rec_grads, rec_gradsav, &
+!$omp& rec_gradientsturb_wall, rec_grads, rec_grads_gg, rec_gradsav, &
 !$omp& rec_ihexb, rec_ihexbc, rec_ihexg, rec_ihexgc, rec_ihexl, rec_ihexlc, rec_ihexn, rec_ihexnc, rec_indicator, rec_indicatorc, &
 !$omp& rec_invccjac, rec_invctjac, rec_invmat_stencilt, rec_invmat_stenciltc, rec_k0, rec_local, rec_mrf, rec_mrf_origin, &
-!$omp& rec_mrf_velocity, rec_periodicflag, rec_qpoints, rec_qpoints_p, rec_rotvel, rec_rpoints, rec_stencils, rec_stencilsc, &
+!$omp& rec_mrf_velocity, rec_periodicflag, rec_qpoints, rec_qpoints_p, &
+!$omp& rec_vpoints, rec_nvpoints, rec_rotvel, rec_rpoints, rec_stencils, rec_stencilsc, &
 !$omp& rec_surf_qpoints, rec_tempsq, rec_tempsqmat, rec_uleft, rec_uleft_dg, rec_uleftturb, rec_uleftturbv, rec_uleftv, &
 !$omp& rec_uleftx, rec_velinvlsqmat, rec_vellsq, rec_velocitydof_wall, rec_vext_ref, rec_volume, rec_volume_w, rec_volumec, &
 !$omp& rec_wall, rec_wallcoeff, rec_wallcoefg, rec_weightl, rec_weno, rec_weno2, rec_wenos, &
@@ -849,6 +853,7 @@ PROGRAM UCNS3D
 !$omp& axisymmetric_enabled, axis_y, axis_tolerance, axis_tolerance_relative, axis_radius, axis_face_radius, axis_face, &
 !$omp& rhs_val, rhs_valdg, rhst_val, sht, sht_rg, nodelist, xmpielrank, dg2fv, &
 !$omp& u_c_br2_aux_var, u_c_rms, u_c_val, u_c_valdg, u_cs_val, u_cs_valdg, u_ct_val, u_cw_val, u_cw_valdg, u_e_val, &
+!$omp& ielem_hllsw, hllsw_p, hllsw_phalo, hllsw_halo, hllsw_send, hllsw_lo, hllsw_hi, &
 !$omp& solhir, solhis, solhird, solhisd, solhi_loc, solhir_flat, solhis_flat, boundhiri, boundhisi, boundhir, boundhis, boundhirm, &
 !$omp& boundhism, boundhir_flat, boundhis_flat, boundhir_dgflat, boundhis_dgflat, boundhiri_flat, boundhisi_flat, &
 !$omp& ineedhalo, ineedhalos, ineedbound, ineedbounds, bound_total, bounds_total, halo_total, ilength1, ilength2, halos_total, &

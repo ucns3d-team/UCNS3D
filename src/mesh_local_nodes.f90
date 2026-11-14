@@ -18,6 +18,7 @@ module mesh_local_nodes
    real, allocatable :: node_xyz(:, :)
 contains
    recursive subroutine node_sort(a, left, right)
+      implicit none
       integer, intent(inout) :: a(:)
       integer, intent(in) :: left, right
       integer :: i, j, pivot, swap
@@ -40,6 +41,7 @@ contains
    end subroutine
 
    integer function node_slot(id) result(slot)
+      implicit none
       integer, intent(in) :: id
       integer :: b, start
       slot = 0
@@ -63,6 +65,7 @@ contains
    end function
 
    integer function node_final_index(id) result(value)
+      implicit none
       integer, intent(in) :: id
       if (local_nodes_enabled) then
          value = node_slot(id)
@@ -73,6 +76,7 @@ contains
    end function
 
    integer function node_output_owner(id, legacy_owners) result(value)
+      implicit none
       integer, intent(in) :: id, legacy_owners(:)
       if (local_nodes_enabled) then
          value = node_owners(node_slot(id))
@@ -82,11 +86,13 @@ contains
    end function
 
    logical function node_present(id)
+      implicit none
       integer, intent(in) :: id
       node_present = node_slot(id) > 0
    end function
 
    real function node_coord(id, d) result(value)
+      implicit none
       integer, intent(in) :: id, d
       integer :: slot
       if (local_nodes_enabled) then
@@ -99,6 +105,7 @@ contains
    end function
 
    function node_coords(id) result(values)
+      implicit none
       integer, intent(in) :: id
       real :: values(dimensiona)
       integer :: slot
@@ -112,6 +119,7 @@ contains
    end function
 
    subroutine local_nodes_init(connectivity, counts, scale)
+      implicit none
       integer, intent(in) :: connectivity(:, :), counts(:)
       real, intent(in) :: scale
       integer, allocatable :: ids(:)
@@ -154,6 +162,7 @@ contains
    end subroutine
 
    subroutine local_nodes_adjacency(connectivity, counts)
+      implicit none
       integer, intent(in) :: connectivity(:, :), counts(:)
       integer, allocatable :: cursor(:)
       integer :: i, j, slot
@@ -180,6 +189,7 @@ contains
    end subroutine
 
    subroutine local_nodes_remote(owners)
+      implicit none
       integer, intent(in) :: owners(:)
       integer, allocatable :: ptr(:), cells(:), cell_owners(:), cell_indices(:)
       integer :: i, j, k
@@ -207,6 +217,7 @@ contains
    end subroutine
 
    integer function node_degree(id) result(value)
+      implicit none
       integer, intent(in) :: id
       integer :: slot
       value = 0
@@ -219,6 +230,7 @@ contains
    end function
 
    integer function node_cell(id, position) result(value)
+      implicit none
       integer, intent(in) :: id, position
       if (local_nodes_enabled) then
          value = adjacent_cells(adjacent_ptr(node_slot(id)) + position - 1)
@@ -228,6 +240,7 @@ contains
    end function
 
    integer function node_remote_count(id) result(value)
+      implicit none
       integer, intent(in) :: id
       integer :: slot
       value = 0
@@ -240,6 +253,7 @@ contains
    end function
 
    integer function node_remote_cell(id, position) result(value)
+      implicit none
       integer, intent(in) :: id, position
       if (local_nodes_enabled) then
          value = remote_cells(remote_ptr(node_slot(id)) + position - 1)
@@ -249,11 +263,13 @@ contains
    end function
 
    subroutine local_nodes_release_adjacency()
+      implicit none
       if (allocated(adjacent_ptr)) deallocate(adjacent_ptr, adjacent_cells)
       if (allocated(remote_ptr)) deallocate(remote_ptr, remote_cells)
    end subroutine
 
    subroutine local_nodes_release()
+      implicit none
       call local_nodes_release_adjacency()
       if (allocated(node_ids)) deallocate(node_ids, node_xyz, node_owners, buckets)
       local_nodes_enabled = .false.

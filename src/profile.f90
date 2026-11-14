@@ -9,6 +9,7 @@ module profile
 contains
 
    subroutine apply_initial_profile_temperatures
+      implicit none
       ! Called by the input reader on every launch, including a restart.
       ! Initial cells and prescribed inflow/farfield states share these values.
       ! Other profiles retain the temperatures selected by the existing reader.

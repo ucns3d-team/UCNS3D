@@ -225,6 +225,9 @@ module declaration
    integer :: ntmax !maximum number of iterations
    integer :: ihax1 !temporary integer used as pointer for operations regarding hexahedral elements
    integer :: limiter !slope limiter
+   ! Where the slope limiter checks the reconstructed solution: 0 = face quadrature points (legacy),
+   ! 1 = element vertices. Selected in UCNS3D.DAT by adding 20 to the limiter id (e.g. 21, 27).
+   integer :: limiter_points = 0
    integer :: iextend !extend parameter for central big stencil only for weno cases
    integer :: idegfree, idegfree2, inum2, idegfree3 !degrees of freedom of polynomial it will become loca        l
    integer :: outsurf !outsurf stands for computing forces
@@ -395,6 +398,9 @@ module declaration
    integer, allocatable, dimension(:) :: xsize, xgo, xgo_v, chunk_size
    !allocatable arrays for local and global indexing of nodes belonging to each cpu (no duplications)
    integer, allocatable, dimension(:) :: my_nodesl, my_nodesg
+   !wall-surface output (tecplot=5): compact wall node numbering and the owned wall nodes of this cpu
+   integer :: nwallnodes = 0, kmaxn_pw = 0
+   integer, allocatable, dimension(:) :: wall_my_nodesl
    integer, allocatable, dimension(:) :: ibound_t, ibound_t2 !allocatable index for describing the shyape of the considered cell
    integer, allocatable, dimension(:) :: iselemt !total number of elements in each stencil (extended one)
    !allocatable index for stencil routine
@@ -418,6 +424,14 @@ module declaration
    integer, allocatable, dimension(:) :: list, ineb, iperb, nodelist !dummy variable for recursive subroutine of stencils
    integer, allocatable, dimension(:, :, :, :) :: ilocalalls !dummy variable for recursive subroutine of stencils
    integer :: thermal, temp_model
+   ! Green-Gauss face values, set per code profile in parameters.f90: 0 = arithmetic mean (legacy),
+   ! 1 = geometric weights from ielem_dih2, 2/3 = geometric + one/two non-orthogonal correction passes.
+   integer :: gg_correction = 0
+   ! extra ideal-gas tests in checksol/checksolx, set per code profile in parameters.f90: 0 = density and
+   ! pressure jump only (legacy), 1 = + temperature jump, 2 = + density/pressure/temperature ratio against
+   ! the face neighbours larger than checksol_ratio.
+   integer :: checksol_extra = 0
+   real :: checksol_ratio = 2.0
 !--------------------------------------------------------------------------------------------------------------------------!
 !oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! s.3.   real variables here        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -881,6 +895,9 @@ module declaration
    real, allocatable :: ielem_dih(:, :) ! (cell, face): distance across cell centres at each face
    real, allocatable :: ielem_dih2(:, :, :) ! (cell, face, direction): distance across cell centres at each face
    real, allocatable :: ielem_diss(:) ! (kmaxe)  adda components
+   real, allocatable :: ielem_hllsw(:) ! (kmaxe)  hll fraction of the hybrid hll-hllc solver (iriemann 8)
+   real, allocatable :: hllsw_p(:), hllsw_phalo(:), hllsw_halo(:), hllsw_send(:) ! hybrid hll-hllc: cell pressure, halo copies, send buffer
+   real :: hllsw_lo = 0.1e0, hllsw_hi = 0.3e0 ! hybrid hll-hllc: relative pressure jump where hll starts / is fully on
    real, allocatable :: ielem_dtl(:) ! (kmaxe)  local time step size
    real, allocatable :: ielem_er(:) ! (kmaxe)  adda components
    real, allocatable :: ielem_er1(:) ! (kmaxe)  adda components
@@ -952,6 +969,7 @@ module declaration
    real, allocatable :: rec_gradientsturb(:, :, :, :)
    real, allocatable :: rec_gradientsturb_wall(:, :, :, :) !unlimited gradients for turbulent variables for wall cells
    real, allocatable :: rec_grads(:, :, :) ! (cell, variable, direction): gradients obtained from green gauss approximation
+   real, allocatable :: rec_grads_gg(:, :, :) ! (cell, variable, direction): work copy for the green gauss correction passes
    real, allocatable :: rec_gradsav(:, :, :) ! (cell, variable, direction): gradients obtained from green gauss approximation
    real, allocatable :: rec_indicator(:, :, :) !(cell, coefficient, coefficient): smoothness matrix
    real, allocatable :: rec_indicatorc(:, :, :) !(cell, coefficient, coefficient): compact smoothness matrix
@@ -967,6 +985,8 @@ module declaration
    ! (cell, direction)
    real, allocatable :: rec_mrf_velocity(:, :)
    real, allocatable :: rec_qpoints(:, :, :, :) !(cell, face, quadrature point, coordinate): quadrature points
+   real, allocatable :: rec_vpoints(:, :, :) !(cell, vertex, coordinate): element vertices in the transformed reconstruction coordinates
+   integer, allocatable :: rec_nvpoints(:) !(cell): number of distinct vertices stored in rec_vpoints
    real, allocatable :: rec_qpoints_p(:, :, :, :) !(cell, face, quadrature point, coordinate): physical points for AI training
    ! (cell, face, quadrature point, direction): radius of qpoints, rotational velocity
    real, allocatable :: rec_rotvel(:, :, :, :)
@@ -1075,10 +1095,13 @@ module declaration
 !$omp& rec_cgradientstemp, rec_cond)
 !$omp declare target (rec_findw, rec_g0, rec_gradf, rec_gradients, rec_gradients2, rec_gradientsc, rec_gradientsc2, &
 !$omp& rec_gradientstemp, rec_gradientstemp_wall, rec_gradientsturb)
-!$omp declare target (rec_gradientsturb_wall, rec_grads, rec_gradsav, rec_ihexb, rec_ihexbc, rec_ihexg, rec_ihexgc, rec_ihexl, &
+!$omp declare target (gg_correction, rec_gradientsturb_wall, rec_grads, rec_grads_gg, rec_gradsav, rec_ihexb, rec_ihexbc, &
+!$omp& rec_ihexg, rec_ihexgc, rec_ihexl, &
 !$omp& rec_ihexlc, rec_ihexn)
 !$omp declare target (rec_ihexnc, rec_indicator, rec_indicatorc, rec_invccjac, rec_invctjac, rec_invmat_stencilt, &
 !$omp& rec_invmat_stenciltc, rec_k0, rec_local, rec_mrf)
+!$omp declare target (limiter_points, rec_vpoints, rec_nvpoints)
+!$omp declare target (checksol_extra, checksol_ratio)
 !$omp declare target (rec_mrf_origin, rec_mrf_velocity, rec_periodicflag, rec_qpoints, rec_qpoints_p, rec_rotvel, rec_rpoints, &
 !$omp& rec_stencils, rec_stencilsc, rec_surf_qpoints, rec_tempsq)
 !$omp declare target (rec_tempsqmat, rec_uleft, rec_uleft_dg, rec_uleftturb, rec_uleftturbv, rec_uleftv, rec_uleftx, &
@@ -1109,6 +1132,7 @@ module declaration
 !$omp declare target (halo_len, halos_len, halo_offset, halos_offset, ineedbound, ineedbounds)
 !$omp declare target (bound_len, bounds_len, need_side, need_q, need_loc, halo_proc, halos_proc)
 !$omp declare target (bound_proc, bounds_proc, bound_offset, bounds_offset, solhir, solhis, solhird)
+!$omp declare target (ielem_hllsw, hllsw_halo, hllsw_p, hllsw_phalo, hllsw_send, hllsw_lo, hllsw_hi)
 !$omp declare target (solhisd, boundhiri, boundhisi, boundhir, boundhis, boundhir_dg, boundhis_dg, boundhirm)
 !$omp declare target (boundhism, bound_total, bounds_total, halo_total, halos_total, solhi_loc)
 !---mpi comm
