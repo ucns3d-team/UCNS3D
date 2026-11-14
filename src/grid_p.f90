@@ -93,6 +93,7 @@ contains
 ! !---------------------------------------------------------------------------------------------!
 
    subroutine timers(n, cpux1, cpux2, cpux3, cpux4, cpux5, cpux6, timex1, timex2, timex3, timex4, timex5, timex6)
+      implicit none
 !> @brief
 !> this subroutine establishes the timers
       real, allocatable, dimension(:), intent(in) :: cpux1, cpux2, cpux3, cpux4, cpux5, cpux6
@@ -1618,6 +1619,7 @@ contains
    end subroutine find_shape
 
    subroutine fix_offsets_local(n)
+      implicit none
 !> @brief
 !> this assigns the offset for the nodes for each cell in my cpu from the global list
       integer :: i, j, k, l, m, kk, kmaxe
@@ -5519,6 +5521,7 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
    subroutine writeout
+      implicit none
 !> @brief
 !> this subroutine is solely for debugging purposes
       integer :: ijd, ic2, kmaxe, i

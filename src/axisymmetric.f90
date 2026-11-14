@@ -14,6 +14,7 @@ module axisymmetric_support
    public :: sources_required_2d, axis_ratio, axis_stress, axisymmetric_restart_metadata
 contains
    logical function sources_required_2d() result(required_source)
+      implicit none
 #ifdef xpu
 !$omp declare target
 #endif
@@ -23,6 +24,7 @@ contains
    end function sources_required_2d
 
    subroutine axis_error(message)
+      implicit none
       character(*), intent(in) :: message
       integer :: rank, ierr
       call mpi_comm_rank(mpi_comm_world, rank, ierr)
@@ -31,6 +33,7 @@ contains
    end subroutine axis_error
 
    subroutine read_axisymmetric_input
+      implicit none
       integer :: unit, ios
       logical :: exists
       character(512) :: message
@@ -54,6 +57,7 @@ contains
    end subroutine read_axisymmetric_input
 
    subroutine validate_axisymmetric_options
+      implicit none
       if (axisymmetric_enabled == 0) return
       if (dimensiona /= 2) call axis_error('requires a 2D meridional mesh, x axial and r=y-axis_y >= 0')
       if (itestcase /= 3 .and. itestcase /= 4) call axis_error('only Euler/Navier-Stokes equations are supported')
@@ -77,6 +81,7 @@ contains
    end subroutine validate_axisymmetric_options
 
    subroutine snap_axisymmetric_nodes
+      implicit none
       ! Remove coordinate roundoff at r=0 BEFORE constructing any cell metrics.
       ! This changes only the in-memory mesh; the user's mesh file is never edited.
       integer :: i,j,id,slot,ierr,nc,count,global_count
@@ -116,6 +121,7 @@ contains
    end subroutine snap_axisymmetric_nodes
 
    subroutine prepare_axisymmetric_geometry
+      implicit none
       ! Called before vertex coordinates are released, outside OpenMP parallel regions.
       integer :: i, f, j, ng, ierr, bad, bad_global, nc, bc
       real :: bounds(4), global_bounds(4), coord(2), a(2), b(2), length, centre(2), det
@@ -169,6 +175,7 @@ contains
    end subroutine prepare_axisymmetric_geometry
 
    real function axis_ratio(radial_velocity, radius, radial_derivative) result(ratio)
+      implicit none
 #ifdef xpu
 !$omp declare target
 #endif
@@ -182,6 +189,7 @@ contains
    end function axis_ratio
 
    subroutine axis_stress(mu, ux, ur, vx, vr, hoop, txx, txr, trr, ttt)
+      implicit none
 #ifdef xpu
 !$omp declare target
 #endif
@@ -194,6 +202,7 @@ contains
    end subroutine axis_stress
 
    subroutine axisymmetric_restart_metadata(reading)
+      implicit none
       logical,intent(in) :: reading
       logical :: exists
       integer :: unit,ios,mode,ierr

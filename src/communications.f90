@@ -2982,7 +2982,188 @@ contains
 
    end subroutine exhboundhigher_dg2
 
+   subroutine hybrid_riemann_setup(n)
+      ! Hybrid HLL-HLLC (iriemann 8): storage for the cell shock sensor and its halo copies.
+      ! Host-only setup, called once after flat_comm and before omp_map_first (which maps the arrays to the device).
+      implicit none
+      integer, intent(in) :: n
+      integer :: nh, nhs
+      if (iriemann /= 8) return
+      nh = 0; nhs = 0
+      if (allocated(halo_len) .and. allocated(halos_len)) then
+         if (ineedhalo > 0) nh = halo_total
+         if (ineedhalos > 0) nhs = halos_total
+      end if
+      allocate (ielem_hllsw(xmpielrank(n)), hllsw_p(xmpielrank(n)))
+      allocate (hllsw_halo(max(1, nh)), hllsw_phalo(max(1, nh)), hllsw_send(max(1, nhs)))
+      ielem_hllsw = 0.0e0; hllsw_p = 0.0e0; hllsw_halo = 0.0e0; hllsw_phalo = 0.0e0; hllsw_send = 0.0e0
+   end subroutine hybrid_riemann_setup
+
+   subroutine hybrid_riemann_halo(n, which)
+      ! Send one real per cell to the direct-side halo copies (flat halo ordering).
+      ! which = 1: hllsw_p -> hllsw_phalo (cell pressure); which = 2: ielem_hllsw -> hllsw_halo (sensor).
+      ! CPU: packs with a worksharing loop, MPI on the master thread. GPU: packs on the device and hands the
+      ! device addresses of the buffers to a GPU-aware MPI, as exchange_adda_diss does.
+      implicit none
+      integer, intent(in) :: n, which
+      integer :: g, nr, ierr, i, nsend, r0, r1, s0, s1
+      integer, allocatable :: requests(:)
+      if (.not. (allocated(halo_len) .and. allocated(halos_len))) return
+      if ((ineedhalo <= 0) .and. (ineedhalos <= 0)) return
+      nsend = 0
+      if (ineedhalos > 0) nsend = halos_total
+
+#ifdef xpu
+!$omp target teams distribute parallel do &
+!$omp& firstprivate(nsend, which) &
+!$omp& map(alloc: solhi_loc, hllsw_p, ielem_hllsw, hllsw_send) &
+!$omp& private(i)
+#else
+!$omp do &
+!$omp& private(i)
+#endif
+      do i = 1, nsend
+         if (which == 1) then
+            hllsw_send(i) = hllsw_p(solhi_loc(i))
+         else
+            hllsw_send(i) = ielem_hllsw(solhi_loc(i))
+         end if
+      end do
+#ifdef xpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+!$omp barrier
+!$omp master
+#endif
+
+      allocate (requests(max(1, ineedhalo + ineedhalos)))
+      nr = 0
+
+#ifdef xpu
+!$omp target data use_device_addr(hllsw_send, hllsw_phalo, hllsw_halo)
+#endif
+      do g = 1, ineedhalo
+         if (halo_len(g) == 0) cycle
+         nr = nr + 1
+         r0 = halo_offset(g)
+         r1 = halo_offset(g) + halo_len(g) - 1
+         if (which == 1) then
+            call mpi_irecv(hllsw_phalo(r0:r1), halo_len(g), mpi_double_precision, &
+               & halo_proc(g), 4380 + which, mpi_comm_world, requests(nr), ierr)
+         else
+            call mpi_irecv(hllsw_halo(r0:r1), halo_len(g), mpi_double_precision, &
+               & halo_proc(g), 4380 + which, mpi_comm_world, requests(nr), ierr)
+         end if
+      end do
+      do g = 1, ineedhalos
+         if (halos_len(g) == 0) cycle
+         nr = nr + 1
+         s0 = halos_offset(g)
+         s1 = halos_offset(g) + halos_len(g) - 1
+         call mpi_isend(hllsw_send(s0:s1), halos_len(g), mpi_double_precision, &
+            & halos_proc(g), 4380 + which, mpi_comm_world, requests(nr), ierr)
+      end do
+      if (nr > 0) call mpi_waitall(nr, requests, mpi_statuses_ignore, ierr)
+#ifdef xpu
+!$omp end target data
+#endif
+
+      deallocate (requests)
+
+#ifdef xpu
+
+#else
+!$omp end master
+!$omp barrier
+#endif
+   end subroutine hybrid_riemann_halo
+
+   subroutine hybrid_riemann_sensor(n)
+      ! Hybrid HLL-HLLC (iriemann 8): cell shock sensor, evaluated before every convective flux call.
+      ! s = largest relative jump of the cell-average pressure to any face neighbour.
+      ! ielem_hllsw = 0 for s <= hllsw_lo (pure HLLC), 1 for s >= hllsw_hi (pure HLL), linear in between.
+      ! A face then uses the larger of its two cells' values, which is the same from both sides (conservative).
+      use flow_operations, only: cons2prim
+      implicit none
+      integer, intent(in) :: n
+      integer :: i, l, ie, bc, group, row, kmaxe
+      real :: pinf, gm, pi, pj, s
+      if (iriemann /= 8) return
+      kmaxe = xmpielrank(n)
+      ie = dimensiona + 2
+
+#ifdef xpu
+!$omp target teams distribute parallel do &
+!$omp& firstprivate(n, kmaxe, ie, nof_variables) &
+!$omp& map(alloc: u_c_val, hllsw_p) &
+!$omp& map(alloc: gamma_in, mp_janaf, mp_m, mp_pinf, mp_thigh_in, mp_tlow_in, mp_tmid_in, rg_hzero, rg_molm) &
+!$omp& private(i, pinf, gm)
+#else
+!$omp do &
+!$omp& private(i, pinf, gm)
+#endif
+      do i = 1, kmaxe
+         block
+            real, dimension(1:gpu_max_nvar) :: q
+
+            q(1:nof_variables) = u_c_val(i, 1, 1:nof_variables)
+            call cons2prim(n, q(1:nof_variables), pinf, gm)
+            hllsw_p(i) = q(ie) + pinf
+         end block
+      end do
+#ifdef xpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+      call hybrid_riemann_halo(n, 1)
+
+#ifdef xpu
+!$omp target teams distribute parallel do &
+!$omp& firstprivate(n, kmaxe, hllsw_lo, hllsw_hi) &
+!$omp& map(alloc: hllsw_p, hllsw_phalo, ielem_hllsw, ielem_ifca, ielem_ibounds, ibound_icode, ielem_ineighb) &
+!$omp& map(alloc: ielem_ineigh, rec_ihexn, rec_ihexl, rec_local, ielem_indexi, halo_offset) &
+!$omp& private(i, l, bc, group, row, pi, pj, s)
+#else
+!$omp do &
+!$omp& private(i, l, bc, group, row, pi, pj, s)
+#endif
+      do i = 1, kmaxe
+         pi = hllsw_p(i)
+         s = 0.0e0
+         do l = 1, ielem_ifca(i)
+            if (ielem_ibounds(i, l) > 0) then
+               bc = ibound_icode(ielem_ibounds(i, l))
+               if (bc /= 5 .and. bc /= 50) cycle
+            end if
+            if (ielem_ineighb(i, l) == n) then
+               pj = hllsw_p(ielem_ineigh(i, l))
+            else
+               group = rec_ihexn(rec_local(i), 1, ielem_indexi(i, l))
+               row = halo_offset(group) + rec_ihexl(i, 1, ielem_indexi(i, l)) - 1
+               pj = hllsw_phalo(row)
+            end if
+            if (min(pi, pj) > 0.0e0) then
+               s = max(s, abs(pi - pj) / min(pi, pj))
+            else
+               s = huge(1.0e0)
+            end if
+         end do
+         ielem_hllsw(i) = min(1.0e0, max(0.0e0, (s - hllsw_lo) / (hllsw_hi - hllsw_lo)))
+      end do
+#ifdef xpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+
+      call hybrid_riemann_halo(n, 2)
+   end subroutine hybrid_riemann_sensor
+
    subroutine exchange_sst_wall_distance(n)
+      implicit none
       ! Host-only setup after flat_comm. ALE must repeat this exchange and update its device copy.
       integer, intent(in) :: n
       integer :: g, nr, ierr, bad, all_bad
