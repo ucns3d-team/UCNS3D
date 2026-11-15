@@ -37,6 +37,7 @@ module partition
 contains
 
    subroutine partition_fail(message)
+      implicit none
       character(*), intent(in) :: message
       integer :: ierr
       write(*, '(A,I0,2A)') 'Partitioner error on rank ', n, ': ', trim(message)
@@ -45,6 +46,7 @@ contains
    end subroutine
 
    subroutine partition_status(status, routine)
+      implicit none
       integer(c_int), intent(in) :: status
       character(*), intent(in) :: routine
       character(24) :: code
@@ -54,6 +56,7 @@ contains
    end subroutine
 
    subroutine partition_check_library()
+      implicit none
       ! METIS 5 initializes exactly 40 idx_t entries to -1. A 320-byte,
       ! 8-byte-aligned buffer is safe for either supported integer ABI.
       ! Detect the actual loaded METIS width before passing typed arrays.
@@ -83,6 +86,7 @@ contains
    end subroutine
 
    subroutine partition_check_owners(parts, base)
+      implicit none
       integer(partition_idx_kind), intent(in) :: parts(:), base
       if (any(parts < base) .or. any(parts >= int(isize, partition_idx_kind) + base)) &
          call partition_fail('partitioner returned an invalid MPI owner')

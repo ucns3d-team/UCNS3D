@@ -3,6 +3,7 @@ module fluxes
    use transform
    use local
    use riemann
+   use communications, only: hybrid_riemann_sensor
    use flow_operations
    use declaration
    use basis
@@ -665,6 +666,7 @@ contains
       implicit none
       integer, intent(in) :: n
 
+      if (iriemann .eq. 8) call hybrid_riemann_sensor(n)
       call calculate_fluxeshi_convective_inner_cell(n)
       if (dg .eq. 1) then
          call calculate_fluxeshi_convective_bound_cell_dg_volume(n)
@@ -699,7 +701,8 @@ contains
 !$omp& map(alloc: qp_array_qp_weight, qp_array_x, qp_array_y, qp_array_z, rec_br2_local_lift, rec_qpoints, rec_rotvel) &
 !$omp& map(alloc: rec_uleft, rec_uleft_dg, rec_uleftturb, rec_volume, rg_hzero, rg_molm, rgs_ab, rgs_bb, rgs_cb) &
 !$omp& map(alloc: u_c_br2_aux_var, u_c_val, u_c_valdg, u_ct_val) &
-!$omp& map(alloc: rg_thetag)
+!$omp& map(alloc: rg_thetag) &
+!$omp& map(alloc: ielem_hllsw, hllsw_halo, ielem_ibounds, ibound_icode, ielem_ineighb, rec_ihexn, rec_ihexl, rec_local, ielem_indexi, halo_offset)
 #else
 !$omp do &
 !$omp& private(angle1, angle2, b_code, facex) &
@@ -786,6 +789,17 @@ contains
                      call hllc_riemann_solver(n, iconsidered, facex, cleft_rot, cright_rot, hllcflux, mp_source1, srf_speedrot)
                      call rotateb(n, rhllcflux, hllcflux, angle1, angle2)
 
+                     if ((turbulence .eq. 1) .or. (passivescalar .gt. 0)) then
+
+                        do iv = 1, nvt
+                           rhllcflux(nof_variables + iv) = hllcflux(nof_variables + iv)
+                        end do
+                     end if
+
+                  case (8) !hybrid hll-hllc
+
+                     call hybrid_hll_hllc_riemann_solver(n, iconsidered, facex, cleft_rot, cright_rot, hllcflux, mp_source1, srf_speedrot)
+                     call rotateb(n, rhllcflux, hllcflux, angle1, angle2)
                      if ((turbulence .eq. 1) .or. (passivescalar .gt. 0)) then
 
                         do iv = 1, nvt
@@ -991,6 +1005,14 @@ contains
                rhllcflux(nof_variables + iv) = hllcflux(nof_variables + iv)
             end do
          end if
+      case (8)
+         call hybrid_hll_hllc_riemann_solver(n, iconsidered, facex, cleft_rot, cright_rot, hllcflux, mp_source1, srf_speedrot)
+         call rotateb(n, rhllcflux, hllcflux, angle1, angle2)
+         if ((turbulence .eq. 1) .or. (passivescalar .gt. 0)) then
+            do iv = 1, nvt
+               rhllcflux(nof_variables + iv) = hllcflux(nof_variables + iv)
+            end do
+         end if
       case (9)
          call hll_riemann_solver(n, cleft_rot, cright_rot, hllcflux, mp_source1, srf_speedrot)
          call rotateb(n, rhllcflux, hllcflux, angle1, angle2)
@@ -1084,7 +1106,8 @@ contains
 !$omp& map(alloc: ielem_ineighn, ielem_inter_id, ielem_nodes_faces, ielem_qface, ielem_walldist, inoder4_cord) &
 !$omp& map(alloc: mp_a_in, mp_janaf, mp_m, mp_pinf, mp_r_in, mp_thigh_in, mp_tlow_in, mp_tmid_in, rec_mrf, rec_rotvel) &
 !$omp& map(alloc: rec_uleft, rec_uleft_dg, rec_uleftturb, rg_hzero, rg_molm, rg_thetag, rg_vf, rgs_ab, rgs_bb, rgs_cb) &
-!$omp& map(alloc: rhs_valdg, u_c_val, u_ct_val)
+!$omp& map(alloc: rhs_valdg, u_c_val, u_ct_val) &
+!$omp& map(alloc: ielem_hllsw, hllsw_halo, rec_ihexn, rec_ihexl, rec_local, ielem_indexi, halo_offset)
 #else
 !$omp do &
 !$omp& private(b_code, facex, i, iconsidered, ii, iqp, iv, l, mp_source1, mp_source2, mp_source3, ngp) &
@@ -1238,7 +1261,8 @@ contains
 !$omp& map(alloc: ielem_totvolume, ielem_walldist, inoder4_cord, integ_basis_dg_value, integ_basis_value) &
 !$omp& map(alloc: integ_basis_valuec, mp_a_in, mp_janaf, mp_m, mp_pinf, mp_r_in, mp_thigh_in, mp_tlow_in, mp_tmid_in) &
 !$omp& map(alloc: rec_mrf, rec_qpoints, rec_rotvel, rec_uleft, rec_uleft_dg, rec_uleftturb, rec_volume, rg_hzero) &
-!$omp& map(alloc: rg_molm, rg_thetag, rg_vf, rgs_ab, rgs_bb, rgs_cb, rhs_val, rhs_valdg, u_c_val, u_ct_val)
+!$omp& map(alloc: rg_molm, rg_thetag, rg_vf, rgs_ab, rgs_bb, rgs_cb, rhs_val, rhs_valdg, u_c_val, u_ct_val) &
+!$omp& map(alloc: ielem_hllsw, hllsw_halo, rec_ihexn, rec_ihexl, rec_local, ielem_indexi, halo_offset)
 #else
 !$omp do &
 !$omp& private(b_code, facex, i, iconsidered, ii, iqp, iv, l, mp_source1, mp_source2, mp_source3, ngp, nvt, pointx) &
@@ -1317,6 +1341,7 @@ contains
       implicit none
       integer, intent(in) :: n
 
+      if (iriemann .eq. 8) call hybrid_riemann_sensor(n)
       call calculate_fluxeshi_convective2d_inner_cell(n)
       call calculate_fluxeshi_convective2d_bound_cell(n)
    end subroutine calculate_fluxeshi_convective2d
@@ -1347,7 +1372,8 @@ contains
 !$omp& map(alloc: qp_array_y, qp_array_z, rec_br2_local_lift, rec_mrf, rec_qpoints, rec_rotvel, rec_uleft) &
 !$omp& map(alloc: rec_uleft_dg, rec_uleftturb, rec_volume, rg_hzero, rg_molm, rgs_ab, rgs_bb, rgs_cb, u_c_br2_aux_var) &
 !$omp& map(alloc: u_c_val, u_c_valdg, u_ct_val) &
-!$omp& map(alloc: rg_thetag)
+!$omp& map(alloc: rg_thetag) &
+!$omp& map(alloc: ielem_hllsw, hllsw_halo, ielem_ibounds, ibound_icode, ielem_ineighb, rec_ihexn, rec_ihexl, rec_local, ielem_indexi, halo_offset)
 #else
 !$omp do &
 !$omp& private(angle1, angle2, b_code, facex) &
@@ -1419,6 +1445,17 @@ contains
                   case (1) !hllc
 
                      call hllc_riemann_solver2d(n, cleft_rot, cright_rot, hllcflux, mp_source1, srf_speedrot)
+                     call rotateb2d(n, rhllcflux, hllcflux, angle1, angle2)
+                     if ((turbulence .eq. 1) .or. (passivescalar .gt. 0)) then
+
+                        rhllcflux(nof_variables + 1:nof_variables + turbulenceequations + passivescalar) = &
+                           & hllcflux(nof_variables + &
+                           & 1:nof_variables + turbulenceequations + passivescalar)
+                     end if
+
+                  case (8) !hybrid hll-hllc
+
+                     call hybrid_hll_hllc_riemann_solver(n, iconsidered, facex, cleft_rot, cright_rot, hllcflux, mp_source1, srf_speedrot, cleft, cright)
                      call rotateb2d(n, rhllcflux, hllcflux, angle1, angle2)
                      if ((turbulence .eq. 1) .or. (passivescalar .gt. 0)) then
 
@@ -1571,7 +1608,8 @@ contains
 !$omp& map(alloc: qp_array_z, rec_br2_local_lift, rec_qpoints, rec_uleft, rec_uleft_dg, rec_uleftturb, rec_volume) &
 !$omp& map(alloc: rg_hzero, rg_molm, rg_thetag, rg_vf, rgs_ab, rgs_bb, rgs_cb, u_c_br2_aux_var, u_c_val, u_c_valdg) &
 !$omp& map(alloc: u_ct_val) &
-!$omp& map(alloc: axis_face, rec_mrf)
+!$omp& map(alloc: axis_face, rec_mrf) &
+!$omp& map(alloc: ielem_hllsw, hllsw_halo, rec_ihexn, rec_ihexl, rec_local, ielem_indexi, halo_offset)
 #else
 !$omp do &
 !$omp& private(angle1, angle2, b_code, facex) &
@@ -1663,6 +1701,17 @@ contains
                      call hllc_riemann_solver2d(n, cleft_rot, cright_rot, hllcflux, mp_source1, srf_speedrot)
                      call rotateb2d(n, rhllcflux, hllcflux, angle1, angle2)
 
+                     if ((turbulence .eq. 1) .or. (passivescalar .gt. 0)) then
+
+                        rhllcflux(nof_variables + 1:nof_variables + turbulenceequations + passivescalar) = &
+                           & hllcflux(nof_variables + &
+                           & 1:nof_variables + turbulenceequations + passivescalar)
+                     end if
+
+                  case (8) !hybrid hll-hllc
+
+                     call hybrid_hll_hllc_riemann_solver(n, iconsidered, facex, cleft_rot, cright_rot, hllcflux, mp_source1, srf_speedrot, cleft, cright)
+                     call rotateb2d(n, rhllcflux, hllcflux, angle1, angle2)
                      if ((turbulence .eq. 1) .or. (passivescalar .gt. 0)) then
 
                         rhllcflux(nof_variables + 1:nof_variables + turbulenceequations + passivescalar) = &
@@ -2457,6 +2506,14 @@ contains
                            eddyfl(19:20) = viscl(1); eddyfr(19:20) = viscl(2)
                         end if
                      end if
+                  end if
+
+                  ! Isothermal perfect-gas wall (laminar): evaluate mu and k at the wall
+                  ! temperature, as the SST branch above does, instead of at the
+                  ! extrapolated interior face temperature (the wall ghost mirrors T_L).
+                  if ((b_code == 4) .and. laminar_isothermal_wall()) then
+                     call sst_wall_transport(n, u_c_val(i,1,1:nof_variables), viscl(1), laml(1))
+                     viscl(2) = viscl(1); laml(2) = laml(1)
                   end if
 
                   taul = zero; tau = zero; taur = zero; q = zero; ux = zero; uy = zero; uz = zero; vx = zero; vy = zero; vz &
@@ -3531,6 +3588,14 @@ contains
                      end if
                   end if
 
+                  ! Isothermal perfect-gas wall (laminar): evaluate mu and k at the wall
+                  ! temperature, as the SST branch above does, instead of at the
+                  ! extrapolated interior face temperature (the wall ghost mirrors T_L).
+                  if ((b_code == 4) .and. laminar_isothermal_wall()) then
+                     call sst_wall_transport(n, u_c_val(i,1,1:nof_variables), viscl(1), laml(1))
+                     viscl(2) = viscl(1); laml(2) = laml(1)
+                  end if
+
                   taul = zero; tau = zero; taur = zero; q = zero; ux = zero; uy = zero; uz = zero; vx = zero; vy = zero; vz &
                & = zero; wx = &
                      & zero; wy = zero; wz = zero;
@@ -3911,13 +3976,16 @@ contains
       integer, intent(in) :: n
       integer :: ii
 
+      if (iriemann .eq. 8) call hybrid_riemann_sensor(n)
+
 #ifdef xpu
 !$omp target teams distribute parallel do firstprivate(n) private(ii) &
 !$omp& firstprivate(nof_interior) &
 !$omp& map(alloc: el_int, gamma_in, ielem_faceanglex, ielem_faceangley, ielem_facediss, ielem_ifca, ielem_ineigh) &
 !$omp& map(alloc: ielem_ineighn, ielem_mood, ielem_recalc, ielem_surf, ielem_types_faces, mp_janaf, mp_m, mp_pinf) &
 !$omp& map(alloc: mp_thigh_in, mp_tlow_in, mp_tmid_in, rec_mrf, rec_uleft, rec_uleftturb, rg_hzero, rg_molm, rhs_val) &
-!$omp& map(alloc: rhs_valdg, rhst_val, u_c_val, u_ct_val, weights_q, weights_t)
+!$omp& map(alloc: rhs_valdg, rhst_val, u_c_val, u_ct_val, weights_q, weights_t) &
+!$omp& map(alloc: ielem_hllsw, hllsw_halo, ielem_ibounds, ibound_icode, ielem_ineighb, rec_ihexn, rec_ihexl, rec_local, ielem_indexi, halo_offset)
 #else
 !$omp barrier
 !$omp do &
@@ -3942,7 +4010,8 @@ contains
 !$omp& map(alloc: inoder4_cord, mp_a_in, mp_janaf, mp_m, mp_pinf, mp_r_in, mp_thigh_in, mp_tlow_in, mp_tmid_in) &
 !$omp& map(alloc: rec_ihexl, rec_ihexn, rec_local, rec_mrf, rec_uleft, rec_uleftturb, rg_hzero, rg_molm, rg_thetag) &
 !$omp& map(alloc: rg_vf, rgs_ab, rgs_bb, rgs_cb, rhs_val, rhs_valdg, rhst_val, solhir, u_c_val, u_ct_val, weights_q) &
-!$omp& map(alloc: weights_t)
+!$omp& map(alloc: weights_t) &
+!$omp& map(alloc: ielem_hllsw, hllsw_halo)
 #else
 !$omp barrier
 !$omp do &
@@ -4068,6 +4137,16 @@ contains
                case (2) !rusanov
 
                   call rusanov_riemann_solver(n, iconsidered, facex, cleft_rot, cright_rot, hllcflux, mp_source1, srf_speedrot)
+                  call rotateb(n, rhllcflux, hllcflux, angle1, angle2)
+                  if ((turbulence .eq. 1) .or. (passivescalar .gt. 0)) then
+
+                     rhllcflux(nof_variables + 1:nof_variables + turbulenceequations + passivescalar) = hllcflux(nof_variables + &
+                        & 1:nof_variables + turbulenceequations + passivescalar)
+                  end if
+
+               case (8) !hybrid hll-hllc
+
+                  call hybrid_hll_hllc_riemann_solver(n, iconsidered, facex, cleft_rot, cright_rot, hllcflux, mp_source1, srf_speedrot)
                   call rotateb(n, rhllcflux, hllcflux, angle1, angle2)
                   if ((turbulence .eq. 1) .or. (passivescalar .gt. 0)) then
 
@@ -4486,6 +4565,15 @@ contains
 
                   rhllcflux = hllcflux
 
+               case (8) !hybrid hll-hllc
+
+                  call hybrid_hll_hllc_riemann_solver(n, iconsidered, facex, cleft_rot, cright_rot, hllcflux, mp_source1, srf_speedrot)
+                  call rotateb(n, rhllcflux, hllcflux, angle1, angle2)
+                  if ((turbulence .eq. 1) .or. (passivescalar .gt. 0)) then
+
+                     rhllcflux(nof_variables + 1:nof_variables + turbulenceequations + passivescalar) = hllcflux(nof_variables + &
+                        & 1:nof_variables + turbulenceequations + passivescalar)
+                  end if
                case (9) !hll
 
                   call hll_riemann_solver(n, cleft_rot, cright_rot, hllcflux, mp_source1, srf_speedrot)
@@ -4595,13 +4683,16 @@ contains
       integer, intent(in) :: n
       integer :: ii
 
+      if (iriemann .eq. 8) call hybrid_riemann_sensor(n)
+
 #ifdef xpu
 !$omp target teams distribute parallel do firstprivate(n) private(ii) &
 !$omp& firstprivate(nof_interior) &
 !$omp& map(alloc: el_int, gamma_in, ielem_faceanglex, ielem_faceangley, ielem_ifca, ielem_ineigh, ielem_ineighn) &
 !$omp& map(alloc: ielem_mood, ielem_recalc, ielem_surf, mp_janaf, mp_m, mp_pinf, mp_thigh_in, mp_tlow_in, mp_tmid_in) &
 !$omp& map(alloc: rec_uleft, rec_uleftturb, rg_hzero, rg_molm, rhs_val, rhs_valdg, rhst_val, u_c_val, u_ct_val) &
-!$omp& map(alloc: weights_l)
+!$omp& map(alloc: weights_l) &
+!$omp& map(alloc: ielem_hllsw, hllsw_halo, ielem_ibounds, ibound_icode, ielem_ineighb, rec_ihexn, rec_ihexl, rec_local, ielem_indexi, halo_offset)
 #else
 !$omp barrier
 !$omp do &
@@ -4627,7 +4718,8 @@ contains
 !$omp& map(alloc: mp_thigh_in, mp_tlow_in, mp_tmid_in, rec_ihexl, rec_ihexn, rec_local, rec_uleft, rec_uleftturb) &
 !$omp& map(alloc: rg_hzero, rg_molm, rg_thetag, rg_vf, rgs_ab, rgs_bb, rgs_cb, rhs_val, rhs_valdg, rhst_val, solhir) &
 !$omp& map(alloc: u_c_val, u_ct_val, weights_l) &
-!$omp& map(alloc: axis_face, rec_mrf)
+!$omp& map(alloc: axis_face, rec_mrf) &
+!$omp& map(alloc: ielem_hllsw, hllsw_halo)
 #else
 !$omp barrier
 !$omp do &
@@ -4761,6 +4853,16 @@ contains
                   call roe_riemann_solver2d(n, cleft, cright, hllcflux, mp_source1, srf_speedrot, nx, ny)
 
                   rhllcflux(1:nof_variables) = hllcflux(1:nof_variables)
+
+               case (8) !hybrid hll-hllc
+
+                  call hybrid_hll_hllc_riemann_solver(n, iconsidered, facex, cleft_rot, cright_rot, hllcflux, mp_source1, srf_speedrot, cleft, cright)
+                  call rotateb2d(n, rhllcflux, hllcflux, angle1, angle2)
+                  if ((turbulence .eq. 1) .or. (passivescalar .gt. 0)) then
+
+                     rhllcflux(nof_variables + 1:nof_variables + turbulenceequations + passivescalar) = hllcflux(nof_variables + &
+                        & 1:nof_variables + turbulenceequations + passivescalar)
+                  end if
 
                case (9) !hll
 
@@ -5117,6 +5219,16 @@ contains
                   call rusanov_riemann_solver2d(n, cleft_rot, cright_rot, hllcflux, mp_source1, srf_speedrot)
                   call rotateb2d(n, rhllcflux, hllcflux, angle1, angle2)
 
+                  if ((turbulence .eq. 1) .or. (passivescalar .gt. 0)) then
+
+                     rhllcflux(nof_variables + 1:nof_variables + turbulenceequations + passivescalar) = hllcflux(nof_variables + &
+                        & 1:nof_variables + turbulenceequations + passivescalar)
+                  end if
+
+               case (8) !hybrid hll-hllc
+
+                  call hybrid_hll_hllc_riemann_solver(n, iconsidered, facex, cleft_rot, cright_rot, hllcflux, mp_source1, srf_speedrot, cleft, cright)
+                  call rotateb2d(n, rhllcflux, hllcflux, angle1, angle2)
                   if ((turbulence .eq. 1) .or. (passivescalar .gt. 0)) then
 
                      rhllcflux(nof_variables + 1:nof_variables + turbulenceequations + passivescalar) = hllcflux(nof_variables + &

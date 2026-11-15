@@ -464,6 +464,13 @@ contains
       read (15, *)
       read (15, *)
       read (15, *) spatiladiscret, iriemann, spatialorder, limiter, poly
+      ! limiter id + 20: same limiter function, checked at the element vertices instead of the
+      ! face quadrature points (e.g. 21 = Barth-Jespersen at vertices, 27 = Venkatakrishnan at vertices)
+      limiter_points = 0
+      if (limiter .ge. 20) then
+         limiter_points = 1
+         limiter = limiter - 20
+      end if
       read (15, *)
       read (15, *)
       read (15, *) wenocnschar, ees, wenoz, wenocentralweight
@@ -597,6 +604,9 @@ contains
       extended_bounds = 0
 
       grid_curvature_limit = -1.0 ! retain existing AR-only behaviour outside profiles 0/888
+      gg_correction = 0 ! legacy arithmetic-mean Green-Gauss face values outside the profiles that set it
+      checksol_extra = 0 ! checksol/checksolx: density and pressure jump only outside the profiles that set it
+      checksol_ratio = 2.0
 
       select case (code_profile)
 
@@ -626,13 +636,23 @@ contains
          ! Mesh partitioning: option 6, 64-bit ParMETIS only.
          emetis = 6
          itold = 10000 !tolerance=n_iterations
-         gridar1 = 10000.0 ! greengo=0: viscous GG when face-distance AR > this OR curvature Gamma > limit
-         grid_curvature_limit = 1.0 ! 3D nonperiodic layered hex/prism criterion; strict greater-than
+         gridar1 = 100000.0 ! greengo=0: viscous GG when face-distance AR > this OR curvature Gamma > limit
+         grid_curvature_limit = -1.0 ! 3D nonperiodic layered hex/prism criterion; strict greater-than
+         ! Green-Gauss face values (mean flow, turbulence, passive scalars; ideal and real gas; cpu and gpu):
+         ! 0 = arithmetic mean (legacy) | 1 = geometric weights from ielem_dih2 (stretched/unequal cells)
+         ! 2 = 1 + one non-orthogonal (skewness) correction pass | 3 = 1 + two correction passes
+         gg_correction = 3
+         ! extra ideal-gas tests in checksol/checksolx (cpu and gpu): 0 = density and pressure jump only (legacy)
+         ! 1 = + temperature jump of the reconstructed face value against the cell mean (same jump_cond)
+         ! 2 = 1 + cell rejected when its mean density, pressure or temperature differs from a face
+         !     neighbour by a factor larger than checksol_ratio
+         checksol_extra = 2
+         checksol_ratio = 2.0
          gridar2 = 10000000 ! limit volume cells
          fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
          !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
          lmach_style = 0
-         lamx = 0.00; lamy = 1.00; lamz = 1.00 !linear advection coefficients (lamx, lamy,lamz)
+         lamx = 1.00; lamy = 1.00; lamz = 1.00 !linear advection coefficients (lamx, lamy,lamz)
          rot_corr = 0
 
          if (iboundary .eq. 1) then
@@ -1943,7 +1963,8 @@ contains
       valid_scheme = (spatiladiscret .ge. 1) .and. (spatiladiscret .le. 3)
       valid_poly = (poly .eq. 1) .or. (poly .eq. 2) .or. (poly .eq. 4)
       valid_riemann = (iriemann .eq. 1) .or. (iriemann .eq. 2) .or. (iriemann .eq. 3) .or. &
-         & (iriemann .eq. 4) .or. (iriemann .eq. 5) .or. (iriemann .eq. 9) .or. (iriemann .eq. 12)
+         & (iriemann .eq. 4) .or. (iriemann .eq. 5) .or. (iriemann .eq. 8) .or. (iriemann .eq. 9) .or. &
+         & (iriemann .eq. 12)
 
       if ((dimensiona .ne. 2) .and. (dimensiona .ne. 3)) then
          call abort_ucns3d_configuration(n, 'dimension must be 2 or 3')
@@ -1964,7 +1985,7 @@ contains
       end if
       if (.not. valid_riemann) then
          call abort_ucns3d_configuration(n, &
-            & 'Riemann solver must be 1(HLLC), 2(Rusanov), 3(Roe), 4(rotated Roe), 5(T-Roe), 9(HLL), or 12(half-dissipation Roe)')
+            & 'Riemann solver must be 1(HLLC), 2(Rusanov), 3(Roe), 4(rotated Roe), 5(T-Roe), 8(hybrid HLL-HLLC), 9(HLL), or 12(half-dissipation Roe)')
       end if
       if ((dimensiona .eq. 2) .and. (iriemann .eq. 5)) then
          call abort_ucns3d_configuration(n, 'Riemann solver 5(T-Roe) is only implemented for 3D fluxes')
@@ -2011,8 +2032,11 @@ contains
       if ((iweno .eq. 1) .and. ((ees .lt. 0) .or. (ees .gt. 5))) then
          call abort_ucns3d_configuration(n, 'WENO stencil option must be in the implemented range 0..5')
       end if
-      if (((limiter .lt. 1) .or. (limiter .gt. 7)) .and. (limiter .ne. 11)) then
-         call abort_ucns3d_configuration(n, 'limiter option must be in the documented range 1..7 or 11(vector BJ)')
+      ! limiter holds the limiter function here; ids 21..31 were reduced by 20 when the file was read
+      ! (limiter_points = 1). Every function implemented in slope_limiters (1..11) is accepted.
+      if ((limiter .lt. 1) .or. (limiter .gt. 11)) then
+         call abort_ucns3d_configuration(n, 'limiter option must be 1..11 (11 = vector BJ), '// &
+            & 'or 21..31 for the same limiters checked at the element vertices')
       end if
       if ((realgas .eq. 1) .and. (governingequations .gt. 2)) then
          call abort_ucns3d_configuration(n, 'REALGAS.DAT is only compatible with Euler/Navier-Stokes equation sets')

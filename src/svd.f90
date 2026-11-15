@@ -238,6 +238,7 @@ contains
    end subroutine svdcmp
 
    subroutine svbksb(u, w, v, m, n, mp, np, b, x)
+      implicit none
       integer m, mp, n, np, nmax
       real b(mp), u(mp, np), v(np, np), w(np), x(np)
       parameter(nmax=500) !maximum anticipated value of n.
@@ -268,6 +269,7 @@ contains
    end subroutine
 
    function pythag(a, b)
+      implicit none
       real :: a, b, pythag
       real :: absa, absb
       absa = abs(a)

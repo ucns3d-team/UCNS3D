@@ -9,6 +9,7 @@ contains
 
    ! Selected Legendre/Taylor helpers are CPU-only; XPU validation requires poly=1.
    subroutine basis_selected_powers(nd, kbasis, powers)
+      implicit none
 !> Mode ordering must match the legacy prestore and derivative tables.
       integer, intent(in) :: nd, kbasis
       integer, intent(out) :: powers(3)
@@ -87,6 +88,7 @@ contains
    end subroutine basis_selected_powers
 
    real function basis_legendre_derivative(x, degree, deriv) result(value)
+      implicit none
 !> Derivative of the shifted Legendre polynomial P_degree(2*x-1).
 !> Differentiate the three-term recurrence, avoiding expanded high-degree polynomials.
       real, intent(in) :: x
@@ -119,6 +121,7 @@ contains
    end function basis_legendre_derivative
 
    real function basis_selected_derivative(nd, x, y, z, kbasis, cell, dx, dy, dz) result(value)
+      implicit none
 !> Raw poly=2/4 mode or mixed derivative, in reconstruction coordinates.
 !> Cell-mean subtraction is constant and therefore absent for derivatives.
       integer, intent(in) :: nd, kbasis, cell, dx, dy, dz
@@ -155,12 +158,14 @@ contains
    end function basis_selected_derivative
 
    real function dl2dx(x, y, kbasis, cell) result(value)
+      implicit none
       real, intent(in) :: x, y
       integer, intent(in) :: kbasis, cell
       value = basis_selected_derivative(2, x, y, 0.0, kbasis, cell, 1, 0, 0)
    end function dl2dx
 
    real function dl2dy(x, y, kbasis, cell) result(value)
+      implicit none
       real, intent(in) :: x, y
       integer, intent(in) :: kbasis, cell
       value = basis_selected_derivative(2, x, y, 0.0, kbasis, cell, 0, 1, 0)

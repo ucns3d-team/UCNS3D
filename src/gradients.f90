@@ -399,45 +399,195 @@ contains
 
    end subroutine compute_gradients_wall_mean_lsq_viscous_acc
 
-   subroutine compute_gradients_inner_mean_ggs_viscous_acc(n)
+   subroutine gg_face_weight(i, j, b_code, wn, skew)
 !> @brief
-!> Ideal-gas Green-Gauss primitive gradients for interior cells.
+!> Face value used by every Green-Gauss routine: phi_f = (1-wn)*phi_P + wn*phi_N [+ grad(phi)_f . skew].
+!> gg_correction = 0 (code profile) or a physical-boundary face (b_code > 0): wn = 1/2, skew = 0. The boundary
+!> ghost is built so that this mean is the boundary value (T_w on an isothermal wall, zero no-slip velocity).
+!> Otherwise d = ielem_dih2(i,j,:) = x_N - x_P (periodic shift included) and x_f' = x_P + wn*d is the projection
+!> of the face centre x_f on the centre-to-centre line, so the weighted value is exact for linear fields at x_f'
+!> for any element shape or size ratio; skew = x_f - x_f' is the non-orthogonal offset used by the correction passes.
+      implicit none
+#ifdef xpu
+!$omp declare target
+#endif
+      integer, intent(in) :: i, j, b_code
+      real, intent(out) :: wn
+      real, dimension(1:gpu_max_dim), intent(out) :: skew
+      real, dimension(1:gpu_max_dim) :: xf, xp, d
+      real :: dd
+      integer :: k, nn
+
+      wn = 0.5e0
+      skew = 0.0e0
+      if ((gg_correction .le. 0) .or. (b_code .gt. 0)) return
+      d = 0.0e0
+      d(1:dimensiona) = ielem_dih2(i, j, 1:dimensiona)
+      dd = sum(d(1:dimensiona)**2)
+      ! dih2 is only built for rungekutta >= 2; without it keep the arithmetic mean
+      if (dd .le. 1.0e-300) return
+      if (dimensiona .eq. 3) then
+         if (ielem_types_faces(i, j) .eq. 5) then
+            nn = 4
+         else
+            nn = 3
+         end if
+      else
+         nn = 2
+      end if
+      xf = 0.0e0
+      do k = 1, nn
+         xf(1:dimensiona) = xf(1:dimensiona) + inoder4_cord(1:dimensiona, ielem_nodes_faces(i, j, k))
+      end do
+      xf(1:dimensiona) = xf(1:dimensiona) / real(nn)
+      xp = 0.0e0
+      xp(1) = ielem_xxc(i)
+      xp(2) = ielem_yyc(i)
+      if (dimensiona .eq. 3) xp(3) = ielem_zzc(i)
+      wn = sum((xf(1:dimensiona) - xp(1:dimensiona)) * d(1:dimensiona)) / dd
+      ! guard against pathological (inverted/extremely skewed) faces
+      wn = max(0.05e0, min(0.95e0, wn))
+      skew(1:dimensiona) = xf(1:dimensiona) - (xp(1:dimensiona) + wn * d(1:dimensiona))
+   end subroutine gg_face_weight
+
+   subroutine compute_gradients_ggs_correction_acc(n, do_mean, do_mix, do_turb)
+!> @brief
+!> Non-orthogonal (skewness) correction passes of the Green-Gauss gradients, shared by the cpu and gpu paths:
+!> gg_correction - 1 passes (code profile: 2 -> one, 3 -> two). Each pass re-evaluates the face values with
+!> grad(phi)_f . (x_f - x_f') from the current gradients (stage 2 of the Green-Gauss kernels) and copies back.
+!> do_mean: mean-flow GG cells exist; do_mix: bounded cells take part; do_turb: turbulence/passive scalars.
+      implicit none
+      integer, intent(in) :: n
+      logical, intent(in) :: do_mean, do_mix, do_turb
+      integer :: ipass
+      if (gg_correction .lt. 2) return
+      if (.not. (do_mean .or. do_turb)) return
+      do ipass = 2, gg_correction
+         if (do_mean) then
+            call compute_gradients_inner_mean_ggs_viscous_acc(n, 2)
+            if (do_mix) call compute_gradients_mix_mean_ggs_viscous_acc(n, 2)
+         end if
+         if (do_turb) then
+            call compute_gradients_inner_turb_ggs_viscous_acc(n, 2)
+            if (do_mix) call compute_gradients_mix_turb_ggs_viscous_acc(n, 2)
+         end if
+         call compute_gradients_ggs_finalise_acc(n, do_mean, do_mix, do_turb)
+      end do
+   end subroutine compute_gradients_ggs_correction_acc
+
+   subroutine compute_gradients_ggs_finalise_acc(n, do_mean, do_mix, do_turb)
+!> @brief
+!> Copy the Green-Gauss gradients of a non-orthogonal correction pass (rec_grads_gg) into rec_grads.
+!> Run after all stage-2 kernels of a pass so that no cell reads a partially updated neighbour.
+!> do_mean: mean-flow GG cells took part; do_mix: bounded cells; do_turb: turbulence/passive-scalar gradients.
+      implicit none
+      integer, intent(in) :: n
+      logical, intent(in) :: do_mean, do_mix, do_turb
+      integer :: ii, i, k, var2, nv, nvt, imean
+      if (gg_correction .lt. 2) return
+      imean = 0
+      if (do_mean) imean = 1
+      nv = nof_variables - 1
+      nvt = 0
+      if (do_turb) nvt = turbulenceequations + passivescalar
+#ifdef xpu
+!$omp target teams distribute parallel do &
+!$omp& firstprivate(nof_interior, nv, nvt, imean, dimensiona) &
+!$omp& map(alloc: el_int, rec_wall, ielem_ggs, rec_grads, rec_grads_gg, rec_gradientsturb) private(ii, i, k, var2)
+#else
+!$omp do private(ii, i, k, var2)
+#endif
+      do ii = 1, nof_interior
+         i = el_int(ii)
+         if (rec_wall(i) .eq. 0) then
+            if ((imean .eq. 1) .and. (ielem_ggs(i) .eq. 1)) then
+               do k = 1, dimensiona
+                  rec_grads(i, 1:nv, k) = rec_grads_gg(i, 1:nv, k)
+               end do
+            end if
+            do var2 = 1, nvt
+               rec_grads(i, nv + var2, 1:dimensiona) = rec_grads_gg(i, nv + var2, 1:dimensiona)
+               ! least-squares cells keep their own coefficients in rec_gradientsturb
+               if (ielem_ggs(i) .eq. 1) rec_gradientsturb(i, 1, 1:dimensiona, var2) = rec_grads_gg(i, nv + var2, 1:dimensiona)
+            end do
+         end if
+      end do
+#ifdef xpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+      if (.not. do_mix) return
+#ifdef xpu
+!$omp target teams distribute parallel do &
+!$omp& firstprivate(nof_bounded, nv, nvt, imean, dimensiona) &
+!$omp& map(alloc: el_bnd, ielem_ggs, rec_grads, rec_grads_gg, rec_gradientsturb) private(ii, i, k, var2)
+#else
+!$omp do private(ii, i, k, var2)
+#endif
+      do ii = 1, nof_bounded
+         i = el_bnd(ii)
+         if ((imean .eq. 1) .and. (ielem_ggs(i) .eq. 1)) then
+            do k = 1, dimensiona
+               rec_grads(i, 1:nv, k) = rec_grads_gg(i, 1:nv, k)
+            end do
+         end if
+         do var2 = 1, nvt
+            rec_grads(i, nv + var2, 1:dimensiona) = rec_grads_gg(i, nv + var2, 1:dimensiona)
+            if (ielem_ggs(i) .eq. 1) rec_gradientsturb(i, 1, 1:dimensiona, var2) = rec_grads_gg(i, nv + var2, 1:dimensiona)
+         end do
+      end do
+#ifdef xpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+   end subroutine compute_gradients_ggs_finalise_acc
+
+   subroutine compute_gradients_inner_mean_ggs_viscous_acc(n, istage)
+!> @brief
+!> Green-Gauss primitive gradients for interior cells (ideal and real gas).
+!> istage = 1: geometric (or arithmetic if gg_correction = 0) face values -> rec_grads.
+!> istage = 2: adds the non-orthogonal correction using the current rec_grads -> rec_grads_gg.
       implicit none
       ! In a guarded 3D branch, dimensiona is the z-component index.
       ! Shared work arrays retain their two-component capacity in 2D builds.
-      integer, intent(in) :: n
-      real :: oov2, mp_pinfl, gammal, angle1, angle2
-      integer :: ii, i, j, k
+      integer, intent(in) :: n, istage
+      real :: oov2, mp_pinfl, gammal, angle1, angle2, wn
+      integer :: ii, i, j, k, jn, nv
 
 #ifdef xpu
 !$omp target teams distribute parallel do &
-!$omp& firstprivate(n) &
+!$omp& firstprivate(n, istage) &
 !$omp& firstprivate(nof_interior, nof_variables, dimensiona, zero, oo2) &
 !$omp& map(alloc: el_int, rec_wall, ielem_ggs, u_c_val, ielem_totvolume) &
 !$omp& map(alloc: ielem_ifca, ielem_faceanglex, ielem_faceangley, ielem_ineigh, ielem_surf, rec_grads) &
-!$omp& private(ii, i, j, k, oov2, mp_pinfl, gammal, angle1, angle2) &
+!$omp& map(alloc: ielem_dih2, ielem_xxc, ielem_yyc, ielem_zzc, ielem_nodes_faces, ielem_types_faces, inoder4_cord) &
+!$omp& map(alloc: rec_grads_gg) &
+!$omp& private(ii, i, j, k, jn, nv, oov2, mp_pinfl, gammal, angle1, angle2, wn) &
 !$omp& map(alloc: gamma_in, mp_janaf, mp_m, mp_pinf, mp_thigh_in, mp_tlow_in, mp_tmid_in, rg_hzero, rg_molm) &
 !$omp& map(alloc: rg_thetag)
 #else
-!$omp do private(ii, i, j, k, oov2, mp_pinfl, gammal, angle1, angle2)
+!$omp do private(ii, i, j, k, jn, nv, oov2, mp_pinfl, gammal, angle1, angle2, wn)
 #endif
       do ii = 1, nof_interior
          block
-            real, dimension(1:gpu_max_nvar) :: sols1, sols2, leftv
+            real, dimension(1:gpu_max_nvar) :: sols1, sols2, leftv, phi_f
             real, dimension(1:gpu_max_nvar, 1:gpu_max_dim) :: sols_f
-            real, dimension(1:gpu_max_dim) :: normal_all
+            real, dimension(1:gpu_max_dim) :: normal_all, skew
 
             i = el_int(ii)
             if ((rec_wall(i) .eq. 0) .and. (ielem_ggs(i) .eq. 1)) then
+               nv = nof_variables - 1
                sols_f = zero
                sols1 = zero
                sols2 = zero
-               rec_grads(i, :, :) = zero
+               ! no zeroing: every mean slot is assigned below and turbulence slots belong to their own kernels
                oov2 = 1.00 / ielem_totvolume(i)
 
                leftv(1:nof_variables) = u_c_val(i, 1, 1:nof_variables)
                call cons2div(n, leftv, mp_pinfl, gammal)
-               sols1(1:nof_variables - 1) = leftv(2:nof_variables)
+               sols1(1:nv) = leftv(2:nof_variables)
 
                do j = 1, ielem_ifca(i)
                   angle1 = ielem_faceanglex(i, j)
@@ -451,20 +601,40 @@ contains
                      normal_all(2) = angle2
                   end if
 
-                  leftv(1:nof_variables) = u_c_val(ielem_ineigh(i, j), 1, 1:nof_variables)
+                  jn = ielem_ineigh(i, j)
+                  leftv(1:nof_variables) = u_c_val(jn, 1, 1:nof_variables)
                   call cons2div(n, leftv, mp_pinfl, gammal)
-                  sols2(1:nof_variables - 1) = leftv(2:nof_variables)
+                  sols2(1:nv) = leftv(2:nof_variables)
+
+                  call gg_face_weight(i, j, 0, wn, skew)
+                  phi_f(1:nv) = (1.0e0 - wn) * sols1(1:nv) + wn * sols2(1:nv)
+                  if (istage .eq. 2) then
+                     if (ielem_ggs(jn) .eq. 1) then
+                        do k = 1, dimensiona
+                           phi_f(1:nv) = phi_f(1:nv) + skew(k) * ((1.0e0 - wn) * rec_grads(i, 1:nv, k) + &
+                              & wn * rec_grads(jn, 1:nv, k))
+                        end do
+                     else
+                        do k = 1, dimensiona
+                           phi_f(1:nv) = phi_f(1:nv) + skew(k) * rec_grads(i, 1:nv, k)
+                        end do
+                     end if
+                  end if
 
                   do k = 1, dimensiona
-                     sols_f(1:nof_variables - 1, k) = sols_f(1:nof_variables - 1, k) + &
-                        & (oo2 * (sols2(1:nof_variables - 1) + sols1(1:nof_variables - 1)) * normal_all(k) * ielem_surf(i, &
-                           & j) * oov2)
+                     sols_f(1:nv, k) = sols_f(1:nv, k) + phi_f(1:nv) * normal_all(k) * ielem_surf(i, j) * oov2
                   end do
                end do
 
-               do k = 1, dimensiona
-                  rec_grads(i, 1:nof_variables - 1, k) = sols_f(1:nof_variables - 1, k)
-               end do
+               if (istage .eq. 1) then
+                  do k = 1, dimensiona
+                     rec_grads(i, 1:nv, k) = sols_f(1:nv, k)
+                  end do
+               else
+                  do k = 1, dimensiona
+                     rec_grads_gg(i, 1:nv, k) = sols_f(1:nv, k)
+                  end do
+               end if
             end if
          end block
       end do
@@ -475,35 +645,39 @@ contains
 #endif
    end subroutine compute_gradients_inner_mean_ggs_viscous_acc
 
-   subroutine compute_gradients_inner_turb_ggs_viscous_acc(n)
+   subroutine compute_gradients_inner_turb_ggs_viscous_acc(n, istage)
 !> @brief
-!> Ideal-gas Green-Gauss turbulence/passive gradients for interior cells.
+!> Green-Gauss turbulence/passive gradients for interior cells.
+!> istage = 1: face values from gg_face_weight -> rec_grads; istage = 2: + non-orthogonal correction -> rec_grads_gg.
       implicit none
       ! In a guarded 3D branch, dimensiona is the z-component index.
       ! Shared work arrays retain their two-component capacity in 2D builds.
-      integer, intent(in) :: n
-      real :: oov2, angle1, angle2
-      integer :: ii, i, j, k, var2, nvt
+      integer, intent(in) :: n, istage
+      real :: oov2, angle1, angle2, wn
+      integer :: ii, i, j, k, var2, nvt, jn, nv
 
 #ifdef xpu
 !$omp target teams distribute parallel do &
-!$omp& firstprivate(n) &
+!$omp& firstprivate(n, istage) &
+!$omp& map(alloc: ielem_dih2, ielem_xxc, ielem_yyc, ielem_zzc, ielem_nodes_faces, ielem_types_faces, inoder4_cord) &
+!$omp& map(alloc: rec_grads_gg) &
 !$omp& firstprivate(nof_interior, nof_variables, turbulenceequations, passivescalar, dimensiona, zero, oo2) &
 !$omp& map(alloc: el_int, rec_wall, u_c_val, u_ct_val, ielem_totvolume) &
 !$omp& map(alloc: ielem_ifca, ielem_faceanglex, ielem_faceangley, ielem_ineigh, ielem_surf) &
 !$omp& map(alloc: rec_gradientsturb, rec_grads) &
-!$omp& private(ii, i, j, k, var2, nvt, oov2, angle1, angle2)
+!$omp& private(ii, i, j, k, var2, nvt, oov2, angle1, angle2, wn, jn, nv)
 #else
-!$omp do private(ii, i, j, k, var2, nvt, oov2, angle1, angle2)
+!$omp do private(ii, i, j, k, var2, nvt, oov2, angle1, angle2, wn, jn, nv)
 #endif
       do ii = 1, nof_interior
          block
-            real, dimension(gpu_max_extra_transport) :: sols1, sols2
+            real, dimension(gpu_max_extra_transport) :: sols1, sols2, phi_f
             real, dimension(gpu_max_extra_transport, 1:gpu_max_dim) :: sols_f
-            real, dimension(gpu_max_dim) :: normal_all
+            real, dimension(gpu_max_dim) :: normal_all, skew
 
             i = el_int(ii)
             nvt = turbulenceequations + passivescalar
+            nv = nof_variables - 1
             if ((rec_wall(i) .eq. 0) .and. (nvt .gt. 0)) then
                sols_f = zero
                sols1 = zero
@@ -523,17 +697,31 @@ contains
                      normal_all(2) = angle2
                   end if
 
-                  sols2(1:nvt) = u_ct_val(ielem_ineigh(i, j), 1, 1:nvt) / u_c_val(ielem_ineigh(i, j), 1, 1)
+                  jn = ielem_ineigh(i, j)
+                  sols2(1:nvt) = u_ct_val(jn, 1, 1:nvt) / u_c_val(jn, 1, 1)
+                  call gg_face_weight(i, j, 0, wn, skew)
+                  phi_f(1:nvt) = (1.0e0 - wn) * sols1(1:nvt) + wn * sols2(1:nvt)
+                  if (istage .eq. 2) then
+                     do k = 1, dimensiona
+                        phi_f(1:nvt) = phi_f(1:nvt) + skew(k) * ((1.0e0 - wn) * rec_grads(i, nv + 1:nv + nvt, k) + &
+                           & wn * rec_grads(jn, nv + 1:nv + nvt, k))
+                     end do
+                  end if
                   do k = 1, dimensiona
-                     sols_f(1:nvt, k) = sols_f(1:nvt, k) + (oo2 * (sols2(1:nvt) + sols1(1:nvt)) * normal_all(k) * ielem_surf(i, &
-                        & j) * oov2)
+                     sols_f(1:nvt, k) = sols_f(1:nvt, k) + phi_f(1:nvt) * normal_all(k) * ielem_surf(i, j) * oov2
                   end do
                end do
 
-               do var2 = 1, nvt
-                  rec_gradientsturb(i, 1, 1:dimensiona, var2) = sols_f(var2, 1:dimensiona)
-                  rec_grads(i, nof_variables - 1 + var2, 1:dimensiona) = sols_f(var2, 1:dimensiona)
-               end do
+               if (istage .eq. 1) then
+                  do var2 = 1, nvt
+                     rec_gradientsturb(i, 1, 1:dimensiona, var2) = sols_f(var2, 1:dimensiona)
+                     rec_grads(i, nof_variables - 1 + var2, 1:dimensiona) = sols_f(var2, 1:dimensiona)
+                  end do
+               else
+                  do var2 = 1, nvt
+                     rec_grads_gg(i, nof_variables - 1 + var2, 1:dimensiona) = sols_f(var2, 1:dimensiona)
+                  end do
+               end if
             end if
          end block
       end do
@@ -861,19 +1049,23 @@ contains
 #endif
    end subroutine compute_gradients_wall_turb_lsq_viscous_acc
 
-   subroutine compute_gradients_mix_mean_ggs_viscous_acc(n)
+   subroutine compute_gradients_mix_mean_ggs_viscous_acc(n, istage)
 !> @brief
 !> Green-Gauss viscous gradients with separate temperature and species wall conditions.
+!> istage = 1: geometric face values -> rec_grads; istage = 2: + non-orthogonal correction -> rec_grads_gg.
+!> Boundary faces keep the ghost mean (the ghost is built so that this mean is the boundary face value,
+!> e.g. exactly T_w on an isothermal wall and zero velocity on a no-slip wall).
       implicit none
       ! In a guarded 3D branch, dimensiona is the z-component index.
       ! Shared work arrays retain their two-component capacity in 2D builds.
-      integer, intent(in) :: n
-      real :: oov2, mp_pinfl, gammal, angle1, angle2, nx, ny, nz
-      integer :: ii, i, j, k, b_code, facex, n_node, nf, lf, rowf, ibfc, nvt, temp_hi
+      integer, intent(in) :: n, istage
+      real :: oov2, mp_pinfl, gammal, angle1, angle2, nx, ny, nz, wn
+      integer :: ii, i, j, k, b_code, facex, n_node, nf, lf, rowf, ibfc, nvt, temp_hi, jn, kind_f, nv
 
 #ifdef xpu
 !$omp target teams distribute parallel do &
-!$omp& firstprivate(n) &
+!$omp& firstprivate(n, istage) &
+!$omp& map(alloc: ielem_dih2, ielem_xxc, ielem_yyc, ielem_zzc, rec_grads_gg) &
 !$omp& firstprivate(nof_bounded, nof_variables, turbulenceequations, passivescalar, dimensiona, zero, oo2) &
 !$omp& firstprivate(per_rot, angle_per, thermal, wall_temp, initcond, boundtype, gamma, tolsmall, turbulence) &
 !$omp& firstprivate(nof_species, multispecies, realgas, catalytic_wall) &
@@ -881,21 +1073,21 @@ contains
 !$omp& map(alloc: ielem_ifca, ielem_faceanglex, ielem_faceangley, ielem_surf, ielem_ineighb, ielem_ibounds) &
 !$omp& map(alloc: ibound_icode, ielem_ineigh, rec_local, rec_ihexn, rec_ihexl, halo_offset, ielem_indexi) &
 !$omp& map(alloc: rec_mrf, rec_rotvel, ielem_types_faces, ielem_nodes_faces, inoder4_cord) &
-!$omp& private(ii, i, j, k, b_code, facex, n_node, nf, lf, rowf, ibfc, nvt, temp_hi) &
+!$omp& private(ii, i, j, k, b_code, facex, n_node, nf, lf, rowf, ibfc, nvt, temp_hi, jn, kind_f, nv, wn) &
 !$omp& private(oov2, mp_pinfl, gammal, angle1, angle2, nx, ny, nz) &
 !$omp& map(alloc: bleed_end, bleed_plenum, bleed_porosity, bleed_start, catalytic_con, gamma_in, ielem_bleedn) &
 !$omp& map(alloc: ielem_walldist, mp_a_in, mp_janaf, mp_m, mp_pinf, mp_r_in, mp_thigh_in, mp_tlow_in, mp_tmid_in) &
 !$omp& map(alloc: rg_hzero, rg_molm, rg_thetag, rg_vf, rgs_ab, rgs_bb, rgs_cb) &
 !$omp& map(alloc: axis_face)
 #else
-!$omp do private(ii, i, j, k, b_code, facex, n_node, nf, lf, rowf, ibfc, nvt, temp_hi) &
+!$omp do private(ii, i, j, k, b_code, facex, n_node, nf, lf, rowf, ibfc, nvt, temp_hi, jn, kind_f, nv, wn) &
 !$omp& private(oov2, mp_pinfl, gammal, angle1, angle2, nx, ny, nz)
 #endif
       do ii = 1, nof_bounded
          block
             real, dimension(1:gpu_max_nvar) :: sols1, sols2, leftv, rightv, srf_speed, srf_speedrot, phi_f
             real, dimension(1:gpu_max_nvar, 1:gpu_max_dim) :: sols_f
-            real, dimension(1:gpu_max_dim) :: pox, poy, poz, normal_all
+            real, dimension(1:gpu_max_dim) :: pox, poy, poz, normal_all, skew
             real, dimension(1:gpu_max_extra_transport) :: cturbl, cturbr
             real, dimension(1:gpu_max_nvar_total) :: cright_rot, cleft_rot
 
@@ -905,7 +1097,8 @@ contains
                sols_f = zero
                sols1 = zero
                sols2 = zero
-               rec_grads(i, :, :) = zero
+               nv = nof_variables - 1
+               ! no zeroing: every mean slot is assigned below and turbulence slots belong to their own kernels
                oov2 = 1.00 / ielem_totvolume(i)
                temp_hi = nof_variables - 1
                if ((multispecies .eq. 1) .or. (realgas .eq. 1)) temp_hi = nof_variables - nof_species - 1
@@ -917,6 +1110,9 @@ contains
                do j = 1, ielem_ifca(i)
                   facex = j
                   b_code = 0
+                  ! kind_f: 0 = physical boundary (ghost), 1 = local neighbour, 2 = periodic (local), 3 = MPI halo
+                  kind_f = 1
+                  jn = 0
                   angle1 = ielem_faceanglex(i, j)
                   angle2 = ielem_faceangley(i, j)
                   if (dimensiona .eq. 3) then
@@ -941,10 +1137,13 @@ contains
                   if (ielem_ineighb(i, j) .eq. n) then
                      if (ielem_ibounds(i, j) .gt. 0) then
                         if ((ibound_icode(ielem_ibounds(i, j)) .eq. 5) .or. (ibound_icode(ielem_ibounds(i, j)) .eq. 50)) then
+                           kind_f = 2
+                           jn = ielem_ineigh(i, j)
                            sols2(1:nof_variables) = u_c_val(ielem_ineigh(i, j), 1, 1:nof_variables)
                            if ((dimensiona .eq. 3) .and. (per_rot .eq. 1) .and. (ibound_icode(ielem_ibounds(i, j)) .eq. 50)) &
                               & sols2(2:4) = rotate_per_1(sols2(2:4), ibound_icode(ielem_ibounds(i, j)), angle_per)
                         else
+                           kind_f = 0
                            b_code = ibound_icode(ielem_ibounds(i, j))
                            if (dimensiona .eq. 3) then
                               if (ielem_types_faces(i, facex) .eq. 5) then
@@ -984,9 +1183,11 @@ contains
                            sols2(1:nof_variables) = rightv(1:nof_variables)
                         end if
                      else
+                        jn = ielem_ineigh(i, j)
                         sols2(1:nof_variables) = u_c_val(ielem_ineigh(i, j), 1, 1:nof_variables)
                      end if
                   else
+                     kind_f = 3
                      nf = rec_ihexn(rec_local(i), 1, ielem_indexi(i, j))
                      lf = rec_ihexl(i, 1, ielem_indexi(i, j))
                      rowf = halo_offset(nf) + lf - 1
@@ -1009,16 +1210,42 @@ contains
                   if ((b_code .eq. 4) .and. (catalytic_wall .eq. 1) .and. (temp_hi .lt. nof_variables - 1)) &
                      & sols2(temp_hi + 1:nof_variables - 1) = catalytic_con(1:nof_variables - temp_hi - 1)
 
+                  ! face value: boundary faces keep the ghost mean; neighbour faces use the geometric weight
+                  call gg_face_weight(i, j, b_code, wn, skew)
+                  phi_f(1:nv) = (1.0e0 - wn) * sols1(1:nv) + wn * sols2(1:nv)
+                  if ((istage .eq. 2) .and. (kind_f .ne. 0)) then
+                     ! neighbour gradient only for an unrotated local Green-Gauss neighbour; otherwise owner only
+                     if ((kind_f .eq. 1) .and. (jn .gt. 0)) then
+                        if (ielem_ggs(jn) .ne. 1) jn = 0
+                     else
+                        jn = 0
+                     end if
+                     if (jn .gt. 0) then
+                        do k = 1, dimensiona
+                           phi_f(1:nv) = phi_f(1:nv) + skew(k) * ((1.0e0 - wn) * rec_grads(i, 1:nv, k) + &
+                              & wn * rec_grads(jn, 1:nv, k))
+                        end do
+                     else
+                        do k = 1, dimensiona
+                           phi_f(1:nv) = phi_f(1:nv) + skew(k) * rec_grads(i, 1:nv, k)
+                        end do
+                     end if
+                  end if
+
                   do k = 1, dimensiona
-                     sols_f(1:nof_variables - 1, k) = sols_f(1:nof_variables - 1, k) + &
-                        & (oo2 * (sols2(1:nof_variables - 1) + sols1(1:nof_variables - 1)) * normal_all(k) * ielem_surf(i, &
-                           & j) * oov2)
+                     sols_f(1:nv, k) = sols_f(1:nv, k) + phi_f(1:nv) * normal_all(k) * ielem_surf(i, j) * oov2
                   end do
                end do
 
-               do k = 1, dimensiona
-                  rec_grads(i, 1:nof_variables - 1, k) = sols_f(1:nof_variables - 1, k)
-               end do
+               if (istage .eq. 1) then
+                  do k = 1, dimensiona
+                     rec_grads(i, 1:nv, k) = sols_f(1:nv, k)
+                  end do
+               else
+                  do k = 1, dimensiona
+                     rec_grads_gg(i, 1:nv, k) = sols_f(1:nv, k)
+                  end do
+               end if
             end if
          end block
       end do
@@ -1029,19 +1256,21 @@ contains
 #endif
    end subroutine compute_gradients_mix_mean_ggs_viscous_acc
 
-   subroutine compute_gradients_mix_turb_ggs_viscous_acc(n)
+   subroutine compute_gradients_mix_turb_ggs_viscous_acc(n, istage)
 !> @brief
-!> Ideal-gas Green-Gauss turbulence/passive gradients for bounded/mixed cells.
+!> Green-Gauss turbulence/passive gradients for bounded/mixed cells.
+!> istage = 1: face values from gg_face_weight -> rec_grads; istage = 2: + non-orthogonal correction -> rec_grads_gg.
       implicit none
       ! In a guarded 3D branch, dimensiona is the z-component index.
       ! Shared work arrays retain their two-component capacity in 2D builds.
-      integer, intent(in) :: n
-      real :: oov2, angle1, angle2, nx, ny, nz
-      integer :: ii, i, j, k, var2, b_code, facex, n_node, nf, lf, rowf, ibfc, nvt
+      integer, intent(in) :: n, istage
+      real :: oov2, angle1, angle2, nx, ny, nz, wn
+      integer :: ii, i, j, k, var2, b_code, facex, n_node, nf, lf, rowf, ibfc, nvt, jn, nv
 
 #ifdef xpu
 !$omp target teams distribute parallel do &
-!$omp& firstprivate(n) &
+!$omp& firstprivate(n, istage) &
+!$omp& map(alloc: ielem_dih2, ielem_xxc, ielem_yyc, ielem_zzc, rec_grads_gg) &
 !$omp& firstprivate(nof_bounded, nof_variables, turbulenceequations, passivescalar, dimensiona, zero, oo2) &
 !$omp& firstprivate(initcond, boundtype, gamma, tolsmall, turbulence) &
 !$omp& map(alloc: el_bnd, u_c_val, u_ct_val, solhir, ielem_totvolume, rec_gradientsturb, rec_grads) &
@@ -1049,24 +1278,26 @@ contains
 !$omp& map(alloc: ibound_icode, ielem_ineigh, rec_local, rec_ihexn, rec_ihexl, halo_offset, ielem_indexi) &
 !$omp& map(alloc: rec_mrf, ielem_types_faces, ielem_nodes_faces, inoder4_cord) &
 !$omp& private(ii, i, j, k, var2, b_code, facex, n_node, nf, lf, rowf, ibfc, nvt) &
-!$omp& private(oov2, angle1, angle2, nx, ny, nz) &
+!$omp& private(oov2, angle1, angle2, nx, ny, nz, wn, jn, nv) &
 !$omp& map(alloc: bleed_end, bleed_plenum, bleed_porosity, bleed_start, catalytic_con, gamma_in, ielem_bleedn) &
 !$omp& map(alloc: ielem_walldist, mp_a_in, mp_janaf, mp_m, mp_pinf, mp_r_in, mp_thigh_in, mp_tlow_in, mp_tmid_in) &
 !$omp& map(alloc: rg_hzero, rg_molm, rg_thetag, rg_vf, rgs_ab, rgs_bb, rgs_cb) &
 !$omp& map(alloc: axis_face)
 #else
-!$omp do private(ii, i, j, k, var2, b_code, facex, n_node, nf, lf, rowf, ibfc, nvt, oov2, angle1, angle2, nx, ny, nz)
+!$omp do private(ii, i, j, k, var2, b_code, facex, n_node, nf, lf, rowf, ibfc, nvt, oov2, angle1, angle2, nx, ny, nz) &
+!$omp& private(wn, jn, nv)
 #endif
       do ii = 1, nof_bounded
          block
-            real, dimension(gpu_max_extra_transport) :: sols1, sols2, cturbl, cturbr
+            real, dimension(gpu_max_extra_transport) :: sols1, sols2, cturbl, cturbr, phi_f
             real, dimension(gpu_max_extra_transport, 1:gpu_max_dim) :: sols_f
-            real, dimension(gpu_max_dim) :: normal_all, pox, poy, poz
+            real, dimension(gpu_max_dim) :: normal_all, pox, poy, poz, skew
             real, dimension(1:gpu_max_nvar) :: leftv, rightv, srf_speed, srf_speedrot
             real, dimension(1:gpu_max_nvar_total) :: cright_rot, cleft_rot
 
             i = el_bnd(ii)
             nvt = turbulenceequations + passivescalar
+            nv = nof_variables - 1
             if (nvt .gt. 0) then
                sols_f = zero
                sols1 = zero
@@ -1077,6 +1308,7 @@ contains
                do j = 1, ielem_ifca(i)
                   facex = j
                   b_code = 0
+                  jn = 0
                   angle1 = ielem_faceanglex(i, j)
                   angle2 = ielem_faceangley(i, j)
                   if (dimensiona .eq. 3) then
@@ -1140,6 +1372,7 @@ contains
                               & sols2(1:nvt) = 2.0e0 * sols2(1:nvt) - sols1(1:nvt)
                         end if
                      else
+                        jn = ielem_ineigh(i, j)
                         sols2(1:nvt) = u_ct_val(ielem_ineigh(i, j), 1, 1:nvt) / u_c_val(ielem_ineigh(i, j), 1, 1)
                      end if
                   else
@@ -1149,16 +1382,36 @@ contains
                      sols2(1:nvt) = solhir(rowf, nof_variables + 1:nof_variables + nvt) / solhir(rowf, 1)
                   end if
 
+                  call gg_face_weight(i, j, b_code, wn, skew)
+                  phi_f(1:nvt) = (1.0e0 - wn) * sols1(1:nvt) + wn * sols2(1:nvt)
+                  if ((istage .eq. 2) .and. (b_code .eq. 0)) then
+                     ! neighbour gradient only for a plain local neighbour (jn > 0); otherwise owner only
+                     if (jn .gt. 0) then
+                        do k = 1, dimensiona
+                           phi_f(1:nvt) = phi_f(1:nvt) + skew(k) * ((1.0e0 - wn) * rec_grads(i, nv + 1:nv + nvt, k) + &
+                              & wn * rec_grads(jn, nv + 1:nv + nvt, k))
+                        end do
+                     else
+                        do k = 1, dimensiona
+                           phi_f(1:nvt) = phi_f(1:nvt) + skew(k) * rec_grads(i, nv + 1:nv + nvt, k)
+                        end do
+                     end if
+                  end if
                   do k = 1, dimensiona
-                     sols_f(1:nvt, k) = sols_f(1:nvt, k) + (oo2 * (sols2(1:nvt) + sols1(1:nvt)) * normal_all(k) * ielem_surf(i, &
-                        & j) * oov2)
+                     sols_f(1:nvt, k) = sols_f(1:nvt, k) + phi_f(1:nvt) * normal_all(k) * ielem_surf(i, j) * oov2
                   end do
                end do
 
-               do var2 = 1, nvt
-                  rec_gradientsturb(i, 1, 1:dimensiona, var2) = sols_f(var2, 1:dimensiona)
-                  rec_grads(i, nof_variables - 1 + var2, 1:dimensiona) = sols_f(var2, 1:dimensiona)
-               end do
+               if (istage .eq. 1) then
+                  do var2 = 1, nvt
+                     rec_gradientsturb(i, 1, 1:dimensiona, var2) = sols_f(var2, 1:dimensiona)
+                     rec_grads(i, nof_variables - 1 + var2, 1:dimensiona) = sols_f(var2, 1:dimensiona)
+                  end do
+               else
+                  do var2 = 1, nvt
+                     rec_grads_gg(i, nof_variables - 1 + var2, 1:dimensiona) = sols_f(var2, 1:dimensiona)
+                  end do
+               end if
             end if
          end block
       end do
@@ -1788,6 +2041,11 @@ contains
 !$omp declare target
 #endif
       integer, intent(in) :: n, iconsidered, number_of_dog, number_of_nei
+      ! Green-Gauss face value (gg_face_weight): boundary flag, neighbour weight, skew offset, face value
+      integer :: gg_bc
+      real :: gg_wn
+      real, dimension(1:gpu_max_dim) :: gg_skew
+      real, dimension(1:gpu_max_nvar_total) :: gg_phi
       real, dimension(gpu_max_extra_transport) :: sols1, sols2
       real, dimension(gpu_max_extra_transport, 1:gpu_max_dim) :: sols_f
       real, dimension(gpu_max_dim) :: normal_all
@@ -1804,6 +2062,7 @@ contains
          sols1(1:turbulenceequations + passivescalar) = u_ct_val(i, 1, 1:turbulenceequations + passivescalar) / u_c_val(i, 1, 1)
 
          do j = 1, ielem_ifca(i)
+            gg_bc = 0
             angle1 = ielem_faceanglex(i, j)
             angle2 = ielem_faceangley(i, j)
             normal_all(1) = (cos(angle1) * sin(angle2))
@@ -1813,9 +2072,12 @@ contains
             sols2(1:turbulenceequations + passivescalar) = u_ct_val(ielem_ineigh(i, j), 1, 1:turbulenceequations + passivescalar) &
                & / u_c_val(ielem_ineigh(i, j), 1, 1)
 
+            call gg_face_weight(i, j, gg_bc, gg_wn, gg_skew)
+            gg_phi(1:turbulenceequations + passivescalar) = (1.0e0 - gg_wn) * sols1(1:turbulenceequations + passivescalar) + &
+               & gg_wn * sols2(1:turbulenceequations + passivescalar)
             do k = 1, dimensiona
                sols_f(1:turbulenceequations + passivescalar, k) = sols_f(1:turbulenceequations + passivescalar, &
-                  & k) + ((oo2 * (sols2(1:turbulenceequations + passivescalar) + sols1(1:turbulenceequations + passivescalar))) * &
+                  & k) + ((gg_phi(1:turbulenceequations + passivescalar)) * &
                   & normal_all(k) * ielem_surf(i, j) * oov2)
 
             end do
@@ -1831,6 +2093,7 @@ contains
          sols1(1:turbulenceequations + passivescalar) = u_ct_val(i, 1, 1:turbulenceequations + passivescalar) / u_c_val(i, 1, 1)
 
          do j = 1, ielem_ifca(i)
+            gg_bc = 0
             angle1 = ielem_faceanglex(i, j)
             angle2 = ielem_faceangley(i, j)
             normal_all(1) = angle1
@@ -1839,9 +2102,12 @@ contains
             sols2(1:turbulenceequations + passivescalar) = u_ct_val(ielem_ineigh(i, j), 1, 1:turbulenceequations + passivescalar) &
                & / u_c_val(ielem_ineigh(i, j), 1, 1)
 
+            call gg_face_weight(i, j, gg_bc, gg_wn, gg_skew)
+            gg_phi(1:turbulenceequations + passivescalar) = (1.0e0 - gg_wn) * sols1(1:turbulenceequations + passivescalar) + &
+               & gg_wn * sols2(1:turbulenceequations + passivescalar)
             do k = 1, 2
                sols_f(1:turbulenceequations + passivescalar, k) = sols_f(1:turbulenceequations + passivescalar, &
-                  & k) + ((oo2 * (sols2(1:turbulenceequations + passivescalar) + sols1(1:turbulenceequations + passivescalar))) * &
+                  & k) + ((gg_phi(1:turbulenceequations + passivescalar)) * &
                   & normal_all(k) * ielem_surf(i, j) * oov2)
 
             end do
@@ -2037,6 +2303,11 @@ contains
 !$omp declare target
 #endif
       integer, intent(in) :: n, iconsidered, number_of_dog, number_of_nei
+      ! Green-Gauss face value (gg_face_weight): boundary flag, neighbour weight, skew offset, face value
+      integer :: gg_bc
+      real :: gg_wn
+      real, dimension(1:gpu_max_dim) :: gg_skew
+      real, dimension(1:gpu_max_nvar_total) :: gg_phi
       real, dimension(1:gpu_max_nvar) :: sols1, sols2, dudl, aver1, phi_f
       real, dimension(1:gpu_max_nvar, gpu_max_dim) :: sols_f
       real, dimension(3) :: normal_all, dih_vec, e_ih, sf
@@ -2058,6 +2329,7 @@ contains
          sols1(1:nof_variables - 1) = leftv(2:nof_variables)
 
          do j = 1, ielem_ifca(i)
+            gg_bc = 0
             angle1 = ielem_faceanglex(i, j)
             angle2 = ielem_faceangley(i, j)
             normal_all(1) = (cos(angle1) * sin(angle2))
@@ -2068,9 +2340,12 @@ contains
             call cons2div(n, leftv, mp_pinfl, gammal)
             sols2(1:nof_variables - 1) = leftv(2:nof_variables)
 
+            call gg_face_weight(i, j, gg_bc, gg_wn, gg_skew)
+            gg_phi(1:nof_variables - 1) = (1.0e0 - gg_wn) * sols1(1:nof_variables - 1) + &
+               & gg_wn * sols2(1:nof_variables - 1)
             do k = 1, dimensiona
                sols_f(1:nof_variables - 1, k) = sols_f(1:nof_variables - 1, k) + &
-                  & (oo2 * (sols2(1:nof_variables - 1) + sols1(1:nof_variables - 1)) * normal_all(k) * ielem_surf(i, j) * oov2)
+                  & (gg_phi(1:nof_variables - 1) * normal_all(k) * ielem_surf(i, j) * oov2)
             end do
          end do
 
@@ -2085,6 +2360,7 @@ contains
          sols1(1:nof_variables - 1) = leftv(2:nof_variables)
 
          do j = 1, ielem_ifca(i)
+            gg_bc = 0
             angle1 = ielem_faceanglex(i, j)
             angle2 = ielem_faceangley(i, j)
             normal_all(1) = angle1
@@ -2098,9 +2374,12 @@ contains
             call cons2div(n, leftv, mp_pinfl, gammal)
             sols2(1:nof_variables - 1) = leftv(2:nof_variables)
 
+            call gg_face_weight(i, j, gg_bc, gg_wn, gg_skew)
+            gg_phi(1:nof_variables - 1) = (1.0e0 - gg_wn) * sols1(1:nof_variables - 1) + &
+               & gg_wn * sols2(1:nof_variables - 1)
             do k = 1, 2
                sols_f(1:nof_variables - 1, k) = sols_f(1:nof_variables - 1, k) + &
-                  & (oo2 * (sols2(1:nof_variables - 1) + sols1(1:nof_variables - 1)) * normal_all(k) * ielem_surf(i, j) * oov2)
+                  & (gg_phi(1:nof_variables - 1) * normal_all(k) * ielem_surf(i, j) * oov2)
 
             end do
 
@@ -2410,6 +2689,11 @@ contains
 !$omp declare target
 #endif
       integer, intent(in) :: n, iconsidered, number_of_dog, number_of_nei
+      ! Green-Gauss face value (gg_face_weight): boundary flag, neighbour weight, skew offset, face value
+      integer :: gg_bc
+      real :: gg_wn
+      real, dimension(1:gpu_max_dim) :: gg_skew
+      real, dimension(1:gpu_max_nvar_total) :: gg_phi
       real, dimension(gpu_max_extra_transport) :: sols1, sols2
       real, dimension(gpu_max_extra_transport, 3) :: sols_f
       real, dimension(3) :: normal_all, temp_vert
@@ -2433,6 +2717,7 @@ contains
          sols1(1:turbulenceequations + passivescalar) = u_ct_val(i, 1, 1:turbulenceequations + passivescalar) / u_c_val(i, 1, 1)
 
          do j = 1, ielem_ifca(i)
+            gg_bc = 0
             facex = j
 
             angle1 = ielem_faceanglex(i, j)
@@ -2465,6 +2750,7 @@ contains
                      leftv(1:nof_variables) = u_c_val(i, 1, 1:nof_variables)
                      cturbl(1:turbulenceequations + passivescalar) = u_ct_val(i, 1, 1:turbulenceequations + passivescalar)
                      b_code = ibound_icode(ielem_ibounds(i, j))
+                     gg_bc = b_code
                      call boundarys(n, b_code, iconsidered, facex, leftv, rightv, pox, poy, poz, angle1, angle2, nx, ny, nz, &
                         & cturbl, cturbr, cright_rot, cleft_rot, srf_speed, srf_speedrot, ibfc)
 
@@ -2513,9 +2799,12 @@ contains
                end if
             end if
 
+            call gg_face_weight(i, j, gg_bc, gg_wn, gg_skew)
+            gg_phi(1:turbulenceequations + passivescalar) = (1.0e0 - gg_wn) * sols1(1:turbulenceequations + passivescalar) + &
+               & gg_wn * sols2(1:turbulenceequations + passivescalar)
             do k = 1, 3
                sols_f(1:turbulenceequations + passivescalar, k) = sols_f(1:turbulenceequations + passivescalar, &
-                  & k) + ((oo2 * (sols2(1:turbulenceequations + passivescalar) + sols1(1:turbulenceequations + passivescalar))) * &
+                  & k) + ((gg_phi(1:turbulenceequations + passivescalar)) * &
                   & normal_all(k) * ielem_surf(i, j) * oov2)
 
             end do
@@ -2535,6 +2824,7 @@ contains
          sols1(1:turbulenceequations + passivescalar) = u_ct_val(i, 1, 1:turbulenceequations + passivescalar) / u_c_val(i, 1, 1)
 
          do j = 1, ielem_ifca(i)
+            gg_bc = 0
             facex = j
 
             angle1 = ielem_faceanglex(i, j)
@@ -2560,6 +2850,7 @@ contains
 
                      cturbl(1:turbulenceequations + passivescalar) = u_ct_val(i, 1, 1:turbulenceequations + passivescalar)
                      b_code = ibound_icode(ielem_ibounds(i, j))
+                     gg_bc = b_code
                      call boundarys2d(n, b_code, iconsidered, facex, leftv, rightv, pox, poy, poz, angle1, angle2, nx, ny, nz, &
                         & cturbl, cturbr, cright_rot, cleft_rot, srf_speed, srf_speedrot, ibfc)
 
@@ -2608,9 +2899,12 @@ contains
                end if
             end if
 
+            call gg_face_weight(i, j, gg_bc, gg_wn, gg_skew)
+            gg_phi(1:turbulenceequations + passivescalar) = (1.0e0 - gg_wn) * sols1(1:turbulenceequations + passivescalar) + &
+               & gg_wn * sols2(1:turbulenceequations + passivescalar)
             do k = 1, 2
                sols_f(1:turbulenceequations + passivescalar, k) = sols_f(1:turbulenceequations + passivescalar, &
-                  & k) + ((oo2 * (sols2(1:turbulenceequations + passivescalar) + sols1(1:turbulenceequations + passivescalar))) * &
+                  & k) + ((gg_phi(1:turbulenceequations + passivescalar)) * &
                   & normal_all(k) * ielem_surf(i, j) * oov2)
 
             end do
@@ -2743,6 +3037,11 @@ contains
 !$omp declare target
 #endif
       integer, intent(in) :: n, iconsidered, number_of_dog, number_of_nei
+      ! Green-Gauss face value (gg_face_weight): boundary flag, neighbour weight, skew offset, face value
+      integer :: gg_bc
+      real :: gg_wn
+      real, dimension(1:gpu_max_dim) :: gg_skew
+      real, dimension(1:gpu_max_nvar_total) :: gg_phi
       real, dimension(1:gpu_max_nvar) :: sols1, sols2, dudl, aver1
       real, dimension(1:gpu_max_nvar, 3) :: sols_f
       real, dimension(3) :: normal_all, dih_vec, e_ih, sf
@@ -2774,6 +3073,7 @@ contains
          leftv(1:nof_variables) = u_c_val(i, 1, 1:nof_variables)
 
          do j = 1, ielem_ifca(i)
+            gg_bc = 0
             facex = j
             b_code = 0
 
@@ -2821,6 +3121,7 @@ contains
 
                      leftv(1:nof_variables) = u_c_val(i, 1, 1:nof_variables)
                      b_code = ibound_icode(ielem_ibounds(i, j))
+                     gg_bc = b_code
                      call boundarys(n, b_code, iconsidered, facex, leftv, rightv, pox, poy, poz, angle1, angle2, nx, ny, nz, &
                         & cturbl, cturbr, cright_rot, cleft_rot, srf_speed, srf_speedrot, ibfc)
 
@@ -2862,9 +3163,12 @@ contains
             end if
 
 !
+            call gg_face_weight(i, j, gg_bc, gg_wn, gg_skew)
+            gg_phi(1:nof_variables - 1) = (1.0e0 - gg_wn) * sols1(1:nof_variables - 1) + &
+               & gg_wn * sols2(1:nof_variables - 1)
             do k = 1, dimensiona
                sols_f(1:nof_variables - 1, k) = sols_f(1:nof_variables - 1, k) + &
-                  & (oo2 * (sols2(1:nof_variables - 1) + sols1(1:nof_variables - 1)) * normal_all(k) * ielem_surf(i, j) * oov2)
+                  & (gg_phi(1:nof_variables - 1) * normal_all(k) * ielem_surf(i, j) * oov2)
 
             end do
 
@@ -2902,6 +3206,7 @@ contains
 !           leftv(1:nof_variables)=u_c_val(i,1,1:nof_variables)
 
          do j = 1, ielem_ifca(i)
+            gg_bc = 0
 
             facex = j
 
@@ -2931,6 +3236,7 @@ contains
 
                      leftv(1:nof_variables) = u_c_val(i, 1, 1:nof_variables)
                      b_code = ibound_icode(ielem_ibounds(i, j))
+                     gg_bc = b_code
 
                      call boundarys2d(n, b_code, iconsidered, facex, leftv, rightv, pox, poy, poz, angle1, angle2, nx, ny, nz, &
                         & cturbl, cturbr, cright_rot, cleft_rot, srf_speed, srf_speedrot, ibfc)
@@ -2966,9 +3272,12 @@ contains
                sols2(temp_hi + 1:nof_variables - 1) = catalytic_con(1:nof_variables - temp_hi - 1)
             end if
 
+            call gg_face_weight(i, j, gg_bc, gg_wn, gg_skew)
+            gg_phi(1:nof_variables - 1) = (1.0e0 - gg_wn) * sols1(1:nof_variables - 1) + &
+               & gg_wn * sols2(1:nof_variables - 1)
             do k = 1, dimensiona
-               sols_f(1:nof_variables - 1, k) = sols_f(1:nof_variables - 1, k) + ((oo2 * (sols2(1:nof_variables - 1) + &
-                  & sols1(1:nof_variables - 1))) * normal_all(k) * ielem_surf(i, j) * oov2)
+               sols_f(1:nof_variables - 1, k) = sols_f(1:nof_variables - 1, k) + &
+                  & ((gg_phi(1:nof_variables - 1)) * normal_all(k) * ielem_surf(i, j) * oov2)
 
             end do
 
@@ -3030,6 +3339,11 @@ contains
 !$omp declare target
 #endif
       integer, intent(in) :: n, iconsidered, number_of_dog, number_of_nei
+      ! Green-Gauss face value (gg_face_weight): boundary flag, neighbour weight, skew offset, face value
+      integer :: gg_bc
+      real :: gg_wn
+      real, dimension(1:gpu_max_dim) :: gg_skew
+      real, dimension(1:gpu_max_nvar_total) :: gg_phi
       real, dimension(1:gpu_max_nvar) :: sols1, sols2
       real, dimension(1:gpu_max_nvar, 3) :: sols_f
       real, dimension(3) :: normal_all, temp_vert
@@ -3056,6 +3370,7 @@ contains
       leftv(1:nof_variables) = u_c_val(i, ind1, 1:nof_variables)
 
       do j = 1, ielem_ifca(i)
+         gg_bc = 0
          facex = j
          b_code = 0
 
@@ -3090,6 +3405,7 @@ contains
 
                   leftv(1:nof_variables) = u_c_val(i, ind1, 1:nof_variables)
                   b_code = ibound_icode(ielem_ibounds(i, j))
+                  gg_bc = b_code
                   call boundarys(n, b_code, iconsidered, facex, leftv, rightv, pox, poy, poz, angle1, angle2, nx, ny, nz, cturbl, &
                      & cturbr, cright_rot, cleft_rot, srf_speed, srf_speedrot, ibfc)
 
@@ -3120,9 +3436,12 @@ contains
             sols2(temp_hi + 1:nof_variables - 1) = catalytic_con(1:nof_variables - temp_hi - 1)
          end if
 
+         call gg_face_weight(i, j, gg_bc, gg_wn, gg_skew)
+         gg_phi(1:nof_variables - 1) = (1.0e0 - gg_wn) * sols1(1:nof_variables - 1) + &
+            & gg_wn * sols2(1:nof_variables - 1)
          do k = 1, 3
             sols_f(1:nof_variables - 1, k) = sols_f(1:nof_variables - 1, k) + &
-               & (oo2 * (sols2(1:nof_variables - 1) + sols1(1:nof_variables - 1)) * normal_all(k) * ielem_surf(i, j) * oov2)
+               & (gg_phi(1:nof_variables - 1) * normal_all(k) * ielem_surf(i, j) * oov2)
 
          end do
       end do
@@ -3141,6 +3460,11 @@ contains
 !$omp declare target
 #endif
       integer, intent(in) :: n, iconsidered, number_of_dog, number_of_nei
+      ! Green-Gauss face value (gg_face_weight): boundary flag, neighbour weight, skew offset, face value
+      integer :: gg_bc
+      real :: gg_wn
+      real, dimension(1:gpu_max_dim) :: gg_skew
+      real, dimension(1:gpu_max_nvar_total) :: gg_phi
       real, dimension(gpu_max_nvar) :: sols1, sols2, leftv
       real, dimension(gpu_max_nvar, 3) :: sols_f
       real, dimension(3) :: normal_all
@@ -3156,6 +3480,7 @@ contains
       sols1(1:nof_variables) = leftv(1:nof_variables)
 
       do j = 1, ielem_ifca(i)
+         gg_bc = 0
          angle1 = ielem_faceanglex(i, j)
          angle2 = ielem_faceangley(i, j)
          normal_all(1) = (cos(angle1) * sin(angle2))
@@ -3166,8 +3491,11 @@ contains
          call cons2div(n, leftv, mp_pinfl, gammal)
          sols2(1:nof_variables) = leftv(1:nof_variables)
 
+         call gg_face_weight(i, j, gg_bc, gg_wn, gg_skew)
+         gg_phi(1:nof_variables) = (1.0e0 - gg_wn) * sols1(1:nof_variables) + &
+            & gg_wn * sols2(1:nof_variables)
          do k = 1, 3
-            sols_f(1:nof_variables, k) = sols_f(1:nof_variables, k) + ((oo2 * (sols2(1:nof_variables) + sols1(1:nof_variables))) * &
+            sols_f(1:nof_variables, k) = sols_f(1:nof_variables, k) + ((gg_phi(1:nof_variables)) * &
                & normal_all(k) * ielem_surf(i, j) * oov2)
 
          end do

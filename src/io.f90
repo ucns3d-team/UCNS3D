@@ -3648,6 +3648,7 @@ contains
    end subroutine close_input
 
    subroutine read_input_mpi(rank, scale)
+      implicit none
       integer, intent(in) :: rank
       real, intent(in) :: scale
       integer :: i, j, k, nn, shape, faces, nodes(8), needed, id, remote, count_remote
@@ -3735,6 +3736,7 @@ contains
    end subroutine read_input_mpi
 
    subroutine read_input_period_mpi(scale)
+      implicit none
       real, intent(in) :: scale
       integer, allocatable :: ids(:)
       real, allocatable :: xyz(:, :)
@@ -11809,6 +11811,7 @@ contains
    end subroutine checkpointing_av
 
    subroutine writethem(n)
+      implicit none
       integer, intent(in) :: n
       integer :: i, l, ngp, k, kmaxe
       character(len=20) :: proc, outfile, proc3, surfile, proc4
@@ -11838,6 +11841,7 @@ contains
    end subroutine
 
    subroutine checkpoint3d_state(n, reading, averaged)
+      implicit none
       ! Preserve the legacy byte layout; pack bounded batches in global-ID order.
       integer, intent(in) :: n
       logical, intent(in) :: reading, averaged
@@ -11970,6 +11974,7 @@ contains
    end subroutine checkpoint3d_state
 
    subroutine checkpoint(n)
+      implicit none
       integer, intent(in) :: n
       call checkpoint3d_state(n, .false., .false.)
    end subroutine checkpoint
@@ -12140,6 +12145,8 @@ contains
       integer, intent(in) :: n
       integer :: i, j, k, temp_cord, kloop, varg_max, kmaxn_p
       integer, dimension(4) :: tempwnode
+      integer, allocatable, dimension(:) :: wnode_new, wnode_flag_g
+      integer :: kw, gid
       kmaxn_p = xmpiall_v(n)
       temp_cord = 3
 
@@ -12165,6 +12172,28 @@ contains
 
       end if
 
+      ! Compact wall-node numbering: only nodes used by wall faces are written,
+      ! renumbered 0..nwallnodes-1 consistently on all cpus.
+      allocate (wnode_new(1:imaxn), wnode_flag_g(1:imaxn))
+      wnode_new = 0
+      do i = 1, iloopx
+         do j = 1, typ_nodesn_w(i)
+            wnode_new(ielem_nodes_faces_v(wall_l(i, 2), j, wall_l(i, 1)) + 1) = 1
+         end do
+      end do
+      call mpi_allreduce(wnode_new, wnode_flag_g, imaxn, mpi_integer, mpi_max, mpi_comm_world, ierror)
+      kw = 0
+      do i = 1, imaxn
+         if (wnode_flag_g(i) .gt. 0) then
+            wnode_new(i) = kw
+            kw = kw + 1
+         else
+            wnode_new(i) = -1
+         end if
+      end do
+      nwallnodes = kw
+      deallocate (wnode_flag_g)
+
       if (iloopx .gt. 0) then
          allocate (wdispart2(1:iloopx), wiarray_part2(1:typ_countn_w)) !
          do i = 1, iloopx
@@ -12188,7 +12217,9 @@ contains
          k = 1
          do i = 1, iloopx
 
-            wiarray_part2(k:k + typ_nodesn_w(i) - 1) = ielem_nodes_faces_v(wall_l(i, 2), 1:typ_nodesn_w(i), wall_l(i, 1))
+            do j = 1, typ_nodesn_w(i)
+               wiarray_part2(k + j - 1) = wnode_new(ielem_nodes_faces_v(wall_l(i, 2), j, wall_l(i, 1)) + 1)
+            end do
             k = k + typ_nodesn_w(i)
          end do
 
@@ -12229,16 +12260,31 @@ contains
          wpart3_end = 0
       end if
 
-      allocate (wdispart4(1:kmaxn_p), wrarray_part4(1:kmaxn_p * temp_cord)) !
+      ! owned wall nodes of this cpu (node ownership is unique across cpus)
+      kmaxn_pw = 0
+      do i = 1, kmaxn_p
+         if (wnode_new(my_nodesg(i)) .ge. 0) kmaxn_pw = kmaxn_pw + 1
+      end do
+      if (allocated(wall_my_nodesl)) deallocate (wall_my_nodesl)
+      allocate (wall_my_nodesl(1:max(1, kmaxn_pw)), wdispart4(1:max(1, kmaxn_pw)), &
+         & wrarray_part4(1:max(1, kmaxn_pw) * temp_cord))
+      wall_my_nodesl = 0; wdispart4 = 0; wrarray_part4 = 0.0
       wpart4_end = temp_cord
 
+      kw = 0
       do i = 1, kmaxn_p
-         wdispart4(i) = (my_nodesg(i) - 1) * (temp_cord)
+         gid = my_nodesg(i)
+         if (wnode_new(gid) .ge. 0) then
+            kw = kw + 1
+            wall_my_nodesl(kw) = my_nodesl(i)
+            wdispart4(kw) = wnode_new(gid) * (temp_cord)
+         end if
       end do
+      deallocate (wnode_new)
 
       k = 1
-      do i = 1, kmaxn_p
-         wrarray_part4(k:k + dims - 1) = inoder4_cord(1:dims, my_nodesl(i))
+      do i = 1, kmaxn_pw
+         wrarray_part4(k:k + dims - 1) = inoder4_cord(1:dims, wall_my_nodesl(i))
          if (dimensiona .eq. 2) then
             wrarray_part4(k + temp_cord - 1:k + temp_cord - 1) = 0.00
          end if
@@ -12269,7 +12315,7 @@ contains
 !
 !
 !                                 !point coordinates
-      call mpi_type_create_indexed_block(kmaxn_p, wpart4_end, wdispart4, mpi_double_precision, wdatatypez, ierror)
+      call mpi_type_create_indexed_block(kmaxn_pw, wpart4_end, wdispart4, mpi_double_precision, wdatatypez, ierror)
       call mpi_type_commit(wdatatypez, ierror)
 !
 !                                 !connectivity
@@ -13950,7 +13996,7 @@ contains
       tmp = 0
       disp_init = 0
       kmaxe = xmpielrank(n)
-      kmaxn_p = xmpiall_v(n)
+      kmaxn_p = kmaxn_pw !owned wall nodes only
       if (dimensiona .eq. 3) then
          temp_node = 3; temp_dims = 3
       else
@@ -13969,7 +14015,7 @@ contains
 
          k = 1
          do i = 1, kmaxn_p
-            wrarray_part4(k:k + dims - 1) = inoder4_cord(1:dims, my_nodesl(i))
+            wrarray_part4(k:k + dims - 1) = inoder4_cord(1:dims, wall_my_nodesl(i))
             if (dimensiona .eq. 2) then
                wrarray_part4(k + temp_cord - 1:k + temp_cord - 1) = 0.00
             end if
@@ -14070,7 +14116,7 @@ contains
       end if
 
       temp_imaxe = iwmaxe !total number of wall elements in the domain
-      temp_imaxn = imaxn !imaxn        !we need the total number of nodes in the domain
+      temp_imaxn = nwallnodes !compact wall nodes only
 
       call mpi_barrier(mpi_comm_world, ierror)
 
@@ -14325,7 +14371,7 @@ contains
       tmp = 0
       disp_init = 0
       kmaxe = xmpielrank(n)
-      kmaxn_p = xmpiall_v(n)
+      kmaxn_p = kmaxn_pw !owned wall nodes only
 
       temp_cord = 3
       if (dimensiona .eq. 3) then
@@ -14344,7 +14390,7 @@ contains
 
          k = 1
          do i = 1, kmaxn_p
-            wrarray_part4(k:k + dims - 1) = inoder4_cord(1:dims, my_nodesl(i))
+            wrarray_part4(k:k + dims - 1) = inoder4_cord(1:dims, wall_my_nodesl(i))
             if (dimensiona .eq. 2) then
                wrarray_part4(k + temp_cord - 1:k + temp_cord - 1) = 0.00
             end if
@@ -14433,7 +14479,7 @@ contains
       end if
 
       temp_imaxe = iwmaxe !total number of wall elements in the domain
-      temp_imaxn = imaxn !imaxn        !we need the total number of nodes in the domain
+      temp_imaxn = nwallnodes !compact wall nodes only
 
       call mpi_barrier(mpi_comm_world, ierror)
 
@@ -14936,6 +14982,7 @@ contains
    end subroutine checkpoint2d
 
    subroutine checkpointav(n)
+      implicit none
       integer, intent(in) :: n
       call checkpoint3d_state(n, .false., .true.)
    end subroutine checkpointav
@@ -15533,6 +15580,8 @@ contains
                                     rightv(1:nof_variables) = rec_uleft(i, :, j, im)
                                  end if
                                  call get_visc_conduct(n, leftv, rightv, viscl, laml)
+                                 if (laminar_isothermal_wall()) &
+                                    & call sst_wall_transport(n, u_c_val(i,1,1:nof_variables), viscl(1), laml(1))
 
 
                                  tauxx = (4.00 / 3.00) * ux - (2.00 / 3.00) * vy - (2.00 / 3.00) * wz
@@ -15654,11 +15703,11 @@ contains
       integer,intent(in) :: n
       integer :: i,f,j,bc,ierr,unit
       real :: axial_sum,heat_sum,area_sum,totals(3),global_totals(3),cd,area,weight
-      real :: q(gpu_max_nvar),prim(gpu_max_nvar),mu,ktr,kve,gm,pinf
-      real :: g(gpu_max_nvar,2),txx,txr,trr,ttt,nx,ny,qheat
+      real :: mu,ktr,kve,gm,pinf
+      real :: txx,txr,trr,ttt,nx,ny,qheat
       axial_sum=0.0; heat_sum=0.0; area_sum=0.0
 #ifdef xpu
-!$omp target teams distribute parallel do private(f,j,bc,q,prim,mu,ktr,kve,gm,pinf,g,txx,txr,trr,ttt,nx,ny,qheat,area,weight) &
+!$omp target teams distribute parallel do private(f,j,bc,mu,ktr,kve,gm,pinf,txx,txr,trr,ttt,nx,ny,qheat,area,weight) &
 !$omp& firstprivate(n) reduction(+:axial_sum,heat_sum,area_sum) &
 !$omp& map(tofrom: axial_sum,heat_sum,area_sum) &
 !$omp& map(alloc: axis_face_radius,ielem_ibounds,ibound_icode,ielem_ifca,ielem_surf,ielem_faceanglex,ielem_faceangley, &
@@ -15666,9 +15715,13 @@ contains
 !$omp& map(alloc: u_c_val)
 #else
 !$omp do reduction(+:forcex,axis_heat_load,axis_wall_area) &
-!$omp& private(i,f,j,bc,q,prim,mu,ktr,kve,gm,pinf,g,txx,txr,trr,ttt,nx,ny,qheat,area,weight)
+!$omp& private(i,f,j,bc,mu,ktr,kve,gm,pinf,txx,txr,trr,ttt,nx,ny,qheat,area,weight)
 #endif
       do i=1,xmpielrank(n)
+         block
+            real, dimension(1:gpu_max_nvar) :: q, prim
+            real, dimension(1:gpu_max_nvar, 1:2) :: g
+
          do f=1,ielem_ifca(i)
             bc=0
             if(ielem_ibounds(i,f)>0) bc=ibound_icode(ielem_ibounds(i,f))
@@ -15685,7 +15738,7 @@ contains
                      g(bc,:)=rec_uleftv(i,1:2,bc,f,j)
                   end do
                   call molecular_transport(n,q(1:nof_variables),mu,ktr)
-                  if(realgas==0.and.turbulence==1.and.turbulencemodel==2) &
+                  if(realgas==0.and.((turbulence==1.and.turbulencemodel==2).or.laminar_isothermal_wall())) &
                      call sst_wall_transport(n,u_c_val(i,1,1:nof_variables),mu,ktr)
                   ! A resolved stationary no-slip wall has zero v and eddy viscosity.
                   call axis_stress(mu,g(1,1),g(1,2),g(2,1),g(2,2),0.0,txx,txr,trr,ttt)
@@ -15707,6 +15760,7 @@ contains
 #endif
             end do
          end do
+         end block
       end do
 #ifdef xpu
 !$omp end target teams distribute parallel do
@@ -15833,6 +15887,8 @@ contains
                               leftv(1:nof_variables) = rec_uleft(i, :, j, im)
                               rightv(1:nof_variables) = rec_uleft(i, :, j, im)
                               call get_visc_conduct(n, leftv, rightv, viscl, laml)
+                              if (laminar_isothermal_wall()) &
+                                 & call sst_wall_transport(n, u_c_val(i,1,1:nof_variables), viscl(1), laml(1))
 
 
                               tauxx = 2.00 * ux
@@ -19433,6 +19489,10 @@ contains
          end if
          if (allocated(rec_uleftturb)) then
 !$omp target update from(rec_uleftturb)
+         end if
+         ! Face gradients (incl. temperature) used by heat_x/heat_x2d for q_heat.
+         if (allocated(rec_uleftv)) then
+!$omp target update from(rec_uleftv)
          end if
       end if
 

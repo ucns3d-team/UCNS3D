@@ -152,6 +152,37 @@ contains
 #endif
    end subroutine average_stresses
 
+   subroutine store_element_vertices(i, nnd, vext)
+!> @brief
+!> Add the nodes of one face (already in the transformed reconstruction coordinates of cell i) to the list of
+!> distinct vertices of that cell, rec_vpoints. Nodes shared between faces are stored once.
+      implicit none
+      integer, intent(in) :: i, nnd
+      real, dimension(1:8, 1:dimensiona), intent(in) :: vext
+      integer :: k, m, nv
+      real :: tol2, d2
+      logical :: found
+      ! tolerance from the size of this face in the transformed space
+      tol2 = zero
+      do k = 2, nnd
+         tol2 = max(tol2, sum((vext(k, 1:dimensiona) - vext(1, 1:dimensiona))**2))
+      end do
+      tol2 = 1.0e-16 * tol2
+      nv = rec_nvpoints(i)
+      do k = 1, nnd
+         found = .false.
+         do m = 1, nv
+            d2 = sum((rec_vpoints(i, m, 1:dimensiona) - vext(k, 1:dimensiona))**2)
+            if (d2 .le. tol2) found = .true.
+         end do
+         if ((.not. found) .and. (nv .lt. size(rec_vpoints, 2))) then
+            nv = nv + 1
+            rec_vpoints(i, nv, 1:dimensiona) = vext(k, 1:dimensiona)
+         end if
+      end do
+      rec_nvpoints(i) = nv
+   end subroutine store_element_vertices
+
    subroutine memory_fast(n)
       !> @brief
       !> subroutine for storing the gaussian quadrature points at the cell interfaces
@@ -171,6 +202,11 @@ contains
       kmaxe = xmpielrank(n)
 
       allocate (rec_qpoints(1:kmaxe, max_faces, numberofpoints2, 1:dimensiona)); rec_qpoints = zero
+      if (limiter_points .eq. 1) then
+         ! distinct vertices of each element in the same transformed coordinates as rec_qpoints
+         allocate (rec_vpoints(1:kmaxe, 1:8, 1:dimensiona)); rec_vpoints = zero
+         allocate (rec_nvpoints(1:kmaxe)); rec_nvpoints = 0
+      end if
 
 !   if (initcond.gt.100000)allocate(rec_qpoints_p(1:kmaxe,max_faces,numberofpoints2,1:dimensiona)); rec_qpoints = zero
 
@@ -385,6 +421,8 @@ contains
                   end if
                end if
 
+               ! vext holds the nodes of this face in the transformed coordinates (periodic shift included)
+               if (limiter_points .eq. 1) call store_element_vertices(i, nnd, vext)
                do ngp = 1, iqp
                   rec_qpoints(i, l, ngp, 1:3) = qpoints2d(1:3, ngp)
                end do
@@ -473,6 +511,7 @@ contains
 
                end if
 
+               if (limiter_points .eq. 1) call store_element_vertices(i, nnd, vext)
                do ngp = 1, iqp
                   rec_qpoints(i, l, ngp, 1:2) = qpoints2d(1:2, ngp)
                end do
@@ -3068,7 +3107,7 @@ contains
       integer :: nvtot
       real, intent(in) :: utmin(1:nof_variables + turbulenceequations + passivescalar), &
          & utmax(1:nof_variables + turbulenceequations + passivescalar)
-      integer :: i, l, ngp, iex, iqp, k, ideg
+      integer :: i, l, ngp, iex, iqp, k, ideg, nvp
       real :: ax, ay, az, mp_pinfl, gammal, phik, slope_vector
       real, dimension(1:gpu_max_nvar) :: leftv
       real :: slope(1:gpu_max_nvar_total)
@@ -3103,7 +3142,47 @@ contains
 
       slope(1:nvtot) = tolbig
 
-      ! Accumulate the smallest slope at each quadrature point.
+      nvp = 0
+      if (limiter_points .eq. 1) nvp = rec_nvpoints(i)
+
+      ! limiter_points = 1: accumulate the smallest slope over the element vertices. The vertices are
+      ! stored in the same transformed coordinates as the quadrature points, so the basis is used as is.
+      do l = 1, nvp
+         ax = rec_vpoints(i, l, 1)
+         ay = rec_vpoints(i, l, 2)
+         if (dimensiona .eq. 3) az = rec_vpoints(i, l, 3)
+
+         du(1:nvtot) = zero
+         do k = 1, ideg
+            if (dimensiona .eq. 3) then
+               phik = basis_rec_value(n, ax, ay, az, ielem_iorder(i), i, ideg, 0, k)
+            else
+               phik = basis_rec2d_value(n, ax, ay, ielem_iorder(i), i, ideg, 0, k)
+            end if
+            du(1:nof_variables) = du(1:nof_variables) + phik * rec_gradients(i, 1, k, 1:nof_variables)
+            if (nvtot .gt. nof_variables) then
+               du(nof_variables + 1:nvtot) = du(nof_variables + 1:nvtot) + &
+                  & phik * rec_gradients2(i, 1, k, 1:nvtot - nof_variables)
+            end if
+         end do
+
+         if (wenwrt .eq. 3) then
+            leftv(1:nof_variables) = u_c_val(i, 1, 1:nof_variables)
+            call cons2prim(n, leftv, mp_pinfl, gammal)
+            usol1(1:nof_variables) = leftv(1:nof_variables) + du(1:nof_variables)
+         else
+            usol1(1:nof_variables) = u_c_val(i, 1, 1:nof_variables) + du(1:nof_variables)
+         end if
+         if (nvtot .gt. nof_variables) then
+            usol1(nof_variables + 1:nvtot) = u_ct_val(i, 1, 1:nvtot - nof_variables) + &
+               & du(nof_variables + 1:nvtot)
+         end if
+         call slope_limiters(n, i, utmin, utmax, usol1, psi1)
+         slope(1:nvtot) = min(slope(1:nvtot), psi1(1:nvtot))
+      end do
+
+      ! Otherwise (legacy) accumulate the smallest slope at each face quadrature point.
+      if (nvp .eq. 0) then
       do l = 1, ielem_ifca(i)
 
          if (dimensiona .eq. 3) then
@@ -3153,6 +3232,7 @@ contains
 
          end do
       end do
+      end if
 
       if (limiter .eq. 11) then
          slope_vector = 1.00
@@ -3230,6 +3310,7 @@ contains
 !$omp& map(alloc: ielem_types_faces, ielem_wcx, integ_basis_dg_value, integ_basis_value, integ_basis_valuec, mp_janaf) &
 !$omp& map(alloc: mp_m, mp_pinf, mp_thigh_in, mp_tlow_in, mp_tmid_in, qp_array_qp_weight, qp_array_x, qp_array_y) &
 !$omp& map(alloc: qp_array_z, rec_gradients, rec_gradients2, rec_ihexb, rec_ihexl, rec_ihexn, rec_local, rec_qpoints) &
+!$omp& map(alloc: rec_vpoints, rec_nvpoints) &
 !$omp& map(alloc: rec_uleft, rec_uleftturb, rec_volume, rg_hzero, rg_molm, solhir, u_c_val, u_ct_val)
 #else
 !$omp do &
@@ -3283,6 +3364,7 @@ contains
 !$omp& map(alloc: ielem_types_faces, ielem_wcx, integ_basis_dg_value, integ_basis_value, integ_basis_valuec, mp_janaf) &
 !$omp& map(alloc: mp_m, mp_pinf, mp_thigh_in, mp_tlow_in, mp_tmid_in, qp_array_qp_weight, qp_array_x, qp_array_y) &
 !$omp& map(alloc: qp_array_z, rec_gradients, rec_gradients2, rec_ihexb, rec_ihexl, rec_ihexn, rec_local, rec_qpoints) &
+!$omp& map(alloc: rec_vpoints, rec_nvpoints) &
 !$omp& map(alloc: rec_uleft, rec_uleftturb, rec_volume, rg_hzero, rg_molm, solhir, u_c_val, u_ct_val)
 #else
 !$omp do &
@@ -5024,11 +5106,17 @@ contains
                if (allocated(rec_volume_w)) call compute_gradients_wall_mean_lsq_viscous_acc(n)
             end if
             ! Each kernel selects ielem_ggs: greengo=0 can contain GG fallback cells.
-            call compute_gradients_inner_mean_ggs_viscous_acc(n)
-            call compute_gradients_mix_mean_ggs_viscous_acc(n)
+            ! Green-Gauss stage 1: face values from gg_face_weight (arithmetic mean when gg_correction = 0)
+            call compute_gradients_inner_mean_ggs_viscous_acc(n, 1)
+            call compute_gradients_mix_mean_ggs_viscous_acc(n, 1)
             if (extras) then
-               call compute_gradients_inner_turb_ggs_viscous_acc(n)
-               call compute_gradients_mix_turb_ggs_viscous_acc(n)
+               call compute_gradients_inner_turb_ggs_viscous_acc(n, 1)
+               call compute_gradients_mix_turb_ggs_viscous_acc(n, 1)
+            end if
+            ! non-orthogonal correction passes (gg_correction >= 2), before the least-squares cells
+            ! overwrite their turbulence coefficients
+            call compute_gradients_ggs_correction_acc(n, .true., .true., extras)
+            if (extras) then
                if (greengo == 0) then
                   call compute_gradients_turb_lsq_viscous_acc(n)
                   if (allocated(rec_volume_w)) call compute_gradients_wall_turb_lsq_viscous_acc(n)
@@ -5039,6 +5127,11 @@ contains
          return
       end if
       call least_squares(n)
+      ! The per-cell Green-Gauss routines called above (allgrads_*) already use the gg_face_weight face
+      ! values; the non-orthogonal correction passes use the shared stage-2 kernels on the same cells
+      ! (bounded cells only when fastest /= 1 and turbulence only when it is active, as in allgrads_*).
+      if ((itestcase .eq. 4) .and. (dg .eq. 0)) &
+         & call compute_gradients_ggs_correction_acc(n, .true., fastest .ne. 1, turbulence .eq. 1)
 
       select case (iweno)
 
@@ -5300,6 +5393,99 @@ contains
       end if
    end function realgas_reconstruction_jump_rejected
 
+   logical function checksol_neighbour_rejected(n, iconsidered) result(rejected)
+      implicit none
+!> @brief
+!> ideal-gas check used by checksol/checksolx when checksol_extra >= 2: true when the cell mean density,
+!> pressure or temperature (p/rho) differs from that of any face neighbour by a factor larger than
+!> checksol_ratio. neighbours are reached as in find_bounds (same cpu, periodic, mpi halo); physical
+!> boundary faces have no neighbour and are skipped.
+#ifdef xpu
+!$omp declare target
+#endif
+      integer, intent(in) :: n, iconsidered
+      integer :: i, l, iex, nf, lf, rowf, src
+      real :: rho0, p0, t0, rho1, p1, t1, ke
+      real, dimension(1:gpu_max_nvar) :: uvec
+
+      i = iconsidered
+      rejected = .false.
+
+      rho0 = u_c_val(i, 1, 1)
+      ke = 0.0
+      do iex = 2, dimensiona + 1
+         ke = ke + u_c_val(i, 1, iex)**2
+      end do
+      if (rho0 .le. 0.0) then
+         rejected = .true.
+         return
+      end if
+      p0 = (gamma - 1.0) * (u_c_val(i, 1, dimensiona + 2) - 0.5 * ke / rho0)
+      if (p0 .le. 0.0) then
+         rejected = .true.
+         return
+      end if
+      t0 = p0 / rho0
+
+      do l = 1, ielem_ifca(i)
+         ! src: 0 no neighbour (physical boundary), 1 neighbour on this cpu, 2 neighbour in the halo
+         src = 0
+         if (ielem_interior(i) .eq. 0) then
+            src = 1
+         else if (ielem_ineighb(i, l) .eq. n) then
+            if (ielem_ibounds(i, l) .gt. 0) then
+               if (ibound_icode(ielem_ibounds(i, l)) .eq. 5) src = 1
+            else
+               src = 1
+            end if
+         else
+            if (ielem_ibounds(i, l) .gt. 0) then
+               if (ibound_icode(ielem_ibounds(i, l)) .eq. 5) src = 2
+            else
+               src = 2
+            end if
+         end if
+         if (src .eq. 0) cycle
+
+         if (src .eq. 1) then
+            do iex = 1, dimensiona + 2
+               uvec(iex) = u_c_val(ielem_ineigh(i, l), 1, iex)
+            end do
+         else
+            nf = rec_ihexn(rec_local(i), 1, ielem_indexi(i, l))
+            lf = rec_ihexl(i, 1, ielem_indexi(i, l))
+            rowf = halo_offset(nf) + lf - 1
+            do iex = 1, dimensiona + 2
+               uvec(iex) = solhir(rowf, iex)
+            end do
+         end if
+
+         rho1 = uvec(1)
+         if (rho1 .le. 0.0) then
+            rejected = .true.
+            return
+         end if
+         ke = 0.0
+         do iex = 2, dimensiona + 1
+            ke = ke + uvec(iex)**2
+         end do
+         p1 = (gamma - 1.0) * (uvec(dimensiona + 2) - 0.5 * ke / rho1)
+         if (p1 .le. 0.0) then
+            rejected = .true.
+            return
+         end if
+         t1 = p1 / rho1
+
+         if ((max(rho0, rho1) .gt. checksol_ratio * min(rho0, rho1)) .or. &
+            & (max(p0, p1) .gt. checksol_ratio * min(p0, p1)) .or. &
+            & (max(t0, t1) .gt. checksol_ratio * min(t0, t1))) then
+            rejected = .true.
+            return
+         end if
+      end do
+
+   end function checksol_neighbour_rejected
+
    subroutine checksol(n)
       implicit none
 !> @brief
@@ -5317,7 +5503,10 @@ contains
 #ifdef xpu
 !$omp target teams distribute parallel do private(l, ngp, iqp, iex, reduce1, jump, rhol, rscale, templ, mp_pinfl, &
 !$omp& mp_pinfr, gammal, gammar, sumx, temp_scale, jump_cond) firstprivate(kmaxe, n, dimensiona, nof_variables, qp_line, &
-!$omp& qp_quad, qp_triangle, realgas) map(alloc: ielem_full, ielem_hybrid, ielem_ifca, ielem_reduce, ielem_troubled, &
+!$omp& qp_quad, qp_triangle, realgas) &
+!$omp& map(alloc: halo_offset, ibound_icode, ielem_ibounds, ielem_indexi, ielem_ineigh, ielem_ineighb, ielem_interior) &
+!$omp& map(alloc: rec_ihexl, rec_ihexn, rec_local, solhir) &
+!$omp& map(alloc: ielem_full, ielem_hybrid, ielem_ifca, ielem_reduce, ielem_troubled, &
 !$omp& ielem_types_faces) map(alloc: rec_uleft, u_c_val) private(i) map(alloc: gamma_in, mp_janaf, mp_m, mp_pinf, &
 !$omp& mp_thigh_in, mp_tlow_in, mp_tmid_in, rg_hzero, rg_molm)
 #else
@@ -5396,6 +5585,15 @@ contains
                                  end if
 
                               end do
+                              ! temperature jump (p/rho; the gas constant cancels), checksol_extra >= 1
+                              if ((checksol_extra .ge. 1) .and. (multispecies .eq. 0)) then
+                                 templ = leftv(dimensiona + 2) / leftv(1)
+                                 temp_scale = rightv(dimensiona + 2) / rightv(1)
+                                 if (abs(templ - temp_scale) .ge. (jump_cond * temp_scale)) then
+                                    reduce1 = 1
+                                    ielem_reduce(i) = 1
+                                 end if
+                              end if
                            end if
                            if (realgas .eq. 1) then
                               do iex = 1, nof_variables
@@ -5410,6 +5608,14 @@ contains
 
                         end do
                      end do
+
+                     ! density, pressure and temperature ratios against the face neighbours, checksol_extra >= 2
+                     if ((checksol_extra .ge. 2) .and. (realgas .eq. 0) .and. (multispecies .eq. 0)) then
+                        if (checksol_neighbour_rejected(n, i)) then
+                           reduce1 = 1
+                           ielem_reduce(i) = 1
+                        end if
+                     end if
 
                      if (ielem_hybrid(i) .eq. 1) then
                         reduce1 = 1
@@ -5440,7 +5646,7 @@ contains
       integer, intent(in) :: n
       integer :: i, l, ngp, iqp, iex, k
       integer :: reduce1, kmaxe
-      real :: jump_cond, jump, rhol, rscale
+      real :: jump_cond, jump, rhol, rscale, templ
       real :: mp_pinfl, gammal, sumx
       real :: mp_pinfr, gammar, temp_scale
 
@@ -5451,16 +5657,19 @@ contains
 #ifdef xpu
 !$omp target teams distribute parallel do &
 !$omp& private(l, ngp, iqp, iex, k, reduce1, jump, rhol, rscale, mp_pinfl, mp_pinfr, gammal, gammar, sumx, temp_scale, jump_cond) &
+!$omp& private(templ) &
 !$omp& firstprivate(kmaxe, n, dg, dimensiona, icoupleturb, nof_variables, qp_line, qp_quad, qp_triangle, realgas) &
 !$omp& firstprivate(turbulence, turbulencemodel, turbulenceequations, zero) &
 !$omp& map(alloc: dg2fv, ielem_hybrid, ielem_idegfree, ielem_ifca, ielem_reduce, ielem_troubled) &
+!$omp& map(alloc: halo_offset, ibound_icode, ielem_ibounds, ielem_indexi, ielem_ineigh, ielem_ineighb, ielem_interior) &
+!$omp& map(alloc: rec_ihexl, rec_ihexn, rec_local, solhir) &
 !$omp& map(alloc: ielem_types_faces, rec_uleft, rec_uleftturb, u_c_val, u_ct_val) &
 !$omp& private(i) &
 !$omp& map(alloc: gamma_in, mp_janaf, mp_m, mp_pinf, mp_thigh_in, mp_tlow_in, mp_tmid_in, rg_hzero, rg_molm)
 #else
 !$omp do &
 !$omp& private(gammal, gammar, i, iex, iqp, jump, jump_cond, k, l, mp_pinfl, mp_pinfr) &
-!$omp& private(ngp, reduce1, rhol, rscale, sumx, temp_scale)
+!$omp& private(ngp, reduce1, rhol, rscale, sumx, temp_scale, templ)
 #endif
          do i = 1, kmaxe
             block
@@ -5530,6 +5739,15 @@ contains
                               end if
 
                            end do
+                           ! temperature jump (p/rho; the gas constant cancels), checksol_extra >= 1
+                           if ((checksol_extra .ge. 1) .and. (multispecies .eq. 0)) then
+                              templ = leftv(dimensiona + 2) / leftv(1)
+                              temp_scale = rightv(dimensiona + 2) / rightv(1)
+                              if (abs(templ - temp_scale) .ge. (jump_cond * temp_scale)) then
+                                 reduce1 = 1
+                                 ielem_reduce(i) = 3
+                              end if
+                           end if
                         end if
                         if (realgas .eq. 1) then
                            do iex = 1, nof_variables
@@ -5544,6 +5762,14 @@ contains
 
                      end do
                   end do
+
+                  ! density, pressure and temperature ratios against the face neighbours, checksol_extra >= 2
+                  if ((checksol_extra .ge. 2) .and. (realgas .eq. 0) .and. (multispecies .eq. 0)) then
+                     if (checksol_neighbour_rejected(n, i)) then
+                        reduce1 = 1
+                        ielem_reduce(i) = 4
+                     end if
+                  end if
 
                   if (ielem_hybrid(i) .eq. 1) then
                      reduce1 = 1
@@ -5683,10 +5909,10 @@ contains
       i = iconsidered
       nvtot = nof_variables + turbulenceequations + passivescalar
 
-      kappa_ven = 0.1
+      kappa_ven = 1.0
       ! Increase smooth-region regularisation for plain Venkatakrishnan only.
       ! Other limiter/blending options retain their existing coefficient.
-      if (limiter .eq. 7) kappa_ven = 1.0
+     ! if (limiter .eq. 7) kappa_ven = 1.0
 
       if (wenwrt .eq. 3) then
          u0_state(1:nof_variables) = u_c_val(i, 1, 1:nof_variables)

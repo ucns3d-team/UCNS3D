@@ -23,12 +23,12 @@ $(OBJECTS): %.o: %.f90
 # Dependencies from the USE statements in each source file.
 basis.o: declarations.o grid_p.o
 bc_p.o: mesh_local_nodes.o mesh_mpi_io.o declarations.o grid_p.o grid_t.o
-communications.o: mesh_local_cells.o declarations.o grid_t.o mpi_p.o
+communications.o: mesh_local_cells.o declarations.o grid_t.o mpi_p.o flow_operations.o
 der_r.o: declarations.o mpi_p.o
 dg_functions.o: mesh_local_nodes.o basis.o declarations.o der_r.o flow_operations.o grid_t.o matrix.o
 axisymmetric.o: declarations.o mesh_local_nodes.o grid_t.o
 flow_operations.o: declarations.o axisymmetric.o grid_t.o mpi_p.o
-flux_p.o: basis.o declarations.o dg_functions.o flow_operations.o grid_p.o grid_t.o local_pt.o \
+flux_p.o: basis.o communications.o declarations.o dg_functions.o flow_operations.o grid_p.o grid_t.o local_pt.o \
     riemann.o
 gradients.o: declarations.o flow_operations.o grid_p.o grid_t.o
 grid_p.o: mesh_local_cells.o mesh_local_nodes.o mesh_mpi_io.o declarations.o grid_t.o io.o mpi_p.o

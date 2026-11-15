@@ -1085,6 +1085,7 @@ contains
    subroutine calculate_interior_viscous(n, b_code, iconsidered, facex, pointx, leftv, rightv, pox, poy, poz, angle1, angle2, nx, &
       & ny, &
       & nz, cturbl, cturbr, cright_rot, cleft_rot, srf_speedrot, cleft, cright, lcvgrad, rcvgrad, lcvgrad_t, rcvgrad_t)
+      implicit none
 #ifdef xpu
 !$omp declare target
 #endif
@@ -1119,6 +1120,7 @@ contains
    subroutine calculate_bounded_viscous(n, b_code, iconsidered, facex, pointx, leftv, rightv, pox, poy, poz, angle1, angle2, nx, &
       & ny, &
       & nz, cturbl, cturbr, cright_rot, cleft_rot, srf_speedrot, cleft, cright, lcvgrad, rcvgrad, lcvgrad_t, rcvgrad_t)
+      implicit none
 #ifdef xpu
 !$omp declare target
 #endif
@@ -1622,6 +1624,7 @@ contains
    subroutine calculate_bounded_viscous2d(n, b_code, iconsidered, facex, pointx, leftv, rightv, pox, poy, poz, angle1, angle2, nx, &
       & ny, &
       & nz, cturbl, cturbr, cright_rot, cleft_rot, srf_speedrot, cleft, cright, lcvgrad, rcvgrad, lcvgrad_t, rcvgrad_t)
+      implicit none
 #ifdef xpu
 !$omp declare target
 #endif

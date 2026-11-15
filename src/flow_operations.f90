@@ -9,6 +9,7 @@ module flow_operations
 contains
 
    subroutine sst_blending(rho, mu, kin, omega, distance, cross, f1, f2)
+      implicit none
 #ifdef xpu
 !$omp declare target
 #endif
@@ -28,6 +29,7 @@ contains
    end subroutine sst_blending
 
    real function sst_neighbour_wall(n, i, face) result(distance)
+      implicit none
 #ifdef xpu
 !$omp declare target
 #endif
@@ -48,6 +50,7 @@ contains
    end function sst_neighbour_wall
 
    subroutine sst_inflow_transport(n, q, transport, reference_speed)
+      implicit none
 #ifdef xpu
 !$omp declare target
 #endif
@@ -70,6 +73,7 @@ contains
    end subroutine sst_inflow_transport
 
    subroutine sst_wall_transport(n, q, mu, conductivity)
+      implicit none
 #ifdef xpu
 !$omp declare target
 #endif
@@ -93,7 +97,19 @@ contains
       call molecular_transport(n, qw, mu, conductivity)
    end subroutine sst_wall_transport
 
+   logical function laminar_isothermal_wall() result(active)
+      implicit none
+#ifdef xpu
+!$omp declare target
+#endif
+      ! Laminar perfect-gas isothermal wall: mu and k at a no-slip wall face are
+      ! evaluated at the wall temperature (via sst_wall_transport), not at the
+      ! extrapolated interior face temperature, matching the SST wall treatment.
+      active = (turbulence /= 1) .and. (thermal == 1) .and. (realgas == 0) .and. (multispecies == 0)
+   end function laminar_isothermal_wall
+
    real function sst_wall_omega(n, q, distance) result(omega_wall)
+      implicit none
 #ifdef xpu
 !$omp declare target
 #endif
@@ -105,6 +121,7 @@ contains
    end function sst_wall_omega
 
    subroutine sst_diffusion_flux(nd, el, er, gl, gr, normal, flux)
+      implicit none
 #ifdef xpu
 !$omp declare target
 #endif
@@ -2741,6 +2758,8 @@ contains
       rightv(1:nof_variables) = u_c_val(iconsidered, 1, 1:nof_variables)
 
       call get_visc_conduct(n, leftv, rightv, viscl, laml)
+      if (laminar_isothermal_wall()) &
+         & call sst_wall_transport(n, u_c_val(iconsidered,1,1:nof_variables), viscl(1), laml(1))
 
       ssx = zero; ssp = zero; ssy = zero; ssz = zero
 
@@ -2797,6 +2816,8 @@ contains
       rightv(1:nof_variables) = u_c_val(iconsidered, 1, 1:nof_variables)
 
       call get_visc_conduct(n, leftv, rightv, viscl, laml)
+      if (laminar_isothermal_wall()) &
+         & call sst_wall_transport(n, u_c_val(iconsidered,1,1:nof_variables), viscl(1), laml(1))
 
       ssx = zero; ssp = zero; ssy = zero; ssz = zero
 
@@ -2853,6 +2874,8 @@ contains
       rightv(1:nof_variables) = u_c_val(iconsidered, 1, 1:nof_variables)
 
       call get_visc_conduct(n, leftv, rightv, viscl, laml)
+      if (laminar_isothermal_wall()) &
+         & call sst_wall_transport(n, u_c_val(iconsidered,1,1:nof_variables), viscl(1), laml(1))
 
       ssx = zero; ssp = zero; ssy = zero; ssz = zero
 
@@ -3044,7 +3067,7 @@ contains
          else
             call get_visc_conduct(n, leftv, rightv, viscl, laml)
 
-            if (turbulence == 1 .and. turbulencemodel == 2) then
+            if ((turbulence == 1 .and. turbulencemodel == 2) .or. laminar_isothermal_wall()) then
                call sst_wall_transport(n,u_c_val(i,1,1:nof_variables),viscl(1),laml(1))
             end if
             ! A resolved no-slip wall has zero eddy viscosity for SA, SA-RC and SST.
@@ -3133,7 +3156,7 @@ contains
          else
             call get_visc_conduct(n, leftv, rightv, viscl, laml)
 
-            if (turbulence == 1 .and. turbulencemodel == 2) then
+            if ((turbulence == 1 .and. turbulencemodel == 2) .or. laminar_isothermal_wall()) then
                call sst_wall_transport(n,u_c_val(i,1,1:nof_variables),viscl(1),laml(1))
             end if
             ! A resolved no-slip wall has zero eddy viscosity for SA, SA-RC and SST.
@@ -3364,6 +3387,7 @@ contains
    end subroutine shear_z_av
 
    subroutine axisymmetric_wall_heat(i,f,heat)
+      implicit none
 #ifdef xpu
 !$omp declare target
 #endif
@@ -3384,7 +3408,7 @@ contains
             call realgas_wall_heat_transport(n,q(1:nof_variables),ktr,kve)
          else
             call molecular_transport(n,q(1:nof_variables),mu,ktr)
-            if(turbulence==1.and.turbulencemodel==2) &
+            if((turbulence==1.and.turbulencemodel==2).or.laminar_isothermal_wall()) &
                call sst_wall_transport(n,u_c_val(i,1,1:nof_variables),mu,ktr)
          end if
          heat=heat-weights_l(j)*(ktr*(gradt(1)*nx+gradt(2)*ny)+kve*(gradv(1)*nx+gradv(2)*ny))
@@ -3392,6 +3416,7 @@ contains
    end subroutine axisymmetric_wall_heat
 
    subroutine axisymmetric_wall_shear(i,f,component,shear)
+      implicit none
 #ifdef xpu
 !$omp declare target
 #endif
@@ -3407,7 +3432,7 @@ contains
          q(1:nof_variables)=rec_uleft(i,1:nof_variables,f,j)
          if(q(1)<=0.0) q(1:nof_variables)=u_c_val(i,1,1:nof_variables)
          call molecular_transport(n,q(1:nof_variables),mu,conductivity)
-         if(turbulence==1.and.turbulencemodel==2) &
+         if((turbulence==1.and.turbulencemodel==2).or.laminar_isothermal_wall()) &
             call sst_wall_transport(n,u_c_val(i,1,1:nof_variables),mu,conductivity)
          if(ielem_ggs(i)==1) then
             ux=rec_grads(i,1,1);ur=rec_grads(i,1,2)
@@ -3475,6 +3500,8 @@ contains
          rightv(1:nof_variables) = u_c_val(iconsidered, 1, 1:nof_variables)
 
          call get_visc_conduct(n, leftv, rightv, viscl, laml)
+         if (laminar_isothermal_wall()) &
+            & call sst_wall_transport(n, u_c_val(iconsidered,1,1:nof_variables), viscl(1), laml(1))
 
          ssx = zero; ssp = zero; ssy = zero; ssz = zero
 
@@ -3542,6 +3569,8 @@ contains
          rightv(1:nof_variables) = u_c_val(iconsidered, 1, 1:nof_variables)
 
          call get_visc_conduct(n, leftv, rightv, viscl, laml)
+         if (laminar_isothermal_wall()) &
+            & call sst_wall_transport(n, u_c_val(iconsidered,1,1:nof_variables), viscl(1), laml(1))
 
          ssx = zero; ssp = zero; ssy = zero; ssz = zero
 
@@ -4203,7 +4232,7 @@ contains
       integer, intent(in) :: n
       integer :: ii, i, l, ibc, output_unit, file_size
       real :: sums_local(4), sums_global(4), area, speed, reynolds_inlet
-      real :: qleft(gpu_max_nvar), qin(gpu_max_nvar), normal(3), angle1, angle2
+      real :: angle1, angle2
       logical :: exists
 
       if (initcond .ne. 4440 .or. duct_viscosity_ref .le. 0.0e0) return
@@ -4216,9 +4245,13 @@ contains
 !$omp& reduction(+:sums_local) firstprivate(n, nof_bounded, dimensiona, nof_variables) &
 !$omp& map(alloc:el_bnd, ielem_ifca, ielem_ibounds, ibound_icode, ielem_surf, u_c_val) &
 !$omp& map(alloc:ielem_faceanglex, ielem_faceangley) &
-!$omp& private(ii, i, l, ibc, qleft, qin, normal, angle1, angle2, area, speed)
+!$omp& private(ii, i, l, ibc, angle1, angle2, area, speed)
 #endif
       do ii = 1, nof_bounded
+         block
+            real, dimension(1:gpu_max_nvar) :: qleft, qin
+            real, dimension(1:3) :: normal
+
          i = el_bnd(ii)
          do l = 1, ielem_ifca(i)
             ibc = ielem_ibounds(i, l)
@@ -4241,6 +4274,7 @@ contains
             sums_local(3) = sums_local(3) + area * speed
             sums_local(4) = sums_local(4) + area * qin(1) * speed
          end do
+         end block
       end do
 #ifdef xpu
 !$omp end target teams distribute parallel do

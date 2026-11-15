@@ -25,6 +25,7 @@ module checkpoint_mpi_io
    end interface
 contains
    subroutine checkpoint_fail(message)
+      implicit none
       character(len=*), intent(in) :: message
       integer :: ierr, rank
       call MPI_Comm_rank(MPI_COMM_WORLD, rank, ierr)
@@ -34,6 +35,7 @@ contains
    end subroutine
 
    subroutine checkpoint_checked(ierr, operation)
+      implicit none
       integer, intent(in) :: ierr
       character(len=*), intent(in) :: operation
       character(len=MPI_MAX_ERROR_STRING) :: message
@@ -44,6 +46,7 @@ contains
    end subroutine
 
    pure logical function checkpoint_needs_wide(total, width) result(wide)
+      implicit none
       integer(ck_wide), intent(in) :: total
       integer, intent(in) :: width
       ! Switch before multiplying; assigning an overflowing int32 product to int64 is too late.
@@ -52,6 +55,7 @@ contains
    end function
 
    subroutine checkpoint_begin(cp, name, ids, width, total, header_bytes, writing, batch_cells)
+      implicit none
       type(checkpoint_file), intent(out) :: cp
       character(len=*), intent(in) :: name
       integer, intent(in) :: ids(:), width
@@ -127,6 +131,7 @@ contains
    end subroutine
 
    subroutine checkpoint_header(cp, iteration, values)
+      implicit none
       type(checkpoint_file), intent(in) :: cp
       integer, intent(inout) :: iteration
       real, intent(inout) :: values(:)
@@ -164,6 +169,7 @@ contains
    end subroutine
 
    subroutine checkpoint_transfer(cp, first, count, values)
+      implicit none
       type(checkpoint_file), intent(in) :: cp
       integer, intent(in) :: first, count
       real, intent(inout) :: values(:)
@@ -220,6 +226,7 @@ contains
    end subroutine
 
    subroutine checkpoint_finish(cp)
+      implicit none
       type(checkpoint_file), intent(inout) :: cp
       integer :: ierr, renamed
       if (cp%writing) then
@@ -239,6 +246,7 @@ contains
    end subroutine
 
    subroutine sort_order(ids, order)
+      implicit none
       integer, intent(in) :: ids(:)
       integer, intent(inout) :: order(:)
       integer :: i, last, temp
@@ -258,6 +266,7 @@ contains
       end do
    contains
       subroutine sift(start, finish)
+         implicit none
          integer, intent(in) :: start, finish
          integer :: root, child, item
          root = start

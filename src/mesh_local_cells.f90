@@ -19,12 +19,14 @@ module mesh_local_cells
    real, allocatable :: centres(:, :)
 contains
    integer function cell_cache_slot(id) result(slot)
+      implicit none
       integer, intent(in) :: id
       slot = slot_of(id)
       if (slot == 0) call mesh_fail('stencil cell missing from setup cache')
    end function
 
    integer function slot_of(id) result(slot)
+      implicit none
       integer, intent(in) :: id
       integer :: b, start
       slot = 0
@@ -42,6 +44,7 @@ contains
    end function
 
    subroutine insert_bucket(slot)
+      implicit none
       integer, intent(in) :: slot
       integer :: b
       b = int(modulo(int(ids_cache(slot), int64) * 104729_int64, int(size(buckets), int64))) + 1
@@ -52,6 +55,7 @@ contains
    end subroutine
 
    subroutine reserve(count)
+      implicit none
       integer, intent(in) :: count
       integer, allocatable :: itmp(:), matrix(:, :)
       real, allocatable :: rtmp(:, :)
@@ -89,6 +93,7 @@ contains
    end subroutine
 
    subroutine cells_seed()
+      implicit none
       integer :: i
       call reserve(max(1, size(ielem_ihexgl)))
       do i = 1, size(ielem_ihexgl)
@@ -100,6 +105,7 @@ contains
    end subroutine
 
    integer function cell_owner(id) result(value)
+      implicit none
       integer, intent(in) :: id
       integer :: slot
       if (mesh_distributed) then
@@ -112,6 +118,7 @@ contains
    end function
 
    integer function cell_index(id) result(value)
+      implicit none
       integer, intent(in) :: id
       integer :: slot
       if (mesh_distributed) then
@@ -124,6 +131,7 @@ contains
    end function
 
    real function cell_centre(id, d) result(value)
+      implicit none
       integer, intent(in) :: id, d
       integer :: slot
       if (mesh_distributed) then
@@ -139,6 +147,7 @@ contains
    end function
 
    function cell_centres(id, first, last) result(values)
+      implicit none
       integer, intent(in) :: id, first, last
       real :: values(last - first + 1)
       integer :: d
@@ -148,6 +157,7 @@ contains
    end function
 
    integer function cell_neighbour(id, face) result(value)
+      implicit none
       integer, intent(in) :: id, face
       integer :: slot
       if (mesh_distributed) then
@@ -163,6 +173,7 @@ contains
    end function
 
    subroutine cells_geometry()
+      implicit none
       integer :: i, slot
       do i = 1, size(ielem_ihexgl)
          slot = slot_of(ielem_ihexgl(i))
@@ -173,6 +184,7 @@ contains
    end subroutine
 
    subroutine cells_fetch(ids, with_geometry)
+      implicit none
       integer, intent(in) :: ids(:)
       logical, intent(in) :: with_geometry
       integer, allocatable :: work(:), requested(:), owners(:), indices(:), requests(:, :), destinations(:)
@@ -234,6 +246,7 @@ contains
    end subroutine
 
    subroutine cells_stencils()
+      implicit none
       integer, allocatable :: head(:), used(:), requests(:), pending(:)
       integer :: i, j, k, slot, candidate, count_needed, complete, all_complete, ierr, target, nc
       nc = size(ielem_ihexgl); target = iselemt(n)
@@ -297,6 +310,7 @@ contains
    end subroutine
 
    subroutine cells_release()
+      implicit none
       if (allocated(ids_cache)) deallocate(ids_cache, owner_cache, index_cache, neighbours, centres, geometry_ready, buckets)
       cells_count = 0; capacity = 0
       call mesh_owner_release()

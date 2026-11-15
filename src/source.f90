@@ -23,6 +23,7 @@ module source
 
 contains
    subroutine axisymmetric_source_state(n,q,qt,g,gt,radius,wall,src,st)
+      implicit none
       ! S in dQ/dt + dFx/dx + dFr/dr = S. Planar FV areas/fluxes are unchanged.
       ! Cell-centre quadrature is second order on smooth, regular solutions.
 #ifdef xpu
@@ -107,6 +108,7 @@ contains
    end subroutine axisymmetric_source_state
 
    subroutine axisymmetric_cell_data(i,q,qt,g,gt,wall)
+      implicit none
 #ifdef xpu
 !$omp declare target
 #endif
@@ -126,6 +128,7 @@ contains
    end subroutine axisymmetric_cell_data
 
    subroutine sources_axisymmetric_cell(n,i)
+      implicit none
 #ifdef xpu
 !$omp declare target
 #endif
@@ -175,6 +178,7 @@ contains
    end function axisymmetric_source_admissible
 
    subroutine axisymmetric_source_jacobian(n,i,jac,tdiag)
+      implicit none
       ! Local block derivative with reconstructed gradients frozen, as in the existing
       ! approximate implicit operator. Chemistry is assembled separately, once.
 #ifdef xpu
@@ -228,6 +232,7 @@ contains
    end subroutine axisymmetric_source_jacobian
 
    subroutine add_axisymmetric_implicit(n,i,block)
+      implicit none
 #ifdef xpu
 !$omp declare target
 #endif
@@ -241,6 +246,7 @@ contains
    end subroutine add_axisymmetric_implicit
 
    subroutine add_axisymmetric_transport_implicit(n,i,diag)
+      implicit none
 #ifdef xpu
 !$omp declare target
 #endif
@@ -257,6 +263,7 @@ contains
    end subroutine add_axisymmetric_transport_implicit
 
    real function axisymmetric_source_radius(n,i) result(rate)
+      implicit none
 #ifdef xpu
 !$omp declare target
 #endif
@@ -2272,6 +2279,7 @@ contains
    end function transition_source_factor
 
    subroutine sources_sa_rc(n, i, src, jac)
+      implicit none
 #ifdef xpu
 !$omp declare target
 #endif
@@ -2533,6 +2541,7 @@ contains
    end subroutine sources
 
    subroutine sst_destruction_diagonal(n, i, nd, diagonal)
+      implicit none
 #ifdef xpu
 !$omp declare target
 #endif
@@ -3164,6 +3173,7 @@ contains
    ! Spalart--Shur SA-noft2-RC algebra, shared by CPU and OpenMP target callers.
    ! Shur et al., AIAA J. 38(5), 2000. Geometry preparation assumes a fixed mesh.
    real function sa_rc_factor(grad_u, material_strain) result(fr1)
+      implicit none
       real, intent(in) :: grad_u(3,3), material_strain(3,3)
       real :: s(3,3), w(3,3), a(3,3), ds(3,3), scale, sn, wn, d2, rt
       integer :: i, j, k
@@ -3192,6 +3202,7 @@ contains
 
    subroutine sa_noft2_rc_source(rho, mu, phi, omega, distance, grad_nut_sq, fr1, nut_floor, &
                                cb1, cb2, cv1, cw1, cw2, cw3, kap, sig, src, jac, rotation_delta)
+      implicit none
 #ifdef xpu
 !$omp declare target
 #endif
@@ -3242,6 +3253,7 @@ contains
    end subroutine sa_noft2_rc_source
 
    subroutine sa_rc_inverse(a, ndim, ainv, ok)
+      implicit none
       real, intent(in) :: a(3,3)
       integer, intent(in) :: ndim
       real, intent(out) :: ainv(3,3)
@@ -3271,6 +3283,7 @@ contains
    end subroutine sa_rc_inverse
 
    real function sa_source_jacobian_for_diagonal(value, correction, model) result(value_used)
+      implicit none
 #ifdef xpu
 !$omp declare target
 #endif
@@ -3283,6 +3296,7 @@ contains
    end function sa_source_jacobian_for_diagonal
 
    subroutine rc_fail(message)
+      implicit none
       character(*), intent(in) :: message
       integer :: ierr
       write(*,*) 'SA-RC error: ', trim(message)
@@ -3290,6 +3304,7 @@ contains
    end subroutine
 
    integer function rc_neighbour(i, q, rank) result(j)
+      implicit none
       integer, intent(in) :: i, q, rank
       integer :: group
       j = rec_ihexl(i,1,q)
@@ -3302,6 +3317,7 @@ contains
    end function
 
    function rc_displacement(i,j) result(dx)
+      implicit none
       integer, intent(in) :: i,j
       real :: dx(3)
       if (j <= rc_cells) then
@@ -3315,6 +3331,7 @@ contains
    end function rc_displacement
 
    subroutine rc_exchange()
+      implicit none
       ! Called by the master thread only. Buffers are packed by halo cell,
       ! six values per cell; no noncontiguous MPI temporaries or device MPI.
       integer :: g, nr, offset, count, ierr
@@ -3337,6 +3354,7 @@ contains
    end subroutine
 
    subroutine sa_rc_initialize(rank)
+      implicit none
       integer, intent(in) :: rank
       integer :: i, j, q, a, b, bad, all_bad, ierr
       real :: dx(3), v(3), aa(3,3), ai(3,3), scale(3), radius
@@ -3406,6 +3424,7 @@ contains
    end subroutine
 
    subroutine sa_rc_prepare(rank)
+      implicit none
       integer, intent(in) :: rank
       integer :: i, j, a, b, k, q, c
       real :: gu(3,3), strain(3,3), ds(3,3), material(6), rhs(3,6), grad(3), dx(3), v(3), vel(3), radius
@@ -3475,6 +3494,7 @@ contains
 
 
    subroutine sa_rc_release()
+      implicit none
       if (.not. allocated(sa_rc_fr1)) return
       deallocate(rc_xyz,rc_strain,rc_inverse,rc_scale,rc_send,rc_recv,sa_rc_fr1,rc_requests)
       rc_cells = 0
