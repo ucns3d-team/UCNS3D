@@ -607,7 +607,7 @@ contains
                & / ielem_dih(i, l), ((gamma / (0.5 * (cleft(1) + cright(1)))) &
                & * viscots / (ielem_dih(i, l) * prandtl)))
             if (realgas .eq. 1) viscots = realgas_face_diffusion_speed(cleft, cright, ielem_dih(i, l), viscl, laml)
-            vpp = max(asound1, asound2) + viscots
+            vpp = max(asound1, asound2) + visc_jump_implicit * viscots
 
             if (turbulence .eq. 1) then
                if (turbulencemodel .eq. 1) then
@@ -644,7 +644,7 @@ contains
                if (turbulencemodel == 2) viscots = max(viscots, &
                   max(eddyfl(19)+eddyfr(19),eddyfl(20)+eddyfr(20)) / &
                   ((cleft(1)+cright(1))*max(ielem_dih(i,l),1.0e-15)))
-               vpp = max(asound1, asound2) + viscots
+               vpp = max(asound1, asound2) + visc_jump_implicit * viscots
             end if
 
             impdiag(i, 1:nof_variables, 1:nof_variables) = impdiag(i, 1:nof_variables, 1:nof_variables) + (oo2 * ((vpp * &
@@ -659,7 +659,7 @@ contains
                if (turbulence .eq. 1) then
                   do nvar = 1, turbulenceequations
 
-                     vpp = max(asound1, asound2) + viscots
+                     vpp = max(asound1, asound2) + visc_jump_implicit * viscots
                      impdiagt(i, nvar) = impdiagt(i, nvar) + (oo2 * ((vpp)) * mul1)
                      impofft(i, l, nvar) = impofft(i, l, nvar) - (((oo2 * vpp)) * mul1)
                   end do
@@ -678,7 +678,7 @@ contains
                      end if
 
                      viscots = (2.0 * viscots) / ((cleft(1) + cright(1)) * ielem_dih(i, l))
-                     vpp = max(asound1, asound2) + viscots
+                     vpp = max(asound1, asound2) + visc_jump_implicit * viscots
                      impdiagt(i, nvar) = impdiagt(i, nvar) + (oo2 * ((vpp)) * mul1)
                      impofft(i, l, nvar) = impofft(i, l, nvar) - (oo2 * ((vpp)) * mul1)
                   end do
@@ -921,7 +921,7 @@ contains
                & / ielem_dih(i, l), ((gamma / (0.5 * (cleft(1) + cright(1)))) &
                & * viscots / (ielem_dih(i, l) * prandtl)))
             if (realgas .eq. 1) viscots = realgas_face_diffusion_speed(cleft, cright, ielem_dih(i, l), viscl, laml)
-            vpp = max(asound1, asound2) + viscots
+            vpp = max(asound1, asound2) + visc_jump_implicit * viscots
 
             if (turbulence .eq. 1) then
                if (turbulencemodel .eq. 1) then
@@ -958,7 +958,7 @@ contains
                if (turbulencemodel == 2) viscots = max(viscots, &
                   max(eddyfl(19)+eddyfr(19),eddyfl(20)+eddyfr(20)) / &
                   ((cleft(1)+cright(1))*max(ielem_dih(i,l),1.0e-15)))
-               vpp = max(asound1, asound2) + viscots
+               vpp = max(asound1, asound2) + visc_jump_implicit * viscots
             end if
 
             impdiag(i, 1:nof_variables, 1:nof_variables) = impdiag(i, 1:nof_variables, 1:nof_variables) + (oo2 * ((vpp * &
@@ -973,7 +973,7 @@ contains
                if (turbulence .eq. 1) then
                   do nvar = 1, turbulenceequations
 
-                     vpp = max(asound1, asound2) + viscots
+                     vpp = max(asound1, asound2) + visc_jump_implicit * viscots
                      impdiagt(i, nvar) = impdiagt(i, nvar) + (oo2 * ((vpp)) * mul1)
                      impofft(i, l, nvar) = impofft(i, l, nvar) - (((oo2 * vpp)) * mul1)
                   end do
@@ -993,7 +993,7 @@ contains
                      end if
 
                      viscots = (2.0 * viscots) / ((cleft(1) + cright(1)) * ielem_dih(i, l))
-                     vpp = max(asound1, asound2) + viscots
+                     vpp = max(asound1, asound2) + visc_jump_implicit * viscots
                      impdiagt(i, nvar) = impdiagt(i, nvar) + (oo2 * ((vpp)) * mul1)
                      impofft(i, l, nvar) = impofft(i, l, nvar) - (oo2 * ((vpp)) * mul1)
                   end do
@@ -1514,13 +1514,13 @@ contains
                   & / ielem_dih(i, l), ((gamma / (0.5 * (cleft(1) + cright(1)))) &
                   & * viscots / (ielem_dih(i, l) * prandtl)))
                if (realgas .eq. 1) viscots = realgas_face_diffusion_speed(cleft, cright, ielem_dih(i, l), viscl, laml)
-               vpp = max(asound1, asound2) + viscots
+               vpp = max(asound1, asound2) + visc_jump_implicit * viscots
             else
                viscots = max((4.0 / (3.0 * 0.5 * (cleft(1) + cright(1)))) * viscots &
                   & / ielem_dih(i, l), ((gammal / (0.5 * (cleft(1) + cright(1)))) &
                   & * viscots / (ielem_dih(i, l) * prandtl)))
                if (realgas .eq. 1) viscots = realgas_face_diffusion_speed(cleft, cright, ielem_dih(i, l), viscl, laml)
-               vpp = max(asound1, asound2) + viscots
+               vpp = max(asound1, asound2) + visc_jump_implicit * viscots
 
             end if
 
@@ -1559,7 +1559,7 @@ contains
                if (turbulencemodel == 2) viscots = max(viscots, &
                   max(eddyfl(19)+eddyfr(19),eddyfl(20)+eddyfr(20)) / &
                   ((cleft(1)+cright(1))*max(ielem_dih(i,l),1.0e-15)))
-               vpp = max(asound1, asound2) + viscots
+               vpp = max(asound1, asound2) + visc_jump_implicit * viscots
             end if
 
             impdiag(i, 1:nof_variables, 1:nof_variables) = impdiag(i, 1:nof_variables, 1:nof_variables) + (oo2 * ((vpp * &
@@ -1574,7 +1574,7 @@ contains
                if (turbulence .eq. 1) then
                   do nvar = 1, turbulenceequations
 
-                     vpp = max(asound1, asound2) + viscots
+                     vpp = max(asound1, asound2) + visc_jump_implicit * viscots
 
                      impdiagt(i, nvar) = impdiagt(i, nvar) + (oo2 * ((vpp)) * mul1)
                      impofft(i, l, nvar) = impofft(i, l, nvar) - (((oo2 * vpp)) * mul1)
@@ -1596,7 +1596,7 @@ contains
                      end if
 
                      viscots = (2.0 * viscots) / ((cleft(1) + cright(1)) * ielem_dih(i, l))
-                     vpp = max(asound1, asound2) + viscots
+                     vpp = max(asound1, asound2) + visc_jump_implicit * viscots
                      impdiagt(i, nvar) = impdiagt(i, nvar) + (oo2 * ((vpp)) * mul1)
                      impofft(i, l, nvar) = impofft(i, l, nvar) - (oo2 * ((vpp)) * mul1)
                   end do
@@ -1829,13 +1829,13 @@ contains
                   & / ielem_dih(i, l), ((gamma / (0.5 * (cleft(1) + cright(1)))) &
                   & * viscots / (ielem_dih(i, l) * prandtl)))
                if (realgas .eq. 1) viscots = realgas_face_diffusion_speed(cleft, cright, ielem_dih(i, l), viscl, laml)
-               vpp = max(asound1, asound2) + viscots
+               vpp = max(asound1, asound2) + visc_jump_implicit * viscots
             else
                viscots = max((4.0 / (3.0 * 0.5 * (cleft(1) + cright(1)))) * viscots &
                   & / ielem_dih(i, l), ((gammal / (0.5 * (cleft(1) + cright(1)))) &
                   & * viscots / (ielem_dih(i, l) * prandtl)))
                if (realgas .eq. 1) viscots = realgas_face_diffusion_speed(cleft, cright, ielem_dih(i, l), viscl, laml)
-               vpp = max(asound1, asound2) + viscots
+               vpp = max(asound1, asound2) + visc_jump_implicit * viscots
 
             end if
 
@@ -1873,7 +1873,7 @@ contains
                if (turbulencemodel == 2) viscots = max(viscots, &
                   max(eddyfl(19)+eddyfr(19),eddyfl(20)+eddyfr(20)) / &
                   ((cleft(1)+cright(1))*max(ielem_dih(i,l),1.0e-15)))
-               vpp = max(asound1, asound2) + viscots
+               vpp = max(asound1, asound2) + visc_jump_implicit * viscots
             end if
 
             impdiag(i, 1:nof_variables, 1:nof_variables) = impdiag(i, 1:nof_variables, 1:nof_variables) + (oo2 * ((vpp * &
@@ -1888,7 +1888,7 @@ contains
                if (turbulence .eq. 1) then
                   do nvar = 1, turbulenceequations
 
-                     vpp = max(asound1, asound2) + viscots
+                     vpp = max(asound1, asound2) + visc_jump_implicit * viscots
 !
                      impdiagt(i, nvar) = impdiagt(i, nvar) + (oo2 * ((vpp)) * mul1)
                      impofft(i, l, nvar) = impofft(i, l, nvar) - (((oo2 * vpp)) * mul1)
@@ -1909,7 +1909,7 @@ contains
                      end if
 
                      viscots = (2.0 * viscots) / ((cleft(1) + cright(1)) * ielem_dih(i, l))
-                     vpp = max(asound1, asound2) + viscots
+                     vpp = max(asound1, asound2) + visc_jump_implicit * viscots
                      impdiagt(i, nvar) = impdiagt(i, nvar) + (oo2 * ((vpp)) * mul1)
                      impofft(i, l, nvar) = impofft(i, l, nvar) - (oo2 * ((vpp)) * mul1)
                   end do
@@ -2051,7 +2051,7 @@ contains
                   & / ielem_dih(i, l), ((gamma / (0.5 * (cleft(1) + cright(1)))) &
                   & * viscots / (ielem_dih(i, l) * prandtl)))
                if (realgas .eq. 1) viscots = realgas_face_diffusion_speed(cleft, cright, ielem_dih(i, l), viscl, laml)
-               vpp = max(asound1, asound2) + viscots
+               vpp = max(asound1, asound2) + visc_jump_implicit * viscots
 
                if (turbulence .eq. 1) then
                   if (turbulencemodel .eq. 1) then
@@ -2089,7 +2089,7 @@ contains
                   if (turbulencemodel == 2) viscots = max(viscots, &
                      max(eddyfl(19)+eddyfr(19),eddyfl(20)+eddyfr(20)) / &
                      ((cleft(1)+cright(1))*max(ielem_dih(i,l),1.0e-15)))
-                  vpp = max(asound1, asound2) + viscots
+                  vpp = max(asound1, asound2) + visc_jump_implicit * viscots
                end if
 
                impdiag(1, 1:nof_variables, 1:nof_variables) = impdiag(1, 1:nof_variables, 1:nof_variables) + (oo2 * ((vpp * &
@@ -2104,7 +2104,7 @@ contains
                   if (turbulence .eq. 1) then
                      do nvar = 1, turbulenceequations
 
-                        vpp = max(asound1, asound2) + viscots
+                        vpp = max(asound1, asound2) + visc_jump_implicit * viscots
                         impdiagt(1, nvar) = impdiagt(1, nvar) + (oo2 * ((vpp)) * mul1)
                         impofft(1, l, nvar) = impofft(1, l, nvar) - (((oo2 * vpp)) * mul1)
                      end do
@@ -2118,7 +2118,7 @@ contains
                         viscots = 0.5 * ((viscl(1) + viscl(3)) + (viscl(2) + viscl(4)))
 
                         viscots = (2.0 * viscots) / ((cleft(1) + cright(1)) * ielem_dih(i, l))
-                        vpp = max(asound1, asound2) + viscots
+                        vpp = max(asound1, asound2) + visc_jump_implicit * viscots
                         impdiagt(1, nvar) = impdiagt(1, nvar) + (oo2 * ((vpp)) * mul1)
                         impofft(1, l, nvar) = impofft(1, l, nvar) - (oo2 * ((vpp)) * mul1)
                      end do
@@ -2298,7 +2298,7 @@ contains
                   & / ielem_dih(i, l), ((gamma / (0.5 * (cleft(1) + cright(1)))) &
                   & * viscots / (ielem_dih(i, l) * prandtl)))
                if (realgas .eq. 1) viscots = realgas_face_diffusion_speed(cleft, cright, ielem_dih(i, l), viscl, laml)
-               vpp = max(asound1, asound2) + viscots
+               vpp = max(asound1, asound2) + visc_jump_implicit * viscots
 
                if (turbulence .eq. 1) then
                   if (turbulencemodel .eq. 1) then
@@ -2335,7 +2335,7 @@ contains
                   if (turbulencemodel == 2) viscots = max(viscots, &
                      max(eddyfl(19)+eddyfr(19),eddyfl(20)+eddyfr(20)) / &
                      ((cleft(1)+cright(1))*max(ielem_dih(i,l),1.0e-15)))
-                  vpp = max(asound1, asound2) + viscots
+                  vpp = max(asound1, asound2) + visc_jump_implicit * viscots
                end if
 
                impdiag(1, 1:nof_variables, 1:nof_variables) = impdiag(1, 1:nof_variables, 1:nof_variables) + (oo2 * ((vpp * &
@@ -2350,7 +2350,7 @@ contains
                   if (turbulence .eq. 1) then
                      do nvar = 1, turbulenceequations
 
-                        vpp = max(asound1, asound2) + viscots
+                        vpp = max(asound1, asound2) + visc_jump_implicit * viscots
                         impdiagt(1, nvar) = impdiagt(1, nvar) + (oo2 * ((vpp)) * mul1)
                         impofft(1, l, nvar) = impofft(1, l, nvar) - (((oo2 * vpp)) * mul1)
                      end do
@@ -2364,7 +2364,7 @@ contains
                         viscots = 0.5 * ((viscl(1) + viscl(3)) + (viscl(2) + viscl(4)))
 
                         viscots = (2.0 * viscots) / ((cleft(1) + cright(1)) * ielem_dih(i, l))
-                        vpp = max(asound1, asound2) + viscots
+                        vpp = max(asound1, asound2) + visc_jump_implicit * viscots
                         impdiagt(1, nvar) = impdiagt(1, nvar) + (oo2 * ((vpp)) * mul1)
                         impofft(1, l, nvar) = impofft(1, l, nvar) - (oo2 * ((vpp)) * mul1)
                      end do
@@ -2555,7 +2555,7 @@ contains
                      & * viscots / (ielem_dih(i, l) * prandtl)))
                end if
                if (realgas .eq. 1) viscots = realgas_face_diffusion_speed(cleft, cright, ielem_dih(i, l), viscl, laml)
-               vpp = max(asound1, asound2) + viscots
+               vpp = max(asound1, asound2) + visc_jump_implicit * viscots
 
                if (turbulence .eq. 1) then
                   if (turbulencemodel .eq. 1) then
@@ -2591,7 +2591,7 @@ contains
                   if (turbulencemodel == 2) viscots = max(viscots, &
                      max(eddyfl(19)+eddyfr(19),eddyfl(20)+eddyfr(20)) / &
                      ((cleft(1)+cright(1))*max(ielem_dih(i,l),1.0e-15)))
-                  vpp = max(asound1, asound2) + viscots
+                  vpp = max(asound1, asound2) + visc_jump_implicit * viscots
                end if
 
                impdiag(1, 1:nof_variables, 1:nof_variables) = impdiag(1, 1:nof_variables, 1:nof_variables) + (oo2 * ((vpp * &
@@ -2606,7 +2606,7 @@ contains
                   if (turbulence .eq. 1) then
                      do nvar = 1, turbulenceequations
 
-                        vpp = max(asound1, asound2) + viscots
+                        vpp = max(asound1, asound2) + visc_jump_implicit * viscots
                         impdiagt(1, nvar) = impdiagt(1, nvar) + (oo2 * ((vpp)) * mul1)
                         impofft(1, l, nvar) = impofft(1, l, nvar) - (((oo2 * vpp)) * mul1)
                      end do
@@ -2620,7 +2620,7 @@ contains
                         viscots = 0.5 * ((viscl(1) + viscl(3)) + (viscl(2) + viscl(4)))
 
                         viscots = (2.0 * viscots) / ((cleft(1) + cright(1)) * ielem_dih(i, l))
-                        vpp = max(asound1, asound2) + viscots
+                        vpp = max(asound1, asound2) + visc_jump_implicit * viscots
                         impdiagt(1, nvar) = impdiagt(1, nvar) + (oo2 * ((vpp)) * mul1)
                         impofft(1, l, nvar) = impofft(1, l, nvar) - (oo2 * ((vpp)) * mul1)
                      end do
@@ -2809,7 +2809,7 @@ contains
                      & * viscots / (ielem_dih(i, l) * prandtl)))
                end if
                if (realgas .eq. 1) viscots = realgas_face_diffusion_speed(cleft, cright, ielem_dih(i, l), viscl, laml)
-               vpp = max(asound1, asound2) + viscots
+               vpp = max(asound1, asound2) + visc_jump_implicit * viscots
 
                if (turbulence .eq. 1) then
                   if (turbulencemodel .eq. 1) then
@@ -2845,7 +2845,7 @@ contains
                   if (turbulencemodel == 2) viscots = max(viscots, &
                      max(eddyfl(19)+eddyfr(19),eddyfl(20)+eddyfr(20)) / &
                      ((cleft(1)+cright(1))*max(ielem_dih(i,l),1.0e-15)))
-                  vpp = max(asound1, asound2) + viscots
+                  vpp = max(asound1, asound2) + visc_jump_implicit * viscots
                end if
 
                impdiag(1, 1:nof_variables, 1:nof_variables) = impdiag(1, 1:nof_variables, 1:nof_variables) + (oo2 * ((vpp * &
@@ -2860,7 +2860,7 @@ contains
                   if (turbulence .eq. 1) then
                      do nvar = 1, turbulenceequations
 
-                        vpp = max(asound1, asound2) + viscots
+                        vpp = max(asound1, asound2) + visc_jump_implicit * viscots
                         impdiagt(1, nvar) = impdiagt(1, nvar) + (oo2 * ((vpp)) * mul1)
                         impofft(1, l, nvar) = impofft(1, l, nvar) - (((oo2 * vpp)) * mul1)
                      end do
@@ -2874,7 +2874,7 @@ contains
                         viscots = 0.5 * ((viscl(1) + viscl(3)) + (viscl(2) + viscl(4)))
 
                         viscots = (2.0 * viscots) / ((cleft(1) + cright(1)) * ielem_dih(i, l))
-                        vpp = max(asound1, asound2) + viscots
+                        vpp = max(asound1, asound2) + visc_jump_implicit * viscots
                         impdiagt(1, nvar) = impdiagt(1, nvar) + (oo2 * ((vpp)) * mul1)
                         impofft(1, l, nvar) = impofft(1, l, nvar) - (oo2 * ((vpp)) * mul1)
                      end do
@@ -3308,7 +3308,7 @@ contains
                   & * viscots / (ielem_dih(i, l) * prandtl)))
             end if
             if (realgas .eq. 1) viscots = realgas_face_diffusion_speed(cleft, cright, ielem_dih(i, l), viscl, laml)
-            vpp = max(asound1, asound2) + viscots
+            vpp = max(asound1, asound2) + visc_jump_implicit * viscots
 
             if (turbulence .eq. 1) then
                if (turbulencemodel .eq. 1) then
@@ -3345,7 +3345,7 @@ contains
                if (turbulencemodel == 2) viscots = max(viscots, &
                   max(eddyfl(19)+eddyfr(19),eddyfl(20)+eddyfr(20)) / &
                   ((cleft(1)+cright(1))*max(ielem_dih(i,l),1.0e-15)))
-               vpp = max(asound1, asound2) + viscots
+               vpp = max(asound1, asound2) + visc_jump_implicit * viscots
             end if
          end if
 
@@ -3578,7 +3578,7 @@ contains
                   & * viscots / (ielem_dih(i, l) * prandtl)))
             end if
             if (realgas .eq. 1) viscots = realgas_face_diffusion_speed(cleft, cright, ielem_dih(i, l), viscl, laml)
-            vpp = max(asound1, asound2) + viscots
+            vpp = max(asound1, asound2) + visc_jump_implicit * viscots
 
             if (turbulence .eq. 1) then
                if (turbulencemodel .eq. 1) then
@@ -3614,14 +3614,14 @@ contains
                if (turbulencemodel == 2) viscots = max(viscots, &
                   max(eddyfl(19)+eddyfr(19),eddyfl(20)+eddyfr(20)) / &
                   ((cleft(1)+cright(1))*max(ielem_dih(i,l),1.0e-15)))
-               vpp = max(asound1, asound2) + viscots
+               vpp = max(asound1, asound2) + visc_jump_implicit * viscots
             end if
 
             if ((turbulence .eq. 1) .or. (passivescalar .gt. 0)) then
                if (turbulence .eq. 1) then
                   do nvar = 1, turbulenceequations
 
-                     vpp = max(asound1, asound2) + viscots
+                     vpp = max(asound1, asound2) + visc_jump_implicit * viscots
 !
 
                   end do
@@ -3641,7 +3641,7 @@ contains
                      end if
 
                      viscots = (2.0 * viscots) / ((cleft(1) + cright(1)) * ielem_dih(i, l))
-                     vpp = max(asound1, asound2) + viscots
+                     vpp = max(asound1, asound2) + visc_jump_implicit * viscots
 
                   end do
                end if
@@ -4001,7 +4001,7 @@ contains
                & / ielem_dih(i, l), ((gamma / (0.5 * (cleft(1) + cright(1)))) &
                & * viscots / (ielem_dih(i, l) * prandtl)))
             if (realgas .eq. 1) viscots = realgas_face_diffusion_speed(cleft, cright, ielem_dih(i, l), viscl, laml)
-            vpp = max(asound1, asound2) + viscots
+            vpp = max(asound1, asound2) + visc_jump_implicit * viscots
 
             if (turbulence .eq. 1) then
                if (turbulencemodel .eq. 1) then
@@ -4038,7 +4038,7 @@ contains
                if (turbulencemodel == 2) viscots = max(viscots, &
                   max(eddyfl(19)+eddyfr(19),eddyfl(20)+eddyfr(20)) / &
                   ((cleft(1)+cright(1))*max(ielem_dih(i,l),1.0e-15)))
-               vpp = max(asound1, asound2) + viscots
+               vpp = max(asound1, asound2) + visc_jump_implicit * viscots
             end if
          end if
 
@@ -4262,7 +4262,7 @@ contains
                & / ielem_dih(i, l), ((gamma / (0.5 * (cleft(1) + cright(1)))) &
                & * viscots / (ielem_dih(i, l) * prandtl)))
             if (realgas .eq. 1) viscots = realgas_face_diffusion_speed(cleft, cright, ielem_dih(i, l), viscl, laml)
-            vpp = max(asound1, asound2) + viscots
+            vpp = max(asound1, asound2) + visc_jump_implicit * viscots
 
             if (turbulence .eq. 1) then
                if (turbulencemodel .eq. 1) then
@@ -4298,14 +4298,14 @@ contains
                if (turbulencemodel == 2) viscots = max(viscots, &
                   max(eddyfl(19)+eddyfr(19),eddyfl(20)+eddyfr(20)) / &
                   ((cleft(1)+cright(1))*max(ielem_dih(i,l),1.0e-15)))
-               vpp = max(asound1, asound2) + viscots
+               vpp = max(asound1, asound2) + visc_jump_implicit * viscots
             end if
 
             if ((turbulence .eq. 1) .or. (passivescalar .gt. 0)) then
                if (turbulence .eq. 1) then
                   do nvar = 1, turbulenceequations
 
-                     vpp = max(asound1, asound2) + viscots
+                     vpp = max(asound1, asound2) + visc_jump_implicit * viscots
 !
 
                   end do
@@ -4325,7 +4325,7 @@ contains
                      end if
 
                      viscots = (2.0 * viscots) / ((cleft(1) + cright(1)) * ielem_dih(i, l))
-                     vpp = max(asound1, asound2) + viscots
+                     vpp = max(asound1, asound2) + visc_jump_implicit * viscots
 
                   end do
                end if

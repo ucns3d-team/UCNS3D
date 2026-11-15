@@ -179,7 +179,10 @@ def derive(config: Path) -> dict[str, int]:
     else:
         dg_dof = ((iorder + 1) * (iorder + 2)) // 2
         idegfree = dg_dof - 1
-        neighbours = 5 if iorder == 1 else dg_dof * extf
+        # 2D second order: determine_size (grid_p.f90) uses 5 neighbours for DG but ilx*extf (= dg_dof*extf)
+        # for finite volume. The least-squares gradient work arrays are dimensioned with this value, so it
+        # must cover the finite-volume stencil (3D second order uses 9 in both cases).
+        neighbours = max(5, dg_dof * extf)
         neighbours2 = 6 if iorder == 1 else (7 if iorder <= 3 else 11)
 
     return {

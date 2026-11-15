@@ -12,6 +12,13 @@ module source
    integer, parameter :: realgas_source_newton_maxiter = 12
    integer, parameter :: realgas_source_newton_linesearch = 10
 
+   ! SA-RC safeguards (sa_rc_factor):
+   ! - fr1 is limited to [sa_rc_fr1_min, sa_rc_fr1_max]; unlimited it spans about [-3.3, 9.3] with cr=(1,12,1).
+   ! - the correction is faded out (fr1 -> 1) where the strain/vorticity magnitude D falls below
+   !   sa_rc_rate_floor*U_inf/charlength (off below it, fully on above twice it): there the rotation argument
+   !   divides second derivatives by D**4 and is only noise. Set sa_rc_rate_floor = 0 to disable the fade.
+   real, parameter :: sa_rc_fr1_min = 0.0e0, sa_rc_fr1_max = 1.25e0, sa_rc_rate_floor = 0.1e0
+
    ! Steady SA-RC state: local cells and existing reconstruction halos.
    real, allocatable :: rc_xyz(:,:), rc_strain(:,:), rc_inverse(:,:,:), rc_scale(:,:)
    real, allocatable :: rc_send(:), rc_recv(:), sa_rc_fr1(:)
@@ -3175,7 +3182,7 @@ contains
    real function sa_rc_factor(grad_u, material_strain) result(fr1)
       implicit none
       real, intent(in) :: grad_u(3,3), material_strain(3,3)
-      real :: s(3,3), w(3,3), a(3,3), ds(3,3), scale, sn, wn, d2, rt
+      real :: s(3,3), w(3,3), a(3,3), ds(3,3), scale, sn, wn, d2, rt, rate0, blend
       integer :: i, j, k
       scale = maxval(abs(grad_u))
       fr1 = 1.0
@@ -3195,9 +3202,16 @@ contains
          end do
       end do
       rt = rt/(d2*d2)
-      ! cr1=1, cr2=12, cr3=1. No Fluent-style [0,1.25] clipping.
+      ! cr1=1, cr2=12, cr3=1.
       ! S/(S+omega) is r*/(1+r*) without division by zero at omega=0.
       fr1 = 4.0*sn/(sn+wn)*(1.0-atan(12.0*rt))-1.0
+      fr1 = min(sa_rc_fr1_max, max(sa_rc_fr1_min, fr1))
+      ! fade the correction out where the dimensional rate D = sqrt(d2)*scale is negligible
+      rate0 = sa_rc_rate_floor*sqrt(uvel**2+vvel**2+wvel**2)/max(abs(charlength), tiny(1.0))
+      if (rate0 > 0.0) then
+         blend = min(1.0, max(0.0, sqrt(d2)*scale/rate0-1.0))
+         fr1 = 1.0+blend*(fr1-1.0)
+      end if
    end function sa_rc_factor
 
    subroutine sa_noft2_rc_source(rho, mu, phi, omega, distance, grad_nut_sq, fr1, nut_floor, &
@@ -3420,7 +3434,7 @@ contains
          if (rank == 0) write(*,*) 'SA-RC rank-deficient central stencils: ', all_bad
          call rc_fail('strain-gradient stencil cannot resolve all spatial directions')
       end if
-      if (rank == 0) write(*,*) 'SA-noft2-RC: steady Spalart-Shur; cr=(1,12,1); unclipped fr1; strain LS + MPI halos'
+      if (rank == 0) write(*,*) 'SA-noft2-RC: steady Spalart-Shur; cr=(1,12,1); fr1 in [0,1.25], off at negligible strain; strain LS + MPI halos'
    end subroutine
 
    subroutine sa_rc_prepare(rank)

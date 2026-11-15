@@ -427,6 +427,21 @@ module declaration
    ! Green-Gauss face values, set per code profile in parameters.f90: 0 = arithmetic mean (legacy),
    ! 1 = geometric weights from ielem_dih2, 2/3 = geometric + one/two non-orthogonal correction passes.
    integer :: gg_correction = 0
+   ! Jump (damping) term of the viscous face gradient. Default 1 for every code profile (parameters.f90):
+   ! 0 = none: plain average of the two cell gradients (cell-to-cell decoupling is possible)
+   ! 1 = consistent (default): jump of the cell values minus (averaged unlimited gradient . centre-to-centre
+   !     vector), scaled by the normal distance; at walls only with visc_jump_wall = 1. Zero for any
+   !     linear field; independent of lamx, of the limiter and of the order of the convective reconstruction.
+   ! 2 = legacy: lamx * jump of the limited convective face states, none at boundaries
+   integer :: visc_jump_mode = 1
+   ! factor on the viscous spectral radius of the implicit operator (set in main.f90) with visc_jump_mode = 1:
+   ! 8/3 (the interior term couples a cell to its face neighbour with (4/3)/d against the 0.5/d the implicit
+   ! diagonal assumes), 4 if visc_jump_wall = 1 (2/d at the wall); 1 otherwise. Without it very stretched wall
+   ! cells diverge at CFL > 1.
+   real :: visc_jump_implicit = 1.0e0
+   ! jump term at wall faces: 0 = none (default; the interior term alone keeps the wall cells coupled), 1 = two-point
+   ! wall gradient (coefficient 1). With 1 the wall heat-flux/shear output does not include the term.
+   integer :: visc_jump_wall = 0
    ! extra ideal-gas tests in checksol/checksolx, set per code profile in parameters.f90: 0 = density and
    ! pressure jump only (legacy), 1 = + temperature jump, 2 = + density/pressure/temperature ratio against
    ! the face neighbours larger than checksol_ratio.
@@ -1095,6 +1110,7 @@ module declaration
 !$omp& rec_cgradientstemp, rec_cond)
 !$omp declare target (rec_findw, rec_g0, rec_gradf, rec_gradients, rec_gradients2, rec_gradientsc, rec_gradientsc2, &
 !$omp& rec_gradientstemp, rec_gradientstemp_wall, rec_gradientsturb)
+!$omp declare target (visc_jump_mode, visc_jump_implicit, visc_jump_wall)
 !$omp declare target (gg_correction, rec_gradientsturb_wall, rec_grads, rec_grads_gg, rec_gradsav, rec_ihexb, rec_ihexbc, &
 !$omp& rec_ihexg, rec_ihexgc, rec_ihexl, &
 !$omp& rec_ihexlc, rec_ihexn)

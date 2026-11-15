@@ -1711,6 +1711,9 @@ contains
          !$omp target update to(rec_grads)
       end if
       !$omp target update to(gg_correction)
+      !$omp target update to(visc_jump_mode)
+      !$omp target update to(visc_jump_implicit)
+      !$omp target update to(visc_jump_wall)
       if (allocated(rec_grads_gg)) then
          !$omp target enter data map(alloc: rec_grads_gg)
          !$omp target update to(rec_grads_gg)
