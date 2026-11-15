@@ -10,6 +10,10 @@ module recon
    use basis
    implicit none
    real, parameter :: realgas_trace_fraction = 1.0e-8
+   ! Smallest mass fraction used as the scale of the species reconstruction-jump test in checksol/checksolx.
+   ! A species below this level is a trace: a relative jump of it says nothing about the flow, and testing it
+   ! against a near-zero scale switches cells to first order on rounding-level differences.
+   real, parameter :: realgas_species_jump_fraction = 1.0e-3
 
 contains
 
@@ -5369,7 +5373,7 @@ contains
       integer, intent(in) :: ivar
       real, intent(in) :: face_state(nof_variables), cell_state(nof_variables)
       real, parameter :: relative_jump_limit = 0.75e0
-      real, parameter :: species_scale_min = realgas_trace_fraction
+      real, parameter :: species_scale_min = realgas_species_jump_fraction
       real, parameter :: vibrational_scale_fraction = 1.0e-8
       real :: scale
 
@@ -5393,11 +5397,51 @@ contains
       end if
    end function realgas_reconstruction_jump_rejected
 
+   subroutine checksol_cell_state(n, q, rho, p, t, ok)
+!> @brief
+!> density, pressure and temperature of one conserved cell state for checksol_neighbour_rejected.
+!> ideal gas: p from the total energy, t = p/rho (the gas constant cancels in the ratios).
+!> real gas: p and the translational temperature from the real-gas thermodynamics.
+      implicit none
+#ifdef xpu
+!$omp declare target
+#endif
+      integer, intent(in) :: n
+      real, intent(in) :: q(1:gpu_max_nvar)
+      real, intent(out) :: rho, p, t
+      logical, intent(out) :: ok
+      real :: w(gpu_max_nvar), pinf, gm, ke
+      integer :: iex
+
+      ok = .false.; p = zero; t = zero
+      rho = q(1)
+      if (rho .le. 0.0) return
+      if (realgas .eq. 1) then
+         if (.not. conservative_state_valid(q(1:nof_variables))) return
+         w(1:nof_variables) = q(1:nof_variables)
+         call cons2prim(n, w(1:nof_variables), pinf, gm)
+         p = w(dimensiona + 2)
+         w(1:nof_variables) = q(1:nof_variables)
+         call cons2div(n, w(1:nof_variables), pinf, gm)
+         t = w(dimensiona + 2)
+      else
+         ke = 0.0
+         do iex = 2, dimensiona + 1
+            ke = ke + q(iex)**2
+         end do
+         p = (gamma - 1.0) * (q(dimensiona + 2) - 0.5 * ke / rho)
+         if (p .gt. 0.0) t = p / rho
+      end if
+      if ((p .le. 0.0) .or. (t .le. 0.0)) return
+      ok = .true.
+   end subroutine checksol_cell_state
+
    logical function checksol_neighbour_rejected(n, iconsidered) result(rejected)
       implicit none
 !> @brief
-!> ideal-gas check used by checksol/checksolx when checksol_extra >= 2: true when the cell mean density,
-!> pressure or temperature (p/rho) differs from that of any face neighbour by a factor larger than
+!> check used by checksol/checksolx when checksol_extra >= 2 (ideal gas and real gas): true when the cell mean
+!> density, pressure or temperature (p/rho; translational temperature for real gas) differs from that of any
+!> face neighbour by a factor larger than
 !> checksol_ratio. neighbours are reached as in find_bounds (same cpu, periodic, mpi halo); physical
 !> boundary faces have no neighbour and are skipped.
 #ifdef xpu
@@ -5405,27 +5449,19 @@ contains
 #endif
       integer, intent(in) :: n, iconsidered
       integer :: i, l, iex, nf, lf, rowf, src
-      real :: rho0, p0, t0, rho1, p1, t1, ke
+      real :: rho0, p0, t0, rho1, p1, t1
+      logical :: state_ok
       real, dimension(1:gpu_max_nvar) :: uvec
 
       i = iconsidered
       rejected = .false.
 
-      rho0 = u_c_val(i, 1, 1)
-      ke = 0.0
-      do iex = 2, dimensiona + 1
-         ke = ke + u_c_val(i, 1, iex)**2
-      end do
-      if (rho0 .le. 0.0) then
+      uvec(1:nof_variables) = u_c_val(i, 1, 1:nof_variables)
+      call checksol_cell_state(n, uvec, rho0, p0, t0, state_ok)
+      if (.not. state_ok) then
          rejected = .true.
          return
       end if
-      p0 = (gamma - 1.0) * (u_c_val(i, 1, dimensiona + 2) - 0.5 * ke / rho0)
-      if (p0 .le. 0.0) then
-         rejected = .true.
-         return
-      end if
-      t0 = p0 / rho0
 
       do l = 1, ielem_ifca(i)
          ! src: 0 no neighbour (physical boundary), 1 neighbour on this cpu, 2 neighbour in the halo
@@ -5448,33 +5484,23 @@ contains
          if (src .eq. 0) cycle
 
          if (src .eq. 1) then
-            do iex = 1, dimensiona + 2
+            do iex = 1, nof_variables
                uvec(iex) = u_c_val(ielem_ineigh(i, l), 1, iex)
             end do
          else
             nf = rec_ihexn(rec_local(i), 1, ielem_indexi(i, l))
             lf = rec_ihexl(i, 1, ielem_indexi(i, l))
             rowf = halo_offset(nf) + lf - 1
-            do iex = 1, dimensiona + 2
+            do iex = 1, nof_variables
                uvec(iex) = solhir(rowf, iex)
             end do
          end if
 
-         rho1 = uvec(1)
-         if (rho1 .le. 0.0) then
+         call checksol_cell_state(n, uvec, rho1, p1, t1, state_ok)
+         if (.not. state_ok) then
             rejected = .true.
             return
          end if
-         ke = 0.0
-         do iex = 2, dimensiona + 1
-            ke = ke + uvec(iex)**2
-         end do
-         p1 = (gamma - 1.0) * (uvec(dimensiona + 2) - 0.5 * ke / rho1)
-         if (p1 .le. 0.0) then
-            rejected = .true.
-            return
-         end if
-         t1 = p1 / rho1
 
          if ((max(rho0, rho1) .gt. checksol_ratio * min(rho0, rho1)) .or. &
             & (max(p0, p1) .gt. checksol_ratio * min(p0, p1)) .or. &
@@ -5610,7 +5636,7 @@ contains
                      end do
 
                      ! density, pressure and temperature ratios against the face neighbours, checksol_extra >= 2
-                     if ((checksol_extra .ge. 2) .and. (realgas .eq. 0) .and. (multispecies .eq. 0)) then
+                     if ((checksol_extra .ge. 2) .and. (multispecies .eq. 0)) then
                         if (checksol_neighbour_rejected(n, i)) then
                            reduce1 = 1
                            ielem_reduce(i) = 1
@@ -5764,10 +5790,11 @@ contains
                   end do
 
                   ! density, pressure and temperature ratios against the face neighbours, checksol_extra >= 2
-                  if ((checksol_extra .ge. 2) .and. (realgas .eq. 0) .and. (multispecies .eq. 0)) then
+                  if ((checksol_extra .ge. 2) .and. (multispecies .eq. 0)) then
                      if (checksol_neighbour_rejected(n, i)) then
                         reduce1 = 1
-                        ielem_reduce(i) = 4
+                        ! real gas stores the rejected variable index in ielem_reduce; nof_variables + 1 marks this test
+                        ielem_reduce(i) = merge(nof_variables + 1, 4, realgas .eq. 1)
                      end if
                   end if
 

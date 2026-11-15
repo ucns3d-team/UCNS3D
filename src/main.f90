@@ -94,6 +94,11 @@ PROGRAM UCNS3D
 
    !> determing the stencil sizes, number of polynomial coefficients etc.
    call determine_size(n, iorder, iselem, iselemt, ioverst, ioverto, ilx, numneighbours, idegfree, imaxdegfree, iextend)
+   ! work arrays of the least-squares gradient routines are dimensioned with the compile-time GPU_MAX_NEIGHBOURS
+   if (numneighbours .gt. gpu_max_neighbours) then
+      call abort_ucns3d_configuration(n, 'runtime stencil size (numneighbours) exceeds compiled GPU_MAX_NEIGHBOURS; '// &
+         & 'rebuild with sizes from gpu_max_flags.py for this UCNS3D.DAT')
+   end if
 
    !> establish the number of gausian quadrature points for each element
    call gaussianpoints(igqrules, numberofpoints, numberofpoints2)
@@ -739,6 +744,9 @@ PROGRAM UCNS3D
    call flat_comm(n)
    call exchange_sst_wall_distance(n)
    call hybrid_riemann_setup(n)
+   visc_jump_implicit = 1.0e0
+   if (visc_jump_mode .eq. 1) visc_jump_implicit = 8.0e0 / 3.0e0
+   if ((visc_jump_mode .eq. 1) .and. (visc_jump_wall .eq. 1)) visc_jump_implicit = 4.0e0
    call alloc_weights(n)
 
    call mpi_barrier(mpi_comm_world, ierror)
@@ -781,6 +789,7 @@ PROGRAM UCNS3D
 !$omp& extended_bounds, extf, fastest, fastest_q, fastmovie, fil_alpha, fil_nc, fil_s, filter_type, filtering, firstorder, &
 !$omp& firstrese, firstresk, firstresomega, firstrespass, firstresr, firstrest, firstresu, firstresv, firstresw, forcex, &
 !$omp& forcey, forcez, gamma, governingequations, greengo, &
+!$omp& visc_jump_mode, visc_jump_implicit, visc_jump_wall, &
 !$omp& gg_correction, gridar1, gridar2, guassianquadra, hybridist, i_turb_inlet, iadapt, &
 !$omp& ibcode, iboundary, ibside, icarlos1, icarlos2, icompact, icong, iconimp, iconsgvq, iconsr, icoupleturb, idegfree, &
 !$omp& idegfree2, idegfree3, ievery, ievery2, ieveryav, iforce, igianagraps, igqrules, ihax1, ihybrid, iloop, iloopx, ilx, &

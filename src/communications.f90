@@ -3081,17 +3081,21 @@ contains
 
    subroutine hybrid_riemann_sensor(n)
       ! Hybrid HLL-HLLC (iriemann 8): cell shock sensor, evaluated before every convective flux call.
-      ! s = largest relative jump of the cell-average pressure to any face neighbour.
+      ! s = largest relative jump of the cell-average pressure to any face neighbour, counted only where the
+      ! pressure rises along the flow direction (compression). Smooth expansions on coarse cells (sphere
+      ! shoulder, expansion corners) therefore keep HLLC, so the boundary layer is not smeared there.
+      ! The direction test uses the cell's own momentum and ielem_dih2 (x_N - x_P), so it needs no extra halo.
       ! ielem_hllsw = 0 for s <= hllsw_lo (pure HLLC), 1 for s >= hllsw_hi (pure HLL), linear in between.
       ! A face then uses the larger of its two cells' values, which is the same from both sides (conservative).
       use flow_operations, only: cons2prim
       implicit none
       integer, intent(in) :: n
-      integer :: i, l, ie, bc, group, row, kmaxe
-      real :: pinf, gm, pi, pj, s
+      integer :: i, l, ie, bc, group, row, kmaxe, nd, k
+      real :: pinf, gm, pi, pj, s, along
       if (iriemann /= 8) return
       kmaxe = xmpielrank(n)
       ie = dimensiona + 2
+      nd = dimensiona
 
 #ifdef xpu
 !$omp target teams distribute parallel do &
@@ -3122,13 +3126,14 @@ contains
 
 #ifdef xpu
 !$omp target teams distribute parallel do &
-!$omp& firstprivate(n, kmaxe, hllsw_lo, hllsw_hi) &
+!$omp& firstprivate(n, kmaxe, nd, hllsw_lo, hllsw_hi, rungekutta) &
 !$omp& map(alloc: hllsw_p, hllsw_phalo, ielem_hllsw, ielem_ifca, ielem_ibounds, ibound_icode, ielem_ineighb) &
+!$omp& map(alloc: u_c_val, ielem_dih2) &
 !$omp& map(alloc: ielem_ineigh, rec_ihexn, rec_ihexl, rec_local, ielem_indexi, halo_offset) &
-!$omp& private(i, l, bc, group, row, pi, pj, s)
+!$omp& private(i, l, bc, group, row, pi, pj, s, k, along)
 #else
 !$omp do &
-!$omp& private(i, l, bc, group, row, pi, pj, s)
+!$omp& private(i, l, bc, group, row, pi, pj, s, k, along)
 #endif
       do i = 1, kmaxe
          pi = hllsw_p(i)
@@ -3145,11 +3150,19 @@ contains
                row = halo_offset(group) + rec_ihexl(i, 1, ielem_indexi(i, l)) - 1
                pj = hllsw_phalo(row)
             end if
-            if (min(pi, pj) > 0.0e0) then
-               s = max(s, abs(pi - pj) / min(pi, pj))
-            else
+            if (min(pi, pj) <= 0.0e0) then
                s = huge(1.0e0)
+               cycle
             end if
+            if (rungekutta .ge. 2) then
+               ! ielem_dih2 is only filled for rungekutta >= 2; otherwise every jump is counted
+               along = 0.0e0
+               do k = 1, nd
+                  along = along + u_c_val(i, 1, k + 1) * ielem_dih2(i, l, k)
+               end do
+               if ((pj - pi) * along <= 0.0e0) cycle   ! pressure falls along the flow: expansion, not a shock
+            end if
+            s = max(s, abs(pi - pj) / min(pi, pj))
          end do
          ielem_hllsw(i) = min(1.0e0, max(0.0e0, (s - hllsw_lo) / (hllsw_hi - hllsw_lo)))
       end do

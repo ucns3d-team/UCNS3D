@@ -1845,6 +1845,81 @@ contains
 
 
 
+   subroutine viscous_consistent_jump(n, i, l, b_code, nd, avg, nrm, term, ok)
+!> @brief
+!> Consistent jump (alpha-damping) term of the viscous face gradient, visc_jump_mode = 1:
+!>    term = alpha * (d.n)/|d|^2 * [ (phi_N - phi_P) - avg . d ] * n,   alpha = 4/3 inside, 1 at walls
+!> phi are the cell values of velocity, temperature(s) and species (cons2div), avg is the average of the two
+!> unlimited cell gradients at the face (rec_uleftv), d = x_N - x_P and n the face normal. The bracket is zero
+!> for any linear field, so the term only acts on cell-to-cell decoupling and never sees the limiter or the
+!> order of the convective reconstruction.
+!> Walls (b_code 4), only with visc_jump_wall = 1 (default 0: no term at walls, the wall face then uses the cell
+!> gradient, which is also what the wall heat-flux and shear output use): phi_N is the mirror of the cell value about the wall value (zero no-slip velocity, wall
+!> temperature when isothermal, unchanged otherwise) and d is twice the centre-to-face vector. With alpha = 1 the
+!> wall-normal gradient is exactly the two-point value 2*(phi_wall - phi_P)/|d|; alpha = 4/3 there is a third stiffer
+!> than the implicit viscous Jacobian assumes and destabilised very stretched wall cells at CFL 4.
+!> ok = .false. (no term) for other physical boundaries, moving/rotating frames and rotated periodic faces.
+      implicit none
+#ifdef xpu
+!$omp declare target
+#endif
+      integer, intent(in) :: n, i, l, b_code, nd
+      real, intent(in) :: avg(1:gpu_max_nvar, 1:gpu_max_dim), nrm(1:gpu_max_dim)
+      real, intent(out) :: term(1:gpu_max_nvar, 1:gpu_max_dim)
+      logical, intent(out) :: ok
+      real :: ql(gpu_max_nvar), qr(gpu_max_nvar), d(gpu_max_dim), pinf, gm, dn, dd, jump, alpha
+      integer :: k, group, row, temp_hi, bc
+
+      ok = .false.; term = zero
+      ! ielem_dih2 (always allocated) is only filled for rungekutta >= 2; no allocation query on the device
+      if (rungekutta .lt. 2) return
+      if (rec_mrf(i) .eq. 1) return
+      ql(1:nof_variables) = u_c_val(i, 1, 1:nof_variables)
+      call cons2div(n, ql(1:nof_variables), pinf, gm)
+      d = zero
+      alpha = 4.0e0 / 3.0e0
+      if (b_code .gt. 0) then
+         if ((b_code .ne. 4) .or. (visc_jump_wall .ne. 1)) return
+         alpha = 1.0e0
+         qr(1:nof_variables) = ql(1:nof_variables)
+         qr(2:nd + 1) = -ql(2:nd + 1)
+         if (thermal .eq. 1) then
+            temp_hi = nof_variables - 1
+            if ((multispecies .eq. 1) .or. (realgas .eq. 1)) temp_hi = nof_variables - nof_species - 1
+            qr(nd + 2:temp_hi + 1) = 2.0e0 * wall_temp - ql(nd + 2:temp_hi + 1)
+         end if
+         d(1:nd) = 2.0e0 * ielem_dih2(i, l, 1:nd)
+      else
+         if (ielem_interior(i) .eq. 0) then
+            ! interior cell: every neighbour is on this process (as in checksol_neighbour_rejected)
+            qr(1:nof_variables) = u_c_val(ielem_ineigh(i, l), 1, 1:nof_variables)
+         else
+         bc = 0
+         if (ielem_ibounds(i, l) .gt. 0) bc = ibound_icode(ielem_ibounds(i, l))
+         if ((bc .eq. 50) .and. (per_rot .eq. 1)) return
+         if (ielem_ineighb(i, l) .eq. n) then
+            qr(1:nof_variables) = u_c_val(ielem_ineigh(i, l), 1, 1:nof_variables)
+         else
+            group = rec_ihexn(rec_local(i), 1, ielem_indexi(i, l))
+            row = halo_offset(group) + rec_ihexl(i, 1, ielem_indexi(i, l)) - 1
+            qr(1:nof_variables) = solhir(row, 1:nof_variables)
+         end if
+         end if
+         call cons2div(n, qr(1:nof_variables), pinf, gm)
+         d(1:nd) = ielem_dih2(i, l, 1:nd)
+      end if
+      ! scale = (d.n)/|d|^2: equal to 1/|d.n| on orthogonal cells, but bounded by 1/|d| on skewed ones
+      ! (1/|d.n| grows without limit with skewness and made skewed cells, e.g. at a sharp tip, unstable)
+      dn = abs(sum(d(1:nd) * nrm(1:nd)))
+      dd = sum(d(1:nd)**2)
+      if ((dn .le. 1.0e-300) .or. (dd .le. 1.0e-300)) return
+      do k = 1, nof_variables - 1
+         jump = (qr(k + 1) - ql(k + 1)) - sum(avg(k, 1:nd) * d(1:nd))
+         term(k, 1:nd) = alpha * (dn / dd) * jump * nrm(1:nd)
+      end do
+      ok = .true.
+   end subroutine viscous_consistent_jump
+
    subroutine calculate_fluxeshi_diffusive(n)
       implicit none
       integer, intent(in) :: n
@@ -1888,7 +1963,10 @@ contains
 !$omp& map(alloc: mp_tlow_in, mp_tmid_in, rec_qpoints, rec_rotvel, rec_uleft, rec_uleft_dg, rec_uleftturb) &
 !$omp& map(alloc: rec_uleftturbv, rec_uleftv, rec_volume, rg_hzero, rg_thetag, rgs_ab, rgs_bb, rgs_cb, rgs_eps_over_k) &
 !$omp& map(alloc: rgs_mg, rgs_sigmaa, rhs_valdg, u_ct_val) &
-!$omp& map(alloc: sst_halo_wall, ibound_icode, ielem_ibounds, ielem_ineighb, ielem_indexi, rec_local, rec_ihexn, rec_ihexl, halo_offset, u_c_val)
+!$omp& map(alloc: sst_halo_wall, ibound_icode, ielem_ibounds, ielem_ineighb, ielem_indexi, rec_local, rec_ihexn, rec_ihexl, halo_offset, u_c_val) &
+!$omp& firstprivate(visc_jump_mode, thermal, wall_temp, per_rot) &
+!$omp& map(alloc: ielem_dih2, solhir) &
+!$omp& map(alloc: ielem_interior)
 #else
 !$omp do &
 !$omp& private(angle1, angle2, b_code, damp) &
@@ -2044,12 +2122,33 @@ contains
                      end do
                   END IF
 
+                  if ((visc_jump_mode .eq. 1) .and. (br2_yn .ne. 2)) then
+                     ! consistent jump term: cell values and the averaged unlimited gradients (also at walls)
+                     block
+                        real, dimension(1:gpu_max_nvar, 1:gpu_max_dim) :: jterm
+                        real, dimension(1:gpu_max_dim) :: jnrm
+                        logical :: jok
+                        do k = 1, nof_variables - 1
+                           lcvgrad(k, 1:3) = (lcvgrad(k, 1:3) + rcvgrad(k, 1:3)) / (2.00)
+                        end do
+                        jnrm = zero; jnrm(1:3) = nall(1:3)
+                        ! interior cells have no physical boundary face; b_code is not set in this loop, so pass 0 explicitly
+                        call viscous_consistent_jump(n, i, l, 0, 3, lcvgrad, jnrm, jterm, jok)
+                        if (jok) then
+                           do k = 1, nof_variables - 1
+                              lcvgrad(k, 1:3) = lcvgrad(k, 1:3) + jterm(k, 1:3)
+                           end do
+                        end if
+                     end block
+                  else
+                  if (visc_jump_mode .ne. 2) damp = zero ! 0: plain average; 2: legacy lamx-based jump
                   do k = 1, nof_variables - 1
                      do iv = 1, 3
                         lcvgrad(k, iv) = ((lcvgrad(k, iv) + rcvgrad(k, iv)) / (2.00)) + damp * ((vdamp / abs(ielem_dih(i, &
                            & l))) * nall(iv) * (rightv(k + 1) - leftv(k + 1)))
                      end do
                   end do
+                  end if
 
                !now compute all the temperature gradients +real gas
                   if ((realgas .eq. 1) .or. (multispecies .eq. 1)) then
@@ -2372,7 +2471,10 @@ contains
 !$omp& map(alloc: mp_tlow_in, mp_tmid_in, rec_qpoints, rec_rotvel, rec_uleft, rec_uleft_dg, rec_uleftturb) &
 !$omp& map(alloc: rec_uleftturbv, rec_uleftv, rec_volume, rg_hzero, rg_thetag, rg_vf, rgs_ab, rgs_bb, rgs_cb) &
 !$omp& map(alloc: rgs_eps_over_k, rgs_mg, rgs_sigmaa, rhs_valdg, u_ct_val) &
-!$omp& map(alloc: sst_halo_wall, ielem_indexi, rec_local, rec_ihexn, rec_ihexl, halo_offset, u_c_val)
+!$omp& map(alloc: sst_halo_wall, ielem_indexi, rec_local, rec_ihexn, rec_ihexl, halo_offset, u_c_val) &
+!$omp& firstprivate(visc_jump_mode, thermal, wall_temp, per_rot) &
+!$omp& map(alloc: ielem_dih2, solhir) &
+!$omp& map(alloc: ielem_interior)
 #else
 !$omp do &
 !$omp& private(angle1, angle2, b_code, damp) &
@@ -2550,12 +2652,32 @@ contains
                      end do
                   end if
 
+                  if ((visc_jump_mode .eq. 1) .and. (br2_yn .ne. 2)) then
+                     ! consistent jump term: cell values and the averaged unlimited gradients (also at walls)
+                     block
+                        real, dimension(1:gpu_max_nvar, 1:gpu_max_dim) :: jterm
+                        real, dimension(1:gpu_max_dim) :: jnrm
+                        logical :: jok
+                        do k = 1, nof_variables - 1
+                           lcvgrad(k, 1:3) = (lcvgrad(k, 1:3) + rcvgrad(k, 1:3)) / (2.00)
+                        end do
+                        jnrm = zero; jnrm(1:3) = nall(1:3)
+                        call viscous_consistent_jump(n, i, l, b_code, 3, lcvgrad, jnrm, jterm, jok)
+                        if (jok) then
+                           do k = 1, nof_variables - 1
+                              lcvgrad(k, 1:3) = lcvgrad(k, 1:3) + jterm(k, 1:3)
+                           end do
+                        end if
+                     end block
+                  else
+                  if (visc_jump_mode .ne. 2) damp = zero ! 0: plain average; 2: legacy lamx-based jump
                   do k = 1, nof_variables - 1
                      do iv = 1, 3
                         lcvgrad(k, iv) = ((lcvgrad(k, iv) + rcvgrad(k, iv)) / (2.00)) + damp * ((vdamp / abs(ielem_dih(i, &
                            & l))) * nall(iv) * (rightv(k + 1) - leftv(k + 1)))
                      end do
                   end do
+                  end if
 
                   icompute = 0
 
@@ -2918,7 +3040,10 @@ contains
 !$omp& map(alloc: rec_uleftturbv, rec_uleftv, rec_volume, rg_hzero, rg_thetag, rgs_ab, rgs_bb, rgs_cb, rgs_eps_over_k) &
 !$omp& map(alloc: rgs_mg, rgs_sigmaa, rhs_valdg, u_ct_val) &
 !$omp& map(alloc: sst_halo_wall, ibound_icode, ielem_ibounds, ielem_ineighb, ielem_indexi, rec_local, rec_ihexn, rec_ihexl, halo_offset, u_c_val) &
-!$omp& map(alloc: axis_face_radius)
+!$omp& map(alloc: axis_face_radius) &
+!$omp& firstprivate(visc_jump_mode, thermal, wall_temp, per_rot) &
+!$omp& map(alloc: ielem_dih2, solhir) &
+!$omp& map(alloc: ielem_interior)
 #else
 !$omp do &
 !$omp& private(angle1, angle2, b_code, damp) &
@@ -3081,10 +3206,31 @@ contains
                      end do
                   end if
 
+                  if ((visc_jump_mode .eq. 1) .and. (br2_yn .ne. 2)) then
+                     ! consistent jump term: cell values and the averaged unlimited gradients (also at walls)
+                     block
+                        real, dimension(1:gpu_max_nvar, 1:gpu_max_dim) :: jterm
+                        real, dimension(1:gpu_max_dim) :: jnrm
+                        logical :: jok
+                        do k = 1, nof_variables - 1
+                           lcvgrad(k, 1:2) = (lcvgrad(k, 1:2) + rcvgrad(k, 1:2)) / (2.00)
+                        end do
+                        jnrm = zero; jnrm(1:2) = nall(1:2)
+                        ! interior cells have no physical boundary face; b_code is not set in this loop, so pass 0 explicitly
+                        call viscous_consistent_jump(n, i, l, 0, 2, lcvgrad, jnrm, jterm, jok)
+                        if (jok) then
+                           do k = 1, nof_variables - 1
+                              lcvgrad(k, 1:2) = lcvgrad(k, 1:2) + jterm(k, 1:2)
+                           end do
+                        end if
+                     end block
+                  else
+                  if (visc_jump_mode .ne. 2) damp = zero ! 0: plain average; 2: legacy lamx-based jump
                   do k = 1, nof_variables - 1
                      lcvgrad(k, 1:2) = ((lcvgrad(k, 1:2) + rcvgrad(k, 1:2)) / (2.00)) + damp * ((vdamp / abs(ielem_dih(i, &
                         & l))) * nall(1:2) * (rightv(k + 1) - leftv(k + 1)))
                   end do
+                  end if
 
                !now compute all the temperature gradients +real gas
                   if ((realgas .eq. 1) .or. (multispecies .eq. 1)) then
@@ -3441,7 +3587,10 @@ contains
 !$omp& map(alloc: rg_hzero, rg_thetag, rg_vf, rgs_ab, rgs_bb, rgs_cb, rgs_eps_over_k, rgs_mg, rgs_sigmaa, rhs_valdg) &
 !$omp& map(alloc: u_ct_val) &
 !$omp& map(alloc: sst_halo_wall, ielem_indexi, rec_local, rec_ihexn, rec_ihexl, halo_offset, u_c_val) &
-!$omp& map(alloc: axis_face, axis_face_radius, rec_mrf)
+!$omp& map(alloc: axis_face, axis_face_radius, rec_mrf) &
+!$omp& firstprivate(visc_jump_mode, thermal, wall_temp, per_rot) &
+!$omp& map(alloc: ielem_dih2, solhir) &
+!$omp& map(alloc: ielem_interior)
 #else
 !$omp do &
 !$omp& private(angle1, angle2, b_code, damp) &
@@ -3625,10 +3774,30 @@ contains
                      end do
                   end if
 
+                  if ((visc_jump_mode .eq. 1) .and. (br2_yn .ne. 2)) then
+                     ! consistent jump term: cell values and the averaged unlimited gradients (also at walls)
+                     block
+                        real, dimension(1:gpu_max_nvar, 1:gpu_max_dim) :: jterm
+                        real, dimension(1:gpu_max_dim) :: jnrm
+                        logical :: jok
+                        do k = 1, nof_variables - 1
+                           lcvgrad(k, 1:2) = (lcvgrad(k, 1:2) + rcvgrad(k, 1:2)) / (2.00)
+                        end do
+                        jnrm = zero; jnrm(1:2) = nall(1:2)
+                        call viscous_consistent_jump(n, i, l, b_code, 2, lcvgrad, jnrm, jterm, jok)
+                        if (jok) then
+                           do k = 1, nof_variables - 1
+                              lcvgrad(k, 1:2) = lcvgrad(k, 1:2) + jterm(k, 1:2)
+                           end do
+                        end if
+                     end block
+                  else
+                  if (visc_jump_mode .ne. 2) damp = zero ! 0: plain average; 2: legacy lamx-based jump
                   do k = 1, nof_variables - 1
                      lcvgrad(k, 1:2) = ((lcvgrad(k, 1:2) + rcvgrad(k, 1:2)) / (2.00)) + damp * ((vdamp / abs(ielem_dih(i, &
                         & l))) * nall(1:2) * (rightv(k + 1) - leftv(k + 1)))
                   end do
+                  end if
 
                   icompute = 0
 

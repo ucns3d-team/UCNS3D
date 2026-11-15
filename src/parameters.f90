@@ -605,6 +605,7 @@ contains
 
       grid_curvature_limit = -1.0 ! retain existing AR-only behaviour outside profiles 0/888
       gg_correction = 0 ! legacy arithmetic-mean Green-Gauss face values outside the profiles that set it
+      visc_jump_mode = 1 ! viscous face-gradient jump term, every profile: 0 = none, 1 = consistent (default), 2 = legacy lamx-based
       checksol_extra = 0 ! checksol/checksolx: density and pressure jump only outside the profiles that set it
       checksol_ratio = 2.0
 
@@ -642,6 +643,10 @@ contains
          ! 0 = arithmetic mean (legacy) | 1 = geometric weights from ielem_dih2 (stretched/unequal cells)
          ! 2 = 1 + one non-orthogonal (skewness) correction pass | 3 = 1 + two correction passes
          gg_correction = 3
+         ! viscous face-gradient jump term: 0 = none | 1 = consistent (cell values minus averaged unlimited
+         ! gradient . centre vector; at walls only with visc_jump_wall = 1; independent of lamx) | 2 = legacy
+         ! (lamx * jump of the limited convective face states, none at walls)
+         visc_jump_mode = 1
          ! extra ideal-gas tests in checksol/checksolx (cpu and gpu): 0 = density and pressure jump only (legacy)
          ! 1 = + temperature jump of the reconstructed face value against the cell mean (same jump_cond)
          ! 2 = 1 + cell rejected when its mean density, pressure or temperature differs from a face
