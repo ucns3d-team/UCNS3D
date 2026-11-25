@@ -1,0 +1,15 @@
+#!MC 1410
+$!ALTERDATA 
+  EQUATION = '{px} = -{Pressure} * {X Grid K Unit Normal}'
+$!ALTERDATA 
+  EQUATION = '{py} = -{Pressure} * {Y Grid K Unit Normal}'
+$!ALTERDATA 
+  EQUATION = '{pz} = -{Pressure} * {Z Grid K Unit Normal}'
+$!ALTERDATA 
+  EQUATION = '{mx} = Y * {pz} - Z * {py}'
+$!ALTERDATA 
+  EQUATION = '{my} = Z * {px} - X * {pz}'
+$!ALTERDATA 
+  EQUATION = '{mz} = X * {py} - Y * {px}'
+$!ALTERDATA 
+  EQUATION = '{test}=Y*{px}'
