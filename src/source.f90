@@ -2442,8 +2442,9 @@ contains
 
          call eddyvisco(n, viscl, laml, turbmv, etvm, eddyfl, eddyfr, leftv, rightv)
          k_0 = (max(verysmall, u_ct_val(i, 1, 1) / leftv(1))) !first subindex makes reference to the time-stepping
-         om_0 = max(1.0e-6, u_ct_val(i, 1, 2) / leftv(1))
          wally = max(ielem_walldist(i),1.0e-15)
+         ! physical omega bound (see sst_omega_floor), not the absolute 1e-6 floor
+         om_0 = max(sst_omega_floor(leftv(1), viscl(1), wally), u_ct_val(i, 1, 2) / leftv(1))
 
          !calculate here k and omega gradients
          omx = rec_grads(i, nof_variables + 1, 1)
@@ -2539,9 +2540,15 @@ contains
          !filling the output vector
          source_t(1) = srcfull_k
          source_t(2) = srcfull_om
-         ! Prescribed trip: use the same full-source activation as SA.
-         ! This scales k and omega production, destruction and cross diffusion.
-         source_t(1:2) = transition_source_factor(i) * source_t(1:2)
+         ! Prescribed trip (Langtry-Menter style intermittency, gamma = trip factor):
+         ! k production is scaled by gamma and k destruction by max(gamma,0.1);
+         ! the omega equation is left unchanged. Scaling the whole omega source
+         ! removed near-wall omega destruction upstream of the trip, so wall cells
+         ! carried an unbalanced omega that collapsed to the floor at a step trip.
+         if (transition_model .eq. 1) then
+            source_t(1) = transition_source_factor(i) * prod_k &
+               & - max(transition_source_factor(i), 0.1) * ydest_k
+         end if
 
       end select
 
@@ -2559,8 +2566,8 @@ contains
       q(1:nof_variables) = u_c_val(i,1,1:nof_variables)
       rho = max(q(1),1.0e-30)
       kin = max(u_ct_val(i,1,1)/rho,1.0e-15)
-      omega = max(u_ct_val(i,1,2)/rho,1.0e-6)
       call molecular_transport(n, q, mu, conductivity)
+      omega = max(u_ct_val(i,1,2)/rho, sst_omega_floor(rho, mu, ielem_walldist(i)))
       cross = 0.0
       do d=1,nd
          cross = cross + rec_grads(i,nof_variables,d)*rec_grads(i,nof_variables+1,d)
@@ -2577,8 +2584,8 @@ contains
       diagonal(1) = -factor*beta_starinf*omega
       diagonal(2) = -2.0*beta_sst*omega
       ! The trip is prescribed geometry, so its factor is frozen in the Jacobian.
-      ! Match the SST residual; upstream cells must receive no source damping.
-      diagonal = transition_source_factor(i) * diagonal
+      ! Match the SST residual: only k destruction is scaled, by max(gamma,0.1).
+      if (transition_model .eq. 1) diagonal(1) = max(transition_source_factor(i), 0.1) * diagonal(1)
    end subroutine sst_destruction_diagonal
 
    subroutine sources_derivatives(n, iconsidered, source_t)
@@ -2971,8 +2978,9 @@ contains
 
          call eddyvisco2d(n, viscl, laml, turbmv, etvm, eddyfl, eddyfr, leftv, rightv)
          k_0 = (max(verysmall, u_ct_val(i, 1, 1) / leftv(1))) !first subindex makes reference to the time-stepping
-         om_0 = max(1.0e-6, u_ct_val(i, 1, 2) / leftv(1))
          wally = max(ielem_walldist(i),1.0e-15)
+         ! physical omega bound (see sst_omega_floor), not the absolute 1e-6 floor
+         om_0 = max(sst_omega_floor(leftv(1), viscl(1), wally), u_ct_val(i, 1, 2) / leftv(1))
 
          !calculate here k and omega gradients
          omx = rec_grads(i, nof_variables + 1, 1)
@@ -3066,9 +3074,15 @@ contains
          !filling the output vector
          source_t(1) = srcfull_k
          source_t(2) = srcfull_om
-         ! Prescribed trip: use the same full-source activation as SA.
-         ! This scales k and omega production, destruction and cross diffusion.
-         source_t(1:2) = transition_source_factor(i) * source_t(1:2)
+         ! Prescribed trip (Langtry-Menter style intermittency, gamma = trip factor):
+         ! k production is scaled by gamma and k destruction by max(gamma,0.1);
+         ! the omega equation is left unchanged. Scaling the whole omega source
+         ! removed near-wall omega destruction upstream of the trip, so wall cells
+         ! carried an unbalanced omega that collapsed to the floor at a step trip.
+         if (transition_model .eq. 1) then
+            source_t(1) = transition_source_factor(i) * prod_k &
+               & - max(transition_source_factor(i), 0.1) * ydest_k
+         end if
 
       end select
 

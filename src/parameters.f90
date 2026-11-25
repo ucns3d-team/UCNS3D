@@ -66,7 +66,7 @@ contains
       real :: angledum, mach_aux1, mach_aux2
       character(48) :: stamp1, frame
       character(len=256) :: mach_line, outlet_file
-      logical :: here1, here2, here3, here5, here, here4, here7, here8, here9, bleedio, here10, here11
+      logical :: here1, here2, here3, here5, here, here4, here7, here8, here9, bleedio, here10, here11, here12
       character(len=8) :: date_w
       character(len=10) :: time_w
 
@@ -308,6 +308,20 @@ contains
          close (17)
       else
          mood = 0
+      end if
+
+      ! hybrid scheme (spatial scheme option 4): V11.2.3 file format
+      hybrid_type = -1
+      hybrid_par1 = 0.0; hybrid_par2 = 0.0; hybrid_par3 = 0.0; hybrid_par4 = 0.0
+      inquire (file='HYBRID_SCHEME.DAT', exist=here12)
+      if (here12) then
+         open (122, file='HYBRID_SCHEME.DAT', form='formatted', status='old', action='read')
+         read (122, *)
+         read (122, *)
+         read (122, *) hybrid_type
+         read (122, *) hybrid_par1, hybrid_par2
+         read (122, *) hybrid_par3, hybrid_par4
+         close (122)
       end if
 
       inquire (file='INDICATOR.DAT', exist=here4)
@@ -590,8 +604,8 @@ contains
       eta2_sas = 3.51 ! 3.51                                        ||eta2_sas (sas)
       sigma_phi = 0.666666667 ! 0.666666667                                ||sigma_phi (sas)
       c_sas = 2.0 ! 2.0                                        ||c_sas   (sas)
-      l_turb_inlet = 0.0026 ! positive: intensity/length scale; <=0: use init_mu_ratio; 0.0026                                        ||l_turb_inlet (default turbulence lengthscale)
-      i_turb_inlet = 0.1 ! 0.1                                        ||i_turb_inlet (default turbulene intensity)
+      l_turb_inlet = -1 ! positive: intensity/length scale; <=0: use init_mu_ratio; 0.0026                                        ||l_turb_inlet (default turbulence lengthscale)
+      i_turb_inlet = 0.01 ! 0.1                                       ||i_turb_inlet (default turbulene intensity)
       ! 0.01                                        ||init_mu_ratio        (default initial ratio for turbulent viscosity)
       init_mu_ratio = 0.01
       c_des_sst = 0.61 ! 0.61                                        ||c_des_sst
@@ -627,7 +641,7 @@ contains
             iadapt = 1
          end if
          icompact = 0 !compact stencil mode(0 not true,1 true)
-         extf = 3 !stencils stability values from 1.2 to 3 (default 2)
+         extf = 2 !stencils stability values from 1.2 to 3 (default 2)
          weight_lsqr = 0 !weighted least squares(0 not true,1 true)
          guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
          fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
@@ -684,7 +698,7 @@ contains
             iadapt = 1
          end if
          icompact = 0 !compact stencil mode(0 not true,1 true)
-         extf = 3 !stencils stability values from 1.2 to 3 (default 2)
+         extf = 2 !stencils stability values from 1.2 to 3 (default 2)
          weight_lsqr = 0 !weighted least squares(0 not true,1 true)
          guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
          fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
@@ -728,30 +742,39 @@ contains
             iadapt = 1
          end if
          icompact = 0 !compact stencil mode(0 not true,1 true)
-         extf = 3 !stencils stability values from 1.2 to 3 (default 2)
+         extf = 2 !stencils stability values from 1.2 to 3 (default 2)
          weight_lsqr = 0 !weighted least squares(0 not true,1 true)
          guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
          fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
          relax = 1 !relaxation parameter : |1:block jacobi |2: lu-sgs
-         cflmax = 30 !cflmax:to be used with ramping
+         ! Numerics identical to profile 888; only turbulencemodel differs (SST here, SA in 888).
+         cflmax = 2 !cflmax:to be used with ramping
          cflramp = 0 !cfl ramping: |0: deactivated |1:activated
          ! Mesh partitioning: option 6, 64-bit ParMETIS only.
          emetis = 6
          itold = 10000 !tolerance=n_iterations
-         gridar1 = 10000.0 ! greengo=0: switch viscous LS to GG when max/min centre-to-face distance exceeds this
-         gridar2 = 10000 ! limit volume cells
-         grid_curvature_limit = 1.0 ! 3D nonperiodic layered hex/prism criterion; strict greater-than
-         fastest = 0 ! 0     ||fastest, no coordinate mapping (1: engaged,0:with transformation)
+         gridar1 = 100000.0 ! greengo=0: viscous GG when face-distance AR > this OR curvature Gamma > limit
+         grid_curvature_limit = -1.0 ! 3D nonperiodic layered hex/prism criterion; strict greater-than
+         ! Green-Gauss face values: 3 = geometric weights + two non-orthogonal correction passes (as 888)
+         gg_correction = 3
+         ! viscous face-gradient jump term: 1 = consistent (as 888)
+         visc_jump_mode = 1
+         ! extra ideal-gas checksol tests (as 888)
+         checksol_extra = 2
+         checksol_ratio = 2.0
+         gridar2 = 10000000 ! limit volume cells
+         fastest = 0 ! 0                                       ||fastest, no coordinate mapping (1: engaged,0:with transformation)
          !0                        ||low mach treatment (1 activate, 0 disable),lmach_style(0=only normal component,1=all components)
          lmach_style = 0
          lamx = 1.00; lamy = 1.00; lamz = 1.00 !linear advection coefficients (lamx, lamy,lamz)
-         rot_corr = 0 !steady Spalart-Shur SA-noft2-RC (0=off, 1=legacy SA-R)
+         rot_corr = 0
 
          if (iboundary .eq. 1) then
             lowmem = 1
          end if
 
          des_model = 0
+
           if (rungekutta.eq.11)des_model=1
 
       case (199)
@@ -770,7 +793,7 @@ contains
             iadapt = 1
          end if
          icompact = 0 !compact stencil mode(0 not true,1 true)
-         extf = 3 !stencils stability values from 1.2 to 3 (default 2)
+         extf = 2 !stencils stability values from 1.2 to 3 (default 2)
          weight_lsqr = 0 !weighted least squares(0 not true,1 true)
          guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
          fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
@@ -808,7 +831,7 @@ contains
          iadapt = 0 !adaptive numerical scheme (0 not true,1 true)
          if (initcond .eq. 405) iadapt = 1
          icompact = 0 !compact stencil mode(0 not true,1 true)
-         extf = 3 !stencils stability values from 1.2 to 3 (default 2)
+         extf = 2 !stencils stability values from 1.2 to 3 (default 2)
          weight_lsqr = 0 !weighted least squares(0 not true,1 true)
          guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
          fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
@@ -845,7 +868,7 @@ contains
          iadapt = 0 !adaptive numerical scheme (0 not true,1 true)
          if (initcond .eq. 405) iadapt = 1
          icompact = 0 !compact stencil mode(0 not true,1 true)
-         extf = 3 !stencils stability values from 1.2 to 3 (default 2)
+         extf = 2 !stencils stability values from 1.2 to 3 (default 2)
          weight_lsqr = 0 !weighted least squares(0 not true,1 true)
          guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
          fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
@@ -919,7 +942,7 @@ contains
          iadapt = 0 !adaptive numerical scheme (0 not true,1 true)
          if (initcond .eq. 405) iadapt = 1
          icompact = 0 !compact stencil mode(0 not true,1 true)
-         extf = 3 !stencils stability values from 1.2 to 3 (default 2)
+         extf = 2 !stencils stability values from 1.2 to 3 (default 2)
          weight_lsqr = 0 !weighted least squares(0 not true,1 true)
          guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
          fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
@@ -958,7 +981,7 @@ contains
          iadapt = 0 !adaptive numerical scheme (0 not true,1 true)
          if (initcond .eq. 405) iadapt = 1
          icompact = 0 !compact stencil mode(0 not true,1 true)
-         extf = 3 !stencils stability values from 1.2 to 3 (default 2)
+         extf = 2 !stencils stability values from 1.2 to 3 (default 2)
          weight_lsqr = 0 !weighted least squares(0 not true,1 true)
          guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
          fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
@@ -1036,7 +1059,7 @@ contains
          iadapt = 0 !adaptive numerical scheme (0 not true,1 true)
          if (initcond .eq. 405) iadapt = 1
          icompact = 0 !compact stencil mode(0 not true,1 true)
-         extf = 3 !stencils stability values from 1.2 to 3 (default 2)
+         extf = 2 !stencils stability values from 1.2 to 3 (default 2)
          weight_lsqr = 0 !weighted least squares(0 not true,1 true)
          guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
          fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
@@ -1073,7 +1096,7 @@ contains
          iadapt = 1 !adaptive numerical scheme (0 not true,1 true)
          if (initcond .eq. 405) iadapt = 1
          icompact = 0 !compact stencil mode(0 not true,1 true)
-         extf = 3 !stencils stability values from 1.2 to 3 (default 2)
+         extf = 2 !stencils stability values from 1.2 to 3 (default 2)
          weight_lsqr = 0 !weighted least squares(0 not true,1 true)
          guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
          fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
@@ -1110,7 +1133,7 @@ contains
          iadapt = 0 !adaptive numerical scheme (0 not true,1 true)
          if (initcond .eq. 405) iadapt = 1
          icompact = 0 !compact stencil mode(0 not true,1 true)
-         extf = 3 !stencils stability values from 1.2 to 3 (default 2)
+         extf = 2 !stencils stability values from 1.2 to 3 (default 2)
          weight_lsqr = 0 !weighted least squares(0 not true,1 true)
          guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
          fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
@@ -1146,7 +1169,7 @@ contains
          swirl = 0 !swirling flow:0 deactivated, 1 activated
          iadapt = 0 !adaptive numerical scheme (0 not true,1 true)
          icompact = 0 !compact stencil mode(0 not true,1 true)
-         extf = 3 !stencils stability values from 1.2 to 3 (default 2)
+         extf = 2 !stencils stability values from 1.2 to 3 (default 2)
          weight_lsqr = 0 !weighted least squares(0 not true,1 true)
          guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
          fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
@@ -1182,7 +1205,7 @@ contains
          swirl = 0 !swirling flow:0 deactivated, 1 activated
          iadapt = 0 !adaptive numerical scheme (0 not true,1 true)
          icompact = 0 !compact stencil mode(0 not true,1 true)
-         extf = 3 !stencils stability values from 1.2 to 3 (default 2)
+         extf = 2 !stencils stability values from 1.2 to 3 (default 2)
          weight_lsqr = 0 !weighted least squares(0 not true,1 true)
          guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
          fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
@@ -1218,7 +1241,7 @@ contains
          iadapt = 0 !adaptive numerical scheme (0 not true,1 true)
          if (initcond .eq. 101) iadapt = 1
          icompact = 0 !compact stencil mode(0 not true,1 true)
-         extf = 3 !stencils stability values from 1.2 to 3 (default 2)
+         extf = 2 !stencils stability values from 1.2 to 3 (default 2)
          weight_lsqr = 0 !weighted least squares(0 not true,1 true)
          guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
          fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
@@ -1342,7 +1365,7 @@ contains
          iadapt = 0 !adaptive numerical scheme (0 not true,1 true)
          if (initcond .eq. 101) iadapt = 1
          icompact = 0 !compact stencil mode(0 not true,1 true)
-         extf = 3 !stencils stability values from 1.2 to 3 (default 2)
+         extf = 2 !stencils stability values from 1.2 to 3 (default 2)
          weight_lsqr = 0 !weighted least squares(0 not true,1 true)
          guassianquadra = 0 !gaussian quadrature rule (1,2,5,6), default 0 will use the appropriate number
          fastest_q = 1 !store gqp points (1 =yes faster, 0= slower)
@@ -1683,16 +1706,20 @@ contains
          iweno = -1
          wenwrt = wenocnschar
 
-      case (3) !weno type
+      case (3, 4) !weno type (4: hybrid linear/weno/muscl with the same weno stencils)
 
          if (n .eq. 0) then
             open (63, file='history.txt', form='formatted', action='write', position='append')
-            write (63, *) '----weno scheme engaged----'
+            if (spatiladiscret .eq. 4) then
+               write (63, *) '----hybrid weno scheme engaged----'
+            else
+               write (63, *) '----weno scheme engaged----'
+            end if
             close (63)
          end if
 
          iweno = 1
-         iweno = 1
+         if (spatiladiscret .eq. 4) iweno = 2
          iextend = 12;
          if (ees .eq. 5) then
             if (icompact .eq. 1) then
@@ -1965,7 +1992,7 @@ contains
          end if
       end if
 
-      valid_scheme = (spatiladiscret .ge. 1) .and. (spatiladiscret .le. 3)
+      valid_scheme = (spatiladiscret .ge. 1) .and. (spatiladiscret .le. 4)
       valid_poly = (poly .eq. 1) .or. (poly .eq. 2) .or. (poly .eq. 4)
       valid_riemann = (iriemann .eq. 1) .or. (iriemann .eq. 2) .or. (iriemann .eq. 3) .or. &
          & (iriemann .eq. 4) .or. (iriemann .eq. 5) .or. (iriemann .eq. 8) .or. (iriemann .eq. 9) .or. &
@@ -1980,7 +2007,7 @@ contains
          call abort_ucns3d_configuration(n, 'governing equations option is not implemented')
       end if
       if (.not. valid_scheme) then
-         call abort_ucns3d_configuration(n, 'spatial discretisation must be 1(linear), 2(MUSCL), or 3(WENO)')
+         call abort_ucns3d_configuration(n, 'spatial discretisation must be 1(linear), 2(MUSCL), 3(WENO), or 4(hybrid WENO)')
       end if
       if ((spatialorder .lt. 1) .or. (spatialorder .gt. 7)) then
          call abort_ucns3d_configuration(n, 'spatial order must be in the documented range 1..7')
@@ -2025,16 +2052,31 @@ contains
       if ((turbulence .eq. 1) .and. ((turbulencemodel .ne. 1) .and. (turbulencemodel .ne. 2))) then
          call abort_ucns3d_configuration(n, 'turbulence model must be 1(SA) or 2(k-omega SST)')
       end if
-      if ((iweno .ne. -1) .and. (iweno .ne. 0) .and. (iweno .ne. 1)) then
+      if ((iweno .ne. -1) .and. (iweno .ne. 0) .and. (iweno .ne. 1) .and. (iweno .ne. 2)) then
          call abort_ucns3d_configuration(n, 'selected code profile/scheme produces an unsupported reconstruction selector')
       end if
-      if ((iweno .eq. 1) .and. ((wenwrt .lt. 1) .or. (wenwrt .gt. 3))) then
+      if (iweno .eq. 2) then
+         if ((hybrid_type .ne. 0) .and. (hybrid_type .ne. 1)) then
+            call abort_ucns3d_configuration(n, 'hybrid scheme (option 4) requires HYBRID_SCHEME.DAT with HYBRID_TYPE 0 or 1')
+         end if
+         if ((wenwrt .ne. 1) .and. (wenwrt .ne. 2)) then
+            call abort_ucns3d_configuration(n, 'hybrid scheme (option 4) requires conserved(1) or characteristic(2) WENO variables')
+         end if
+         if ((dg .ne. 0) .or. (mood .ne. 0)) then
+            call abort_ucns3d_configuration(n, 'hybrid scheme (option 4) is finite-volume only and cannot be combined with MOOD')
+         end if
+         if ((dimensiona .eq. 3) .and. (hybrid_type .eq. 1) .and. (.not. ((charlength .gt. 0.0) .and. &
+            & (charlength .lt. huge(charlength))))) then
+            call abort_ucns3d_configuration(n, 'hybrid scheme HYBRID_TYPE=1 in 3D requires a finite positive characteristic length')
+         end if
+      end if
+      if (((iweno .eq. 1) .or. (iweno .eq. 2)) .and. ((wenwrt .lt. 1) .or. (wenwrt .gt. 3))) then
          call abort_ucns3d_configuration(n, 'WENO reconstruction variable must be 1(conserved), 2(characteristic), or 3(primitive)')
       end if
       if ((iweno .eq. -1) .and. ((wenwrt .ne. 1) .and. (wenwrt .ne. 3))) then
          call abort_ucns3d_configuration(n, 'MUSCL reconstruction variable must be 1(conserved) or 3(primitive)')
       end if
-      if ((iweno .eq. 1) .and. ((ees .lt. 0) .or. (ees .gt. 5))) then
+      if (((iweno .eq. 1) .or. (iweno .eq. 2)) .and. ((ees .lt. 0) .or. (ees .gt. 5))) then
          call abort_ucns3d_configuration(n, 'WENO stencil option must be in the implemented range 0..5')
       end if
       ! limiter holds the limiter function here; ids 21..31 were reduced by 20 when the file was read
@@ -2134,7 +2176,8 @@ contains
       end if
       xpu_recon_supported = ((dg == 0) .or. (dg == 1)) .and. (poly == 1) .and. (firstorder == 0) .and. &
          & ((iweno .eq. -1) .or. (iweno .eq. 0) .or. &
-         & ((iweno .eq. 1) .and. ((wenwrt .eq. 1) .or. (wenwrt .eq. 3))))
+         & ((iweno .eq. 1) .and. ((wenwrt .eq. 1) .or. (wenwrt .eq. 3))) .or. &
+         & ((iweno .eq. 2) .and. (wenwrt .eq. 1) .and. (dg .eq. 0)))
       if (.not. xpu_recon_supported) then
          call abort_ucns3d_configuration(n, 'selected reconstruction is not supported by the XPU accelerated reconstruction path')
       end if

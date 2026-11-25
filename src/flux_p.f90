@@ -1920,6 +1920,70 @@ contains
       ok = .true.
    end subroutine viscous_consistent_jump
 
+   subroutine sst_consistent_jump(n, i, l, b_code, nd, nrm, gl, gr)
+!> @brief
+!> Consistent jump term for the k and omega face gradients of the SST diffusion flux. The flux used the plain
+!> average of the two cell gradients, which has no coupling between neighbouring cells (odd-even decoupling):
+!> with omega ~ 1/y^2 at a wall this let k and omega alternate between a value and their floor from one cell
+!> to the next. As for the mean flow (viscous_consistent_jump), the face gradient becomes
+!>    avg + alpha * (d.n)/|d|^2 * [ (phi_N - phi_P) - avg . d ] * n,   alpha = 1,
+!> with phi = (k, omega) cell values and d = x_N - x_P; the bracket is zero for a linear field. At no-slip walls
+!> (b_code 4) phi_N is the mirror about the wall value (k_wall = 0, omega_wall = sst_wall_omega) and d is twice
+!> the centre-to-face vector, so the wall-normal gradient is the two-point value 2*(phi_wall - phi_P)/|d|.
+!> gl and gr are both shifted by the term, so their average (used by sst_diffusion_flux) carries it once.
+!> No term at other physical boundaries, in moving frames or on rotated periodic faces.
+      implicit none
+#ifdef xpu
+!$omp declare target
+#endif
+      integer, intent(in) :: n, i, l, b_code, nd
+      real, intent(in) :: nrm(nd)
+      real, intent(inout) :: gl(gpu_max_extra_transport, nd), gr(gpu_max_extra_transport, nd)
+      real :: pl(2), pr(2), d(gpu_max_dim), dn, dd, jump, rhol, rhor
+      real, parameter :: alpha = 1.0e0
+      integer :: v, group, row, bc
+
+      ! ielem_dih2 is only filled for rungekutta >= 2 (see viscous_consistent_jump)
+      if (rungekutta .lt. 2) return
+      if (rec_mrf(i) .eq. 1) return
+      rhol = max(u_c_val(i, 1, 1), 1.0e-30)
+      pl(1:2) = u_ct_val(i, 1, 1:2) / rhol
+      d = zero
+      if (b_code .gt. 0) then
+         if (b_code .ne. 4) return
+         pr(1) = -pl(1)
+         pr(2) = 2.0e0 * sst_wall_omega(n, u_c_val(i, 1, 1:nof_variables), ielem_walldist(i)) - pl(2)
+         d(1:nd) = 2.0e0 * ielem_dih2(i, l, 1:nd)
+      else
+         if (ielem_interior(i) .eq. 0) then
+            rhor = max(u_c_val(ielem_ineigh(i, l), 1, 1), 1.0e-30)
+            pr(1:2) = u_ct_val(ielem_ineigh(i, l), 1, 1:2) / rhor
+         else
+            bc = 0
+            if (ielem_ibounds(i, l) .gt. 0) bc = ibound_icode(ielem_ibounds(i, l))
+            if ((bc .eq. 50) .and. (per_rot .eq. 1)) return
+            if (ielem_ineighb(i, l) .eq. n) then
+               rhor = max(u_c_val(ielem_ineigh(i, l), 1, 1), 1.0e-30)
+               pr(1:2) = u_ct_val(ielem_ineigh(i, l), 1, 1:2) / rhor
+            else
+               group = rec_ihexn(rec_local(i), 1, ielem_indexi(i, l))
+               row = halo_offset(group) + rec_ihexl(i, 1, ielem_indexi(i, l)) - 1
+               rhor = max(solhir(row, 1), 1.0e-30)
+               pr(1:2) = solhir(row, nof_variables + 1:nof_variables + 2) / rhor
+            end if
+         end if
+         d(1:nd) = ielem_dih2(i, l, 1:nd)
+      end if
+      dn = abs(sum(d(1:nd) * nrm(1:nd)))
+      dd = sum(d(1:nd)**2)
+      if ((dn .le. 1.0e-300) .or. (dd .le. 1.0e-300)) return
+      do v = 1, 2
+         jump = (pr(v) - pl(v)) - 0.5e0 * sum((gl(v, 1:nd) + gr(v, 1:nd)) * d(1:nd))
+         gl(v, 1:nd) = gl(v, 1:nd) + alpha * (dn / dd) * jump * nrm(1:nd)
+         gr(v, 1:nd) = gr(v, 1:nd) + alpha * (dn / dd) * jump * nrm(1:nd)
+      end do
+   end subroutine sst_consistent_jump
+
    subroutine calculate_fluxeshi_diffusive(n)
       implicit none
       integer, intent(in) :: n
@@ -2401,8 +2465,14 @@ contains
                         hllcflux(nof_variables+1) = u_c_val(i,1,1)/rho12 * muturb * &
                            sum(0.5*(lcvgrad_t(1,1:3)+rcvgrad_t(1,1:3))*[nx,ny,nz])
                      elseif (turbulence == 1 .and. turbulencemodel == 2) then
-                        call sst_diffusion_flux(3,eddyfl,eddyfr,lcvgrad_t,rcvgrad_t,[nx,ny,nz], &
-                           hllcflux(nof_variables+1:nof_variables+2))
+                        block
+                           ! k, omega face gradients with the consistent jump term (see sst_consistent_jump)
+                           real, dimension(gpu_max_extra_transport, 1:3) :: gtl, gtr
+                           gtl = lcvgrad_t; gtr = rcvgrad_t
+                           call sst_consistent_jump(n, i, l, 0, 3, [nx,ny,nz], gtl, gtr)
+                           call sst_diffusion_flux(3,eddyfl,eddyfr,gtl,gtr,[nx,ny,nz], &
+                              hllcflux(nof_variables+1:nof_variables+2))
+                        end block
                      end if
                      wface = weights_temp(ngp) * ielem_surf(i, l)
                      do iv = 1, nvt
@@ -2950,8 +3020,14 @@ contains
                         hllcflux(nof_variables+1) = u_c_val(i,1,1)/rho12 * muturb * &
                            sum(0.5*(lcvgrad_t(1,1:3)+rcvgrad_t(1,1:3))*[nx,ny,nz])
                      elseif (turbulence == 1 .and. turbulencemodel == 2) then
-                        call sst_diffusion_flux(3,eddyfl,eddyfr,lcvgrad_t,rcvgrad_t,[nx,ny,nz], &
-                           hllcflux(nof_variables+1:nof_variables+2))
+                        block
+                           ! k, omega face gradients with the consistent jump term (see sst_consistent_jump)
+                           real, dimension(gpu_max_extra_transport, 1:3) :: gtl, gtr
+                           gtl = lcvgrad_t; gtr = rcvgrad_t
+                           call sst_consistent_jump(n, i, l, b_code, 3, [nx,ny,nz], gtl, gtr)
+                           call sst_diffusion_flux(3,eddyfl,eddyfr,gtl,gtr,[nx,ny,nz], &
+                              hllcflux(nof_variables+1:nof_variables+2))
+                        end block
                      end if
 
                      if ((b_code .eq. 3)) then
@@ -3517,8 +3593,14 @@ contains
                         hllcflux(nof_variables+1) = u_c_val(i,1,1)/rho12 * muturb * &
                            sum(0.5*(lcvgrad_t(1,1:2)+rcvgrad_t(1,1:2))*[nx,ny])
                      elseif (turbulence == 1 .and. turbulencemodel == 2) then
-                        call sst_diffusion_flux(2,eddyfl,eddyfr,lcvgrad_t,rcvgrad_t,[nx,ny], &
-                           hllcflux(nof_variables+1:nof_variables+2))
+                        block
+                           ! k, omega face gradients with the consistent jump term (see sst_consistent_jump)
+                           real, dimension(gpu_max_extra_transport, 1:gpu_max_dim) :: gtl, gtr
+                           gtl = lcvgrad_t; gtr = rcvgrad_t
+                           call sst_consistent_jump(n, i, l, 0, 2, [nx,ny], gtl, gtr)
+                           call sst_diffusion_flux(2,eddyfl,eddyfr,gtl,gtr,[nx,ny], &
+                              hllcflux(nof_variables+1:nof_variables+2))
+                        end block
                      end if
                      godflux2(nof_variables + 1:nof_variables + turbulenceequations + passivescalar) = godflux2(nof_variables + &
                         & 1:nof_variables + turbulenceequations + passivescalar) + &
@@ -4101,8 +4183,14 @@ contains
                         hllcflux(nof_variables+1) = u_c_val(i,1,1)/rho12 * muturb * &
                            sum(0.5*(lcvgrad_t(1,1:2)+rcvgrad_t(1,1:2))*[nx,ny])
                      elseif (turbulence == 1 .and. turbulencemodel == 2) then
-                        call sst_diffusion_flux(2,eddyfl,eddyfr,lcvgrad_t,rcvgrad_t,[nx,ny], &
-                           hllcflux(nof_variables+1:nof_variables+2))
+                        block
+                           ! k, omega face gradients with the consistent jump term (see sst_consistent_jump)
+                           real, dimension(gpu_max_extra_transport, 1:gpu_max_dim) :: gtl, gtr
+                           gtl = lcvgrad_t; gtr = rcvgrad_t
+                           call sst_consistent_jump(n, i, l, b_code, 2, [nx,ny], gtl, gtr)
+                           call sst_diffusion_flux(2,eddyfl,eddyfr,gtl,gtr,[nx,ny], &
+                              hllcflux(nof_variables+1:nof_variables+2))
+                        end block
                      end if
 
                      if ((b_code .eq. 3)) then

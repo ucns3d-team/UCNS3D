@@ -53,7 +53,10 @@ contains
          elseif (turbulencemodel == 2) then
             ! rho*k/omega bounds SST viscosity without requiring gradients at
             ! the first CFL evaluation. The strain limiter can only reduce it.
-            omega = max(u_ct_val(i, 1, 2) / q(1), 1.0e-6)
+            ! omega is bounded below by the physical sublayer bound (sst_omega_floor), so
+            ! rho*k/omega can no longer reach the 1e7*visc cap in a wall cell and collapse
+            ! its local time step. mu(1) is still the molecular viscosity here.
+            omega = max(u_ct_val(i, 1, 2) / q(1), sst_omega_floor(q(1), mu(1), ielem_walldist(i)))
             mut = max(u_ct_val(i, 1, 1), 0.0e0) / omega
          end if
       end if
@@ -3643,6 +3646,15 @@ contains
 
       end if
 
+      if (recon_current) then
+         ! the tgv diagnostic has already exchanged and reconstructed this same solution
+         !$omp barrier
+         !$omp master
+         recon_current = .false.
+         !$omp end master
+         !$omp barrier
+      else
+
       if (fastest .eq. 1) then
 
          call exchange_lower(n)
@@ -3680,6 +3692,8 @@ contains
       end if
 
       call arbitrary_order(n)
+
+      end if
 !
 ! #ifdef xpu
 !     !$omp target update from(rec_uleft)
@@ -4679,8 +4693,8 @@ contains
 #ifdef xpu
 !$omp target teams distribute parallel do &
 !$omp& private (du, uold, umin, dumax, unew) &
-!$omp& firstprivate(nof_variables, passivescalar, turbulenceequations, kmaxe) &
-!$omp& map(alloc: impdu, u_ct_val) &
+!$omp& firstprivate(nof_variables, passivescalar, turbulenceequations, kmaxe, turbulence, turbulencemodel, n) &
+!$omp& map(alloc: impdu, u_ct_val, u_c_val, ielem_walldist) &
 !$omp& private(i, k)
 #else
          !$omp do &
@@ -4703,8 +4717,21 @@ contains
 
                ! optional relative limiter
                dumax = 0.250 * max(abs(uold), umin)
-               if (du .gt. dumax) du = dumax
-               if (du .lt. -dumax) du = -dumax
+               if ((turbulence .eq. 1) .and. (turbulencemodel .eq. 2) .and. (k .eq. 2)) then
+                  ! SST rho*omega. Floor at rho*1e-6, consistent with the omega>=1e-6
+                  ! floor used by the SST sources, eddy viscosity and time step.
+                  ! Only decreases are capped: with a symmetric 25% cap a cell that
+                  ! reached the floor could grow by only 25% per iteration and stayed
+                  ! trapped there (wall cells downstream of the HIFiRE-1 trip).
+                  ! (updated) the floor is now the physical sublayer bound of sst_omega_floor,
+                  ! rho * 0.5 * 6 nu/(beta_1 d^2): a wall cell can no longer sit at omega ~ 0.
+                  umin = max(u_c_val(i, 1, 1), 1.0e-30) * sst_cell_omega_floor(n, i)
+                  dumax = 0.250 * max(abs(uold), umin)
+                  if (du .lt. -dumax) du = -dumax
+               else
+                  if (du .gt. dumax) du = dumax
+                  if (du .lt. -dumax) du = -dumax
+               end if
 
                unew = uold + du
 
@@ -4935,8 +4962,8 @@ contains
 #ifdef xpu
 !$omp target teams distribute parallel do &
 !$omp& private (du, uold, umin, dumax, unew) &
-!$omp& firstprivate(nof_variables, passivescalar, turbulenceequations, kmaxe) &
-!$omp& map(alloc: impdu, u_ct_val) &
+!$omp& firstprivate(nof_variables, passivescalar, turbulenceequations, kmaxe, turbulence, turbulencemodel, n) &
+!$omp& map(alloc: impdu, u_ct_val, u_c_val, ielem_walldist) &
 !$omp& private(i, k)
 #else
 !$omp do &
@@ -4951,8 +4978,21 @@ contains
 
                ! optional relative limiter
                dumax = 0.250 * max(abs(uold), umin)
-               if (du .gt. dumax) du = dumax
-               if (du .lt. -dumax) du = -dumax
+               if ((turbulence .eq. 1) .and. (turbulencemodel .eq. 2) .and. (k .eq. 2)) then
+                  ! SST rho*omega. Floor at rho*1e-6, consistent with the omega>=1e-6
+                  ! floor used by the SST sources, eddy viscosity and time step.
+                  ! Only decreases are capped: with a symmetric 25% cap a cell that
+                  ! reached the floor could grow by only 25% per iteration and stayed
+                  ! trapped there (wall cells downstream of the HIFiRE-1 trip).
+                  ! (updated) the floor is now the physical sublayer bound of sst_omega_floor,
+                  ! rho * 0.5 * 6 nu/(beta_1 d^2): a wall cell can no longer sit at omega ~ 0.
+                  umin = max(u_c_val(i, 1, 1), 1.0e-30) * sst_cell_omega_floor(n, i)
+                  dumax = 0.250 * max(abs(uold), umin)
+                  if (du .lt. -dumax) du = -dumax
+               else
+                  if (du .gt. dumax) du = dumax
+                  if (du .lt. -dumax) du = -dumax
+               end if
 
                unew = uold + du
 
@@ -6453,7 +6493,8 @@ contains
       integer, intent(in) :: n
       real, dimension(1:5) :: dummyout, dummyin
       integer :: i, kmaxe, ttime, kill_local
-      logical :: tgv_energy_prev_set
+      logical :: tgv_energy_prev_set, tgv_first_pass, tgv_reuse_recon
+      real, dimension(1:3) :: tgv_loc, tgv_glob
       real :: dtiv
       real :: cput1, cput2, cput3, cput4, cput5, cput6, cput8, timec3, timec1, timec4, timec8, totv1, totv2, dumetg1, dumetg2, &
          & tzx1, tzx2, resolx, totens1, totens2, totensx1, totensx2
@@ -6469,6 +6510,11 @@ contains
 
       totv1 = 0.0
       tgv_energy_prev_set = .false.
+      tgv_first_pass = .true.
+      ! the tgv diagnostic reconstruction can be reused by the next step's first stage only when nothing changes
+      ! u_c_val in between and that stage goes through call_flux_subroutines_3d
+      tgv_reuse_recon = (initcond .eq. 95) .and. (dg .eq. 0) .and. (realgas .eq. 0) .and. (fastest .eq. 0) .and. &
+         & (rungekutta .ge. 1) .and. (rungekutta .le. 5) .and. (.not. ((rungekutta .eq. 3) .and. (mood .eq. 1)))
 
 #ifdef xpu
 !$omp target update to(kill, iscoun)
@@ -6521,6 +6567,14 @@ contains
 
          call arbitrary_order(n)
 
+         if (tgv_reuse_recon) then
+            !$omp barrier
+            !$omp master
+            recon_current = .true.
+            !$omp end master
+            !$omp barrier
+         end if
+
 #ifdef xpu
 !$omp barrier
 !$omp master
@@ -6567,7 +6621,8 @@ contains
          !$omp end master
          !$omp barrier
 
-         if (initcond .eq. 95) then
+         ! after the first pass these sums would repeat the previous end-of-step ones on the same solution
+         if ((initcond .eq. 95) .and. tgv_first_pass) then
 #ifdef xpu
             totk_reduce = 0.00
             totens_reduce = 0.00
@@ -6631,21 +6686,13 @@ contains
 
             !$omp barrier
             !$omp master
-            dumetg1 = totk
-            dumetg2 = 0.0
-            call mpi_barrier(mpi_comm_world, ierror)
-            call mpi_allreduce(dumetg1, dumetg2, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierror)
-            totk = dumetg2
-            dumetg1 = totens
-            dumetg2 = 0.0
-            call mpi_barrier(mpi_comm_world, ierror)
-            call mpi_allreduce(dumetg1, dumetg2, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierror)
-            totens = dumetg2
-            dumetg1 = totensx
-            dumetg2 = 0.0
-            call mpi_barrier(mpi_comm_world, ierror)
-            call mpi_allreduce(dumetg1, dumetg2, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierror)
-            totensx = dumetg2
+            tgv_loc(1) = totk
+            tgv_loc(2) = totens
+            tgv_loc(3) = totensx
+            call mpi_allreduce(tgv_loc, tgv_glob, 3, mpi_double_precision, mpi_sum, mpi_comm_world, ierror)
+            totk = tgv_glob(1)
+            totens = tgv_glob(2)
+            totensx = tgv_glob(3)
             if (n .eq. 0) then
                if (.not. tgv_energy_prev_set) then
                   totv1 = totk / ((2.0 * pi)**3)
@@ -6664,6 +6711,7 @@ contains
             !$omp barrier
 
          end if
+         tgv_first_pass = .false.
          !$omp barrier
          !$omp master
          if (rungekutta .ge. 11) then
@@ -6782,6 +6830,14 @@ contains
             call exchange_higher(n)
             call arbitrary_order(n)
 
+            if (tgv_reuse_recon) then
+               !$omp barrier
+               !$omp master
+               recon_current = .true.
+               !$omp end master
+               !$omp barrier
+            end if
+
 #ifdef xpu
 !$omp barrier
 !$omp master
@@ -6854,23 +6910,13 @@ contains
 
             !$omp barrier
             !$omp master
-            dumetg1 = totk
-            dumetg2 = 0.0
-            call mpi_barrier(mpi_comm_world, ierror)
-            call mpi_allreduce(dumetg1, dumetg2, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierror)
-            totk = dumetg2
-
-            dumetg1 = totens
-            dumetg2 = 0.0
-            call mpi_barrier(mpi_comm_world, ierror)
-            call mpi_allreduce(dumetg1, dumetg2, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierror)
-            totens = dumetg2
-
-            dumetg1 = totensx
-            dumetg2 = 0.0
-            call mpi_barrier(mpi_comm_world, ierror)
-            call mpi_allreduce(dumetg1, dumetg2, 1, mpi_double_precision, mpi_sum, mpi_comm_world, ierror)
-            totensx = dumetg2
+            tgv_loc(1) = totk
+            tgv_loc(2) = totens
+            tgv_loc(3) = totensx
+            call mpi_allreduce(tgv_loc, tgv_glob, 3, mpi_double_precision, mpi_sum, mpi_comm_world, ierror)
+            totk = tgv_glob(1)
+            totens = tgv_glob(2)
+            totensx = tgv_glob(3)
 
             if (n .eq. 0) then
                totv2 = totk / ((2.0 * pi)**3)

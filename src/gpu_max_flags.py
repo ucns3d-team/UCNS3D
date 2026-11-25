@@ -62,19 +62,69 @@ def first_numeric_after_skips(path: Path, skips: int) -> list[str] | None:
     return None
 
 
+def profile_turbulence_model(code_profile: int) -> int:
+    """Return the turbulencemodel that parameters.f90 assigns for a code profile.
+
+    turbulencemodel (1 = Spalart-Allmaras, 2 = k-w SST) equals the number of
+    turbulence equations and is set per profile in the
+    "select case (code_profile)" block of parameters.f90, next to this script.
+    If the source or the assignment cannot be found, 2 is returned: it is the
+    largest model the code has, and an oversized capacity is harmless whereas
+    an undersized one aborts the run.
+    """
+    fallback = 2
+    source = Path(__file__).resolve().parent / "parameters.f90"
+    if not source.exists():
+        return fallback
+    in_select = False
+    blocks: dict[object, int] = {}
+    current: list[object] = []
+    for raw in source.read_text(errors="ignore").splitlines():
+        line = raw.split("!", 1)[0].strip().lower()
+        if not line:
+            continue
+        if not in_select:
+            in_select = re.match(r"select\s+case\s*\(\s*code_profile\s*\)", line) is not None
+            continue
+        if re.match(r"end\s*select", line):
+            break
+        if re.match(r"case\s+default", line):
+            current = ["default"]
+            continue
+        match = re.match(r"case\s*\(([^)]*)\)", line)
+        if match:
+            current = []
+            for item in match.group(1).split(","):
+                try:
+                    current.append(int(item))
+                except ValueError:
+                    pass
+            continue
+        match = re.match(r"turbulencemodel\s*=\s*(\d+)", line)
+        if match:
+            for key in current:
+                blocks[key] = int(match.group(1))
+    if code_profile in blocks:
+        return blocks[code_profile]
+    return blocks.get("default", fallback)
+
+
 def derive(config: Path) -> dict[str, int]:
     values = dict(DEFAULTS)
     records = numeric_records(config)
 
     if len(records) > 0 and len(records[0]) >= 1:
         values["dimensiona"] = as_int(records[0][0])
+    code_profile = as_int(records[0][2]) if len(records) > 0 and len(records[0]) >= 3 else 0
+    values["turbulencemodel"] = profile_turbulence_model(code_profile)
     if len(records) > 1 and len(records[1]) >= 1:
         values["governingequations"] = as_int(records[1][0])
     if len(records) > 2:
         if len(records[2]) >= 1:
             values["turbulence"] = as_int(records[2][0])
-        if len(records[2]) >= 2:
-            values["turbulencemodel"] = as_int(records[2][1])
+        # The second entry of this record is icoupleturb (coupled/decoupled),
+        # NOT the turbulence model: parameters.f90 sets turbulencemodel inside
+        # "select case (code_profile)", so it is taken from there below.
         if len(records[2]) >= 3:
             values["passivescalar"] = as_int(records[2][2])
     if len(records) > 6:
@@ -124,7 +174,7 @@ def derive(config: Path) -> dict[str, int]:
         iorder = 1
 
     typesten = 7
-    if values["spatiladiscret"] == 3:
+    if values["spatiladiscret"] in (3, 4):  # 4 = hybrid scheme, same WENO stencils
         ees = values["ees"]
         if dim == 2:
             if ees in (1, 2):
