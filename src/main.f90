@@ -630,6 +630,9 @@ PROGRAM UCNS3D
 
    if (restart .gt. 0) then
       call rest_read(n)
+   else
+      ! fresh start: wall-distance based k and omega near walls (SST only)
+      call sst_wall_initialise(n)
    end if
 
    call globaldea2(xmpil, xmpie) !for ale do not deallocate
@@ -862,7 +865,7 @@ PROGRAM UCNS3D
 !$omp& axisymmetric_enabled, axis_y, axis_tolerance, axis_tolerance_relative, axis_radius, axis_face_radius, axis_face, &
 !$omp& rhs_val, rhs_valdg, rhst_val, sht, sht_rg, nodelist, xmpielrank, dg2fv, &
 !$omp& u_c_br2_aux_var, u_c_rms, u_c_val, u_c_valdg, u_cs_val, u_cs_valdg, u_ct_val, u_cw_val, u_cw_valdg, u_e_val, &
-!$omp& ielem_hllsw, hllsw_p, hllsw_phalo, hllsw_halo, hllsw_send, hllsw_lo, hllsw_hi, &
+!$omp& ielem_hllsw, hllsw_p, hllsw_halo, hllsw_send, hllsw_lo, hllsw_hi, &
 !$omp& solhir, solhis, solhird, solhisd, solhi_loc, solhir_flat, solhis_flat, boundhiri, boundhisi, boundhir, boundhis, boundhirm, &
 !$omp& boundhism, boundhir_flat, boundhis_flat, boundhir_dgflat, boundhis_dgflat, boundhiri_flat, boundhisi_flat, &
 !$omp& ineedhalo, ineedhalos, ineedbound, ineedbounds, bound_total, bounds_total, halo_total, ilength1, ilength2, halos_total, &

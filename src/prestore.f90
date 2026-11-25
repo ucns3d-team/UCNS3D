@@ -35,7 +35,7 @@ contains
       allocate(ws%xder(d), ws%yder(d), ws%zder(d), ws%qr_vec(d), ws%wlsqr(neighbours))
       ! Each stencil is consumed before the next one is assembled.
       allocate(ws%stencils(neighbours, d))
-      if (iweno == 1) then
+      if ((iweno == 1) .or. (iweno == 2)) then
          allocate(ws%weff(d, d))
          if (ees == 5) allocate(ws%weffc(idegfree2, idegfree2))
       end if
@@ -283,7 +283,7 @@ contains
       integ_basis_value(i, 1:number_of_dog) = ws%intbs(1:number_of_dog)
 
       !the indicator matrix for the smaller polynomial
-      if (iweno .eq. 1) then
+      if ((iweno .eq. 1) .or. (iweno .eq. 2)) then
          call indicatormatrix(n, i, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, &
             & ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, ws%weff)
       end if
@@ -300,7 +300,7 @@ contains
 
          integ_basis_valuec(i, 1:number_of_dog) = ws%intbs(1:number_of_dog)
 
-         if (iweno .eq. 1) then
+         if ((iweno .eq. 1) .or. (iweno .eq. 2)) then
             call indicatormatrix2(n, i, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, &
                & ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, ws%weffc)
             icompwrt = 0
@@ -859,7 +859,7 @@ contains
       integ_basis_value(i, 1:number_of_dog) = ws%intbs(1:number_of_dog)
 
       !the indicator matrix for the large polynomial
-      if (iweno .eq. 1) then
+      if ((iweno .eq. 1) .or. (iweno .eq. 2)) then
          call indicatormatrix(n, i, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, &
             & ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, ws%weff)
       end if
@@ -877,7 +877,7 @@ contains
          integ_basis_valuec(i, 1:number_of_dog) = ws%intbs(1:number_of_dog)
 
          !the indicator matrix for the smaller polynomial
-         if (iweno .eq. 1) then
+         if ((iweno .eq. 1) .or. (iweno .eq. 2)) then
             call indicatormatrix2(n, i, ilox_ihexg, ilox_ihexl, ilox_ihexb, ilox_ihexn, ilox_ishape, ilox_xxc, ilox_yyc, ilox_zzc, &
                & ilox_volume, ilox_periodicflag, ilon_nodcount, ilon_x, ilon_y, ilon_z, ws%weffc)
             icompwrt = 0

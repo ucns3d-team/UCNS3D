@@ -120,6 +120,64 @@ contains
       omega_wall = 60.0 * mu / (max(q(1),1.0e-30) * beta_i1 * max(distance,1.0e-15)**2)
    end function sst_wall_omega
 
+   real function sst_omega_floor(rho, mu, distance) result(omega_min)
+      implicit none
+#ifdef xpu
+!$omp declare target
+#endif
+      ! Physical lower bound for omega: half of the viscous-sublayer solution
+      ! omega = 6 nu / (beta_1 d^2). The sublayer solution holds for y+ < ~5 and the
+      ! log-layer omega = u_tau/(sqrt(beta*) kappa y) exceeds this bound for y+ > ~5, so
+      ! the bound is inactive in a healthy boundary layer and negligible far from walls
+      ! (it decays like 1/d^2). It replaces the absolute omega >= 1e-6 floor, which let
+      ! wall-adjacent cells collapse to omega ~ 0 (mu_t = rho k/omega at its cap, local
+      ! time step ~1e-15 s, frozen wall cells).
+      real, intent(in) :: rho, mu, distance
+      real, parameter :: fraction = 0.5
+      omega_min = max(1.0e-6, fraction * 6.0 * max(mu, 0.0) / &
+         (max(rho, 1.0e-30) * beta_i1 * max(distance, 1.0e-15)**2))
+   end function sst_omega_floor
+
+   real function sst_cell_omega_floor(n, i) result(omega_min)
+      implicit none
+#ifdef xpu
+!$omp declare target
+#endif
+      ! sst_omega_floor for cell i from its own state and wall distance.
+      integer, intent(in) :: n, i
+      real :: q(gpu_max_nvar), mu, conductivity
+      q(1:nof_variables) = u_c_val(i, 1, 1:nof_variables)
+      call molecular_transport(n, q(1:nof_variables), mu, conductivity)
+      omega_min = sst_omega_floor(q(1), mu, ielem_walldist(i))
+   end function sst_cell_omega_floor
+
+   subroutine sst_wall_initialise(n)
+      implicit none
+      ! Fresh start only (host side, before the first device update): the uniform
+      ! free-stream k and omega are replaced near walls by the viscous-sublayer omega
+      ! 6 nu/(beta_1 d^2) wherever that exceeds the free-stream value, and k is scaled by
+      ! omega_inf/omega_wall (so k ~ d^2 -> 0 at the wall and mu_t = rho k/omega falls
+      ! like d^4). Without this the wall cells start 4 to 11 orders of magnitude below
+      ! their wall omega with free-stream k.
+      integer, intent(in) :: n
+      integer :: i, kmaxe
+      real :: q(gpu_max_nvar), mu, conductivity, rho, om_inf, om_wall
+      if ((turbulence /= 1) .or. (turbulencemodel /= 2)) return
+      if (dg == 1) return
+      kmaxe = xmpielrank(n)
+      do i = 1, kmaxe
+         q(1:nof_variables) = u_c_val(i, 1, 1:nof_variables)
+         rho = max(q(1), 1.0e-30)
+         call molecular_transport(n, q(1:nof_variables), mu, conductivity)
+         om_inf = max(u_ct_val(i, 1, 2) / rho, 1.0e-6)
+         om_wall = 6.0 * max(mu, 0.0) / (rho * beta_i1 * max(ielem_walldist(i), 1.0e-15)**2)
+         if (om_wall > om_inf) then
+            u_ct_val(i, 1, 1) = u_ct_val(i, 1, 1) * (om_inf / om_wall)
+            u_ct_val(i, 1, 2) = rho * om_wall
+         end if
+      end do
+   end subroutine sst_wall_initialise
+
    subroutine sst_diffusion_flux(nd, el, er, gl, gr, normal, flux)
       implicit none
 #ifdef xpu
@@ -236,8 +294,9 @@ contains
          if (nd==2 .and. axisymmetric_enabled==1) strain=strain+e(12)**2
          strain = sqrt(2.0e0 * strain)
          k0 = max(e(2) / rho, 1.0e-15)
-         om = max(e(3) / rho, 1.0e-6)
          wall = max(e(1), 1.0e-15)
+         ! physical omega bound (see sst_omega_floor), not the absolute 1e-6 floor
+         om = max(e(3) / rho, sst_omega_floor(rho, mu, wall))
          kg = 3 + nd * nd; wg = kg + nd
          cross = 0.0e0
          do j = 1, nd

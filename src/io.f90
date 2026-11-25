@@ -12749,6 +12749,11 @@ contains
       ! This is the final reconstruction-check code: 0 accepted, >=1 reduced.
       write_variables = write_variables + 1
       variable_names(write_variables) = 'reduce_flag'
+      ! option 4 only: reconstruction used by each cell (0 linear, 1 weno/cweno, 2 muscl, 3 first order)
+      if (iweno .eq. 2) then
+         write_variables = write_variables + 1
+         variable_names(write_variables) = 'hybrid_scheme'
+      end if
 
       if (averaging .eq. 1) then
 
@@ -12996,6 +13001,7 @@ contains
       disp_init = 0
       kmaxe = xmpielrank(n)
       field_variables = write_variables - 1
+      if (iweno .eq. 2) field_variables = field_variables - 1
       kmaxn_p = xmpiall_v(n)
 
       temp_cord = 3
@@ -13114,7 +13120,12 @@ contains
          temp_node = 4; temp_dims = 3
       end if
 
-      rarray_part1(1:kmaxe, write_variables) = real(ielem_reduce(1:kmaxe))
+      if (iweno .eq. 2) then
+         rarray_part1(1:kmaxe, write_variables - 1) = real(ielem_reduce(1:kmaxe))
+         rarray_part1(1:kmaxe, write_variables) = real(ielem_hybscheme(1:kmaxe))
+      else
+         rarray_part1(1:kmaxe, write_variables) = real(ielem_reduce(1:kmaxe))
+      end if
 
       temp_imaxe = imaxe
       temp_imaxn = imaxn
@@ -13650,6 +13661,7 @@ contains
       real :: leftv(nof_variables), vectco(nof_variables)
       kmaxe = xmpielrank(n)
       field_variables = write_variables - 1
+      if (iweno .eq. 2) field_variables = field_variables - 1
       if (dimensiona .eq. 3) then
          do i = 1, kmaxe
             leftv(1:nof_variables) = u_c_val(i, 1, 1:nof_variables)
@@ -13733,7 +13745,12 @@ contains
          end do
       end if
 
-      sol_vtu(1:kmaxe, write_variables) = real(ielem_reduce(1:kmaxe))
+      if (iweno .eq. 2) then
+         sol_vtu(1:kmaxe, write_variables - 1) = real(ielem_reduce(1:kmaxe))
+         sol_vtu(1:kmaxe, write_variables) = real(ielem_hybscheme(1:kmaxe))
+      else
+         sol_vtu(1:kmaxe, write_variables) = real(ielem_reduce(1:kmaxe))
+      end if
 
       call vtk_ghost_write('OUT_', 'PAR_', it, t, variable_names(1:write_variables), &
          sol_vtu(1:kmaxe, 1:write_variables), inoder4_cord, movement == 1)
@@ -19442,6 +19459,9 @@ contains
       end if
       if (allocated(ielem_reduce)) then
 !$omp target update from(ielem_reduce)
+      end if
+      if (allocated(ielem_hybscheme)) then
+!$omp target update from(ielem_hybscheme)
       end if
       if (allocated(ielem_troubled)) then
 !$omp target update from(ielem_troubled)

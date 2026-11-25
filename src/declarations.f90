@@ -258,7 +258,9 @@ module declaration
    integer :: iweightlsqr !weighted least squres option of inverted distance
    integer :: typesten !number of stencils for weno
    integer :: iperiodicity !periodicity detected in domain
-   integer :: iweno !type of schemes weno, muscl, unlimited
+   integer :: iweno !type of schemes weno, muscl, unlimited (2 = hybrid linear/weno/muscl, scheme option 4)
+   integer :: hybrid_type !hybrid_scheme.dat: sensor jump filter (0 = original, 1 = normalised 3d filter; -1 = file absent)
+   real :: hybrid_par1, hybrid_par2, hybrid_par3, hybrid_par4 !hybrid_scheme.dat: smooth/less-smooth sensor bands
    integer :: turbulence !turbulence equations
    integer :: turbulencemodel !which model
    integer :: turbulenceequations !how many equations to solve
@@ -895,6 +897,7 @@ module declaration
    integer, allocatable :: ielem_nonodes(:) ! (kmaxe)  number of nodes
    integer, allocatable :: ielem_recalc(:) ! (kmaxe)  flag for recalculating the solution post-eriori
    integer, allocatable :: ielem_reduce(:) ! (kmaxe)
+   integer, allocatable :: ielem_hybscheme(:) ! (kmaxe) option 4 only: 0 linear, 1 weno/cweno, 2 muscl, 3 first order
    ! (nof_faces,kmaxe)  consistency across interface in terms of ordering of quadrature points
    ! (cell, face)
    integer, allocatable :: ielem_reorient(:, :)
@@ -911,8 +914,11 @@ module declaration
    real, allocatable :: ielem_dih2(:, :, :) ! (cell, face, direction): distance across cell centres at each face
    real, allocatable :: ielem_diss(:) ! (kmaxe)  adda components
    real, allocatable :: ielem_hllsw(:) ! (kmaxe)  hll fraction of the hybrid hll-hllc solver (iriemann 8)
-   real, allocatable :: hllsw_p(:), hllsw_phalo(:), hllsw_halo(:), hllsw_send(:) ! hybrid hll-hllc: cell pressure, halo copies, send buffer
-   real :: hllsw_lo = 0.1e0, hllsw_hi = 0.3e0 ! hybrid hll-hllc: relative pressure jump where hll starts / is fully on
+   logical :: recon_current = .false. ! u_c_val(:,1,:) already exchanged and reconstructed (tgv diagnostic): the next
+                                      ! call_flux_subroutines_3d skips exchange_higher and arbitrary_order once
+   real, allocatable :: hllsw_p(:,:), hllsw_halo(:), hllsw_send(:) ! hybrid hll-hllc: cell pressure (:,0) and velocity (:,1:dim), halo copies, send buffer
+   real :: hllsw_lo = 0.5e0, hllsw_hi = 4.0e0 ! hybrid hll-hllc: relative pressure jump (pmax/pmin - 1) across a face where hll
+                                              ! starts / is fully on; strong shocks only, so contacts and shear layers keep hllc
    real, allocatable :: ielem_dtl(:) ! (kmaxe)  local time step size
    real, allocatable :: ielem_er(:) ! (kmaxe)  adda components
    real, allocatable :: ielem_er1(:) ! (kmaxe)  adda components
@@ -1087,6 +1093,7 @@ module declaration
 !$omp& ielem_mood_o, ielem_nodes, ielem_nodes_faces)
 !$omp declare target (ielem_nodes_faces_v, ielem_nodes_neighbours, ielem_nodes_v, ielem_nofbc, ielem_nojecount, ielem_nonodes, &
 !$omp& ielem_q_face_q_mapl, ielem_qface, ielem_recalc, ielem_reduce)
+!$omp declare target (ielem_hybscheme)
 !$omp declare target (ielem_reorient, ielem_stencil_dist, ielem_surf, ielem_totvolume, ielem_troubled, ielem_types_faces, &
 !$omp& ielem_vdec, ielem_viscx, ielem_vortex, ielem_walldist, ielem_walltrans)
 !$omp declare target (ielem_walls, a405, nof_perturbations405, ielem_wcx, ielem_xxc, ielem_yyc, ielem_zzc, impdiag_mf, impoff_mf, &
@@ -1148,7 +1155,7 @@ module declaration
 !$omp declare target (halo_len, halos_len, halo_offset, halos_offset, ineedbound, ineedbounds)
 !$omp declare target (bound_len, bounds_len, need_side, need_q, need_loc, halo_proc, halos_proc)
 !$omp declare target (bound_proc, bounds_proc, bound_offset, bounds_offset, solhir, solhis, solhird)
-!$omp declare target (ielem_hllsw, hllsw_halo, hllsw_p, hllsw_phalo, hllsw_send, hllsw_lo, hllsw_hi)
+!$omp declare target (ielem_hllsw, hllsw_halo, hllsw_p, hllsw_send, hllsw_lo, hllsw_hi)
 !$omp declare target (solhisd, boundhiri, boundhisi, boundhir, boundhis, boundhir_dg, boundhis_dg, boundhirm)
 !$omp declare target (boundhism, bound_total, bounds_total, halo_total, halos_total, solhi_loc)
 !---mpi comm

@@ -389,6 +389,9 @@ contains
          allocate (ielem_filtered(kmaxe)); ielem_filtered = 0
       end if
       allocate (ielem_reduce(kmaxe)); ielem_reduce = 0
+      if (iweno .eq. 2) then
+         allocate (ielem_hybscheme(kmaxe)); ielem_hybscheme = 0
+      end if
 
 !-------------------------
 ! scalar real members
@@ -767,7 +770,7 @@ contains
          end if
       end if
 
-      if (iweno == 1) then
+      if ((iweno == 1) .or. (iweno == 2)) then
          allocate (rec_indicator(1:kmaxe, 1:idegfree, 1:idegfree)); rec_indicator = zero
          if (ees == 5) then
             allocate (rec_indicatorc(1:kmaxe, 1:idegfree2, 1:idegfree2)); rec_indicatorc = zero
@@ -1465,6 +1468,10 @@ contains
       if (allocated(ielem_reduce)) then
          !$omp target enter data map(alloc: ielem_reduce)
          !$omp target update to(ielem_reduce)
+      end if
+      if (allocated(ielem_hybscheme)) then
+         !$omp target enter data map(alloc: ielem_hybscheme)
+         !$omp target update to(ielem_hybscheme)
       end if
       if (allocated(ielem_reorient)) then
          !$omp target enter data map(alloc: ielem_reorient)
@@ -2201,10 +2208,6 @@ contains
       if (allocated(hllsw_p)) then
          !$omp target enter data map(alloc: hllsw_p)
          !$omp target update to(hllsw_p)
-      end if
-      if (allocated(hllsw_phalo)) then
-         !$omp target enter data map(alloc: hllsw_phalo)
-         !$omp target update to(hllsw_phalo)
       end if
       if (allocated(hllsw_halo)) then
          !$omp target enter data map(alloc: hllsw_halo)

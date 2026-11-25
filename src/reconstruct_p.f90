@@ -26,6 +26,7 @@ contains
 
 #ifdef xpu
 !$omp target teams distribute parallel do &
+!$omp& map(alloc: ielem_troubled) &
 !$omp& firstprivate(kmaxe, dimensiona, qp_quad, qp_triangle, qp_line, nof_variables, zero) &
 !$omp& map(alloc: rec_uleft, ielem_ifca, ielem_types_faces) &
 !$omp& private(i, l, ngp, iqp, iex)
@@ -33,6 +34,7 @@ contains
 !$omp do private(i, l, ngp, iqp, iex)
 #endif
       do i = 1, kmaxe
+         if ((iweno .eq. 2) .and. (ielem_troubled(i) .ne. 1)) cycle
          do l = 1, ielem_ifca(i)
             if (dimensiona .eq. 3) then
                if (ielem_types_faces(i, l) .eq. 5) then
@@ -60,6 +62,7 @@ contains
       if ((nextra .gt. 0) .and. allocated(rec_uleftturb)) then
 #ifdef xpu
 !$omp target teams distribute parallel do &
+!$omp& map(alloc: ielem_troubled) &
 !$omp& firstprivate(kmaxe, nextra) &
 !$omp& firstprivate(dimensiona, qp_quad, qp_triangle, qp_line, zero) &
 !$omp& map(alloc: rec_uleftturb, ielem_ifca, ielem_types_faces) &
@@ -68,6 +71,7 @@ contains
 !$omp do private(i, l, ngp, iqp, iex)
 #endif
          do i = 1, kmaxe
+            if ((iweno .eq. 2) .and. (ielem_troubled(i) .ne. 1)) cycle
             do l = 1, ielem_ifca(i)
                if (dimensiona .eq. 3) then
                   if (ielem_types_faces(i, l) .eq. 5) then
@@ -911,6 +915,7 @@ contains
 #ifdef xpu
 
       !$omp target teams distribute parallel do &
+!$omp& map(alloc: ielem_troubled) &
       !$omp& firstprivate(n, kmaxe, nof_variables, dimensiona, dg, idegfree, idegfree2) &
       !$omp& firstprivate(iorder2, qp_quad, qp_triangle, qp_line, lwci1, wenoz, zero) &
       !$omp& map(alloc: xmpielrank, ielem_admis, ielem_ifca, ielem_idegfree, ielem_linc) &
@@ -928,6 +933,7 @@ contains
       !$omp& private(ax, ay, az, volinv, raw_basis, phik, xterm, yterm, zterm)
 #endif
       do i = 1, kmaxe
+         if ((iweno .ne. 2) .or. (ielem_troubled(i) .eq. 1)) then
          block
             real :: lamc(1:gpu_max_typesten)
             real :: lambdaal(1:gpu_max_typesten)
@@ -1260,6 +1266,7 @@ contains
                end if
             end do
          end block
+         end if
       end do
 #ifdef xpu
       !$omp end target teams distribute parallel do
@@ -1281,6 +1288,7 @@ contains
 #ifdef xpu
 
       !$omp target teams distribute parallel do &
+!$omp& map(alloc: ielem_troubled) &
       !$omp& firstprivate(n, kmaxe, nof_variables, dimensiona, dg, qp_quad, qp_triangle, qp_line) &
       !$omp& firstprivate(lwci1, zero) &
       !$omp& map(alloc: xmpielrank) &
@@ -1298,6 +1306,7 @@ contains
       !$omp& private(ax, ay, az, volinv, raw_basis, phik, xterm, yterm, zterm)
 #endif
       do i = 1, kmaxe
+         if ((iweno .ne. 2) .or. (ielem_troubled(i) .eq. 1)) then
          block
             real :: lambdaal(1:gpu_max_typesten)
             real :: omegaatilde(1:gpu_max_typesten)
@@ -1479,6 +1488,7 @@ contains
                end if
             end do
          end block
+         end if
       end do
 #ifdef xpu
       !$omp end target teams distribute parallel do
@@ -2032,6 +2042,7 @@ contains
 
 #ifdef xpu
 !$omp target teams distribute parallel do &
+!$omp& map(alloc: ielem_troubled) &
 !$omp& firstprivate(adda, lwci1, kmaxe, n) &
 !$omp& map(alloc: ielem_linc) &
 !$omp& private(i) &
@@ -2050,7 +2061,7 @@ contains
             ielem_linc(i) = lwci1
             if (adda .eq. 1) call adda_filter(n, i)
 
-            call cp_reconstruction_cweno(i)
+            if ((iweno .ne. 2) .or. (ielem_troubled(i) .eq. 1)) call cp_reconstruction_cweno(i)
 
          end do
 #ifdef xpu
@@ -2063,6 +2074,7 @@ contains
 
 #ifdef xpu
 !$omp target teams distribute parallel do &
+!$omp& map(alloc: ielem_troubled) &
 !$omp& firstprivate(adda, lwci1, kmaxe, n) &
 !$omp& map(alloc: ielem_linc) &
 !$omp& private(i) &
@@ -2080,7 +2092,7 @@ contains
             ielem_linc(i) = lwci1
             if (adda .eq. 1) call adda_filter(n, i)
 
-            call cp_reconstruction_weno(i)
+            if ((iweno .ne. 2) .or. (ielem_troubled(i) .eq. 1)) call cp_reconstruction_weno(i)
 
          end do
 #ifdef xpu
@@ -2106,6 +2118,7 @@ contains
 
 #ifdef xpu
 !$omp target teams distribute parallel do &
+!$omp& map(alloc: ielem_troubled) &
 !$omp& private(iconsidered) &
 !$omp& firstprivate(lwci1, kmaxe) &
 !$omp& map(alloc: ielem_linc) &
@@ -2121,7 +2134,7 @@ contains
             iconsidered = i
             ielem_linc(i) = lwci1
 
-            call cp_reconstruction_cweno_turb(iconsidered)
+            if ((iweno .ne. 2) .or. (ielem_troubled(i) .eq. 1)) call cp_reconstruction_cweno_turb(iconsidered)
 
          end do
 #ifdef xpu
@@ -2134,6 +2147,7 @@ contains
 
 #ifdef xpu
 !$omp target teams distribute parallel do &
+!$omp& map(alloc: ielem_troubled) &
 !$omp& private(iconsidered) &
 !$omp& firstprivate(lwci1, kmaxe) &
 !$omp& map(alloc: ielem_linc) &
@@ -2149,7 +2163,7 @@ contains
             iconsidered = i
             ielem_linc(i) = lwci1
 
-            call cp_reconstruction_weno_turb(iconsidered)
+            if ((iweno .ne. 2) .or. (ielem_troubled(i) .eq. 1)) call cp_reconstruction_weno_turb(iconsidered)
 
          end do
 #ifdef xpu
@@ -2222,6 +2236,7 @@ contains
 
 #ifdef xpu
 !$omp target teams distribute parallel do &
+!$omp& map(alloc: ielem_troubled) &
 !$omp& private(iconsidered) &
 !$omp& firstprivate(lwci1, kmaxe) &
 !$omp& map(alloc: ielem_linc) &
@@ -2244,7 +2259,7 @@ contains
 
             ielem_linc(i) = lwci1
 
-            call characteristic_reconstruction_cweno(iconsidered)
+            if ((iweno .ne. 2) .or. (ielem_troubled(i) .eq. 1)) call characteristic_reconstruction_cweno(iconsidered)
 
          end do
 #ifdef xpu
@@ -2257,6 +2272,7 @@ contains
 
 #ifdef xpu
 !$omp target teams distribute parallel do &
+!$omp& map(alloc: ielem_troubled) &
 !$omp& private(iconsidered) &
 !$omp& firstprivate(lwci1, kmaxe) &
 !$omp& map(alloc: ielem_linc) &
@@ -2279,7 +2295,7 @@ contains
 
             ielem_linc(i) = lwci1
 
-            call characteristic_reconstruction_weno(iconsidered)
+            if ((iweno .ne. 2) .or. (ielem_troubled(i) .eq. 1)) call characteristic_reconstruction_weno(iconsidered)
 
          end do
 #ifdef xpu
@@ -3099,6 +3115,244 @@ contains
 
       if (k > 0) aver_vars = aver_vars / real(k)
    end subroutine find_bounds
+
+   subroutine hybrid_sensor_bounds(n, iconsidered, relaxed, utmin, utmax, utdmin, utdmax)
+      implicit none
+!> @brief
+!> hybrid scheme (option 4) sensor bounds, as in V11.2.3: the cell and its face neighbours (the same
+!> states as find_bounds with extended_bounds = 0), in primitive variables, together with the largest
+!> and smallest jumps from the cell value. relaxed (3d, hybrid_type = 1) ignores jumps below 1e-6 of
+!> the largest jump when forming the smallest jump.
+#ifdef xpu
+!$omp declare target
+#endif
+      integer, intent(in) :: n, iconsidered
+      logical, intent(in) :: relaxed
+      real, dimension(1:gpu_max_nvar), intent(out) :: utmin, utmax, utdmin, utdmax
+      integer :: i, l, k, ik, iex, nf, lf, rowf, nbr
+      real :: mp_pinfl, gammal, dvar, dtol
+      real, dimension(1:gpu_max_nvar) :: leftv
+      real, dimension(1:gpu_max_nvar, 1:gpu_max_faces + 1) :: ust
+
+      i = iconsidered
+      k = 1
+      ust(1:nof_variables, 1) = u_c_val(i, 1, 1:nof_variables)
+      do l = 1, ielem_ifca(i)
+         nbr = 0
+         if (ielem_interior(i) .eq. 0) then
+            nbr = 1
+         else if (ielem_ineighb(i, l) .eq. n) then
+            if (ielem_ibounds(i, l) .gt. 0) then
+               if (ibound_icode(ielem_ibounds(i, l)) .eq. 5) nbr = 1
+            else
+               nbr = 1
+            end if
+         else
+            nbr = 2
+            if (ielem_ibounds(i, l) .gt. 0) then
+               if (ibound_icode(ielem_ibounds(i, l)) .ne. 5) nbr = 0
+            end if
+         end if
+         if (nbr .eq. 1) then
+            k = k + 1
+            ust(1:nof_variables, k) = u_c_val(ielem_ineigh(i, l), 1, 1:nof_variables)
+         else if (nbr .eq. 2) then
+            nf = rec_ihexn(rec_local(i), 1, ielem_indexi(i, l))
+            lf = rec_ihexl(i, 1, ielem_indexi(i, l))
+            rowf = halo_offset(nf) + lf - 1
+            k = k + 1
+            ust(1:nof_variables, k) = solhir(rowf, 1:nof_variables)
+         end if
+      end do
+
+      if (nof_variables .gt. 1) then
+         do ik = 1, k
+            leftv(1:nof_variables) = ust(1:nof_variables, ik)
+            call cons2prim(n, leftv, mp_pinfl, gammal)
+            ust(1:nof_variables, ik) = leftv(1:nof_variables)
+         end do
+      end if
+
+      do iex = 1, nof_variables
+         utmin(iex) = ust(iex, 1)
+         utmax(iex) = ust(iex, 1)
+         utdmax(iex) = tolsmall
+         utdmin(iex) = tolbig
+         do ik = 2, k
+            utmin(iex) = min(utmin(iex), ust(iex, ik))
+            utmax(iex) = max(utmax(iex), ust(iex, ik))
+            utdmax(iex) = max(utdmax(iex), abs(ust(iex, ik) - ust(iex, 1)))
+         end do
+         dtol = tolsmall
+         if (relaxed) dtol = max(tolsmall, 1.0e-6 * utdmax(iex))
+         do ik = 2, k
+            dvar = abs(ust(iex, ik) - ust(iex, 1))
+            if ((.not. relaxed) .or. (dvar .gt. dtol)) utdmin(iex) = min(utdmin(iex), dvar)
+         end do
+         if (utdmin(iex) .eq. tolbig) utdmin(iex) = zero
+      end do
+   end subroutine hybrid_sensor_bounds
+
+   subroutine hybrid_sensor(n)
+      implicit none
+!> @brief
+!> hybrid scheme (option 4, iweno = 2) cell classification on the unlimited linear face values,
+!> ported from the V11.2.3 NAD-type detector. Density and the last flow variable vote at every face
+!> quadrature point. Sets ielem_troubled = 0 (keep linear), 1 (weno/cweno, full stencils only) or
+!> 3 (muscl). hybrid_set_flags returns every cell to ielem_troubled = 1 before checksolx.
+      integer, intent(in) :: n
+      integer :: i, l, ngp, iqp, iex, kmaxe, count_muscl, count_weno
+      real :: delta_ss, delta_ls, ho_sol, h_filter, var_filter, mp_pinfl, gammal
+      logical :: relaxed
+
+      kmaxe = xmpielrank(n)
+      relaxed = (dimensiona .eq. 3) .and. (hybrid_type .eq. 1)
+#ifdef xpu
+!$omp target teams distribute parallel do &
+!$omp& private(i, l, ngp, iqp, iex, count_muscl, count_weno, delta_ss, delta_ls, ho_sol, h_filter, var_filter) &
+!$omp& private(mp_pinfl, gammal) &
+!$omp& firstprivate(n, kmaxe, relaxed, dimensiona, nof_variables, qp_line, qp_quad, qp_triangle, charlength) &
+!$omp& firstprivate(hybrid_par1, hybrid_par2, hybrid_par3, hybrid_par4) &
+!$omp& map(alloc: ielem_troubled, ielem_full, ielem_ifca, ielem_types_faces, ielem_totvolume, rec_uleft, u_c_val) &
+!$omp& map(alloc: ielem_hybscheme) &
+!$omp& map(alloc: halo_offset, ibound_icode, ielem_ibounds, ielem_indexi, ielem_ineigh, ielem_ineighb, ielem_interior) &
+!$omp& map(alloc: rec_ihexl, rec_ihexn, rec_local, solhir) &
+!$omp& map(alloc: gamma_in, mp_janaf, mp_m, mp_pinf, mp_thigh_in, mp_tlow_in, mp_tmid_in, rg_hzero, rg_molm)
+#else
+!$omp do &
+!$omp& private(i, l, ngp, iqp, iex, count_muscl, count_weno, delta_ss, delta_ls, ho_sol, h_filter, var_filter) &
+!$omp& private(mp_pinfl, gammal)
+#endif
+      do i = 1, kmaxe
+         block
+            real, dimension(1:gpu_max_nvar) :: leftv, utmin, utmax, utdmin, utdmax
+
+            call hybrid_sensor_bounds(n, i, relaxed, utmin, utmax, utdmin, utdmax)
+            h_filter = sqrt(ielem_totvolume(i))
+            if (relaxed) h_filter = 10.0 * sqrt(ielem_totvolume(i) / charlength**3)
+            count_muscl = 0; count_weno = 0
+
+            do l = 1, ielem_ifca(i)
+               if (dimensiona .eq. 3) then
+                  if (ielem_types_faces(i, l) .eq. 5) then
+                     iqp = qp_quad
+                  else
+                     iqp = qp_triangle
+                  end if
+               else
+                  iqp = qp_line
+               end if
+               do ngp = 1, iqp
+                  leftv(1:nof_variables) = rec_uleft(i, 1:nof_variables, l, ngp)
+                  if (nof_variables .gt. 1) call cons2prim(n, leftv, mp_pinfl, gammal)
+                  do iex = 1, nof_variables
+                     if ((iex .eq. 1) .or. (iex .eq. nof_variables)) then
+                        if ((utmax(iex) - utmin(iex)) .lt. 1.0e-6) then
+                           delta_ss = zero; delta_ls = zero
+                        else
+                           delta_ss = max(hybrid_par1, hybrid_par2 * abs(utmax(iex) - utmin(iex)))
+                           delta_ls = max(hybrid_par3, hybrid_par4 * abs(utmax(iex) - utmin(iex)))
+                        end if
+                        var_filter = h_filter
+                        if (relaxed) var_filter = h_filter * max(1.0, abs(utmin(iex)), abs(utmax(iex)))
+                        if (abs(utdmax(iex) - utdmin(iex)) .gt. var_filter) then
+                           ho_sol = leftv(iex)
+                           if ((ho_sol .lt. (utmin(iex) - delta_ls)) .or. (ho_sol .gt. (utmax(iex) + delta_ls))) then
+                              count_muscl = count_muscl + 1
+                           end if
+                           if (((ho_sol .ge. (utmin(iex) - delta_ls)) .and. (ho_sol .lt. (utmin(iex) + delta_ss))) .or. &
+                              & ((ho_sol .gt. (utmax(iex) - delta_ss)) .and. (ho_sol .le. (utmax(iex) + delta_ls)))) then
+                              count_weno = count_weno + 1
+                           end if
+                        end if
+                     end if
+                  end do
+               end do
+            end do
+
+            ielem_troubled(i) = 0
+            if ((count_weno + count_muscl) .ge. 1) then
+               ! majority vote: both vote fractions share the same total, so compare the counts directly
+               ! (V11.2.3 compared count/2*count_total in integer arithmetic); ties go to muscl
+               if (count_muscl .ge. count_weno) then
+                  ielem_troubled(i) = 3
+               else if (ielem_full(i) .eq. 1) then
+                  ielem_troubled(i) = 1
+               else
+                  ielem_troubled(i) = 3
+               end if
+            end if
+            ! output code: 0 linear, 1 weno/cweno, 2 muscl (first order is set after checksolx)
+            ielem_hybscheme(i) = ielem_troubled(i)
+            if (ielem_troubled(i) .eq. 3) ielem_hybscheme(i) = 2
+         end block
+      end do
+#ifdef xpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+   end subroutine hybrid_sensor
+
+   subroutine hybrid_set_flags(n, iold, ireduce)
+      implicit none
+!> @brief
+!> hybrid scheme (option 4): cells marked iold by hybrid_sensor return to ielem_troubled = 1, so that the
+!> unchanged muscl and checksolx treat them as for the weno scheme; ireduce = 1 also requests muscl.
+      integer, intent(in) :: n, iold, ireduce
+      integer :: i, kmaxe
+
+      kmaxe = xmpielrank(n)
+#ifdef xpu
+!$omp target teams distribute parallel do private(i) firstprivate(kmaxe, iold, ireduce) &
+!$omp& map(alloc: ielem_troubled, ielem_reduce)
+#else
+!$omp do private(i)
+#endif
+      do i = 1, kmaxe
+         if (ielem_troubled(i) .eq. iold) then
+            ielem_troubled(i) = 1
+            if (ireduce .eq. 1) ielem_reduce(i) = 1
+         end if
+      end do
+#ifdef xpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+   end subroutine hybrid_set_flags
+
+   subroutine hybrid_record_scheme(n, stage)
+      implicit none
+!> @brief
+!> hybrid scheme (option 4) output field ielem_hybscheme, updated from the unchanged checks:
+!> stage 1 (after checksol): weno/cweno cells sent to muscl become 2;
+!> stage 2 (after checksolx): cells reduced to first order become 3.
+      integer, intent(in) :: n, stage
+      integer :: i, kmaxe
+
+      kmaxe = xmpielrank(n)
+#ifdef xpu
+!$omp target teams distribute parallel do private(i) firstprivate(kmaxe, stage) &
+!$omp& map(alloc: ielem_hybscheme, ielem_troubled, ielem_reduce)
+#else
+!$omp do private(i)
+#endif
+      do i = 1, kmaxe
+         if (stage .eq. 1) then
+            if ((ielem_hybscheme(i) .eq. 1) .and. (ielem_troubled(i) .eq. 1) .and. (ielem_reduce(i) .ge. 1)) then
+               ielem_hybscheme(i) = 2
+            end if
+         else
+            if (ielem_reduce(i) .ge. 1) ielem_hybscheme(i) = 3
+         end if
+      end do
+#ifdef xpu
+!$omp end target teams distribute parallel do
+#else
+!$omp end do
+#endif
+   end subroutine hybrid_record_scheme
 
    subroutine compute_muscl_reconstruction(n, iconsidered, utmin, utmax)
       implicit none
@@ -5061,6 +5315,8 @@ contains
          supported_iweno = (wenwrt .ne. 3)
       case (1)
          supported_iweno = (wenwrt .ne. 2) .and. (wenwrt .ne. 3)
+      case (2)
+         supported_iweno = (wenwrt .eq. 1)
       case default
          supported_iweno = .false.
       end select
@@ -5093,6 +5349,27 @@ contains
             if (extras .and. icoupleturb == 1) call wenoweights_turb(n)
             call checksol(n)
             call muscl(n)
+         case(2)
+            ! hybrid (option 4): linear in all cells, sensor, weno/cweno only in the flagged cells, then the
+            ! unchanged checksol -> muscl -> checksolx chain; sensor muscl cells enter muscl through reduce = 1
+            if (extras .and. icoupleturb == 1) then
+               call linear_scheme(n)
+            else
+               call compute_linear_reconstruction_acc2(n)
+            end if
+            call hybrid_sensor(n)
+            call clear_rec_uleft_for_weno(n)
+            if (ees == 5) then
+               call cp_reconstruction_cweno_acc25(n)
+            else
+               call cp_reconstruction_weno_acc2(n)
+            end if
+            if (extras .and. icoupleturb == 1) call wenoweights_turb(n)
+            call checksol(n)
+            call hybrid_record_scheme(n, 1)
+            call hybrid_set_flags(n, 3, 1)
+            call muscl(n)
+            call hybrid_set_flags(n, 0, 0)
          case(-1)
             call muscl(n)
          case(0)
@@ -5103,6 +5380,7 @@ contains
             end if
          end select
          call checksolx(n)
+         if (iweno == 2) call hybrid_record_scheme(n, 2)
          if (extras .and. icoupleturb == 0) call reconstruct_extra_constants(n)
          if (itestcase == 4) then
             if (greengo == 0) then
@@ -5154,6 +5432,28 @@ contains
          call checksol(n)
          call muscl(n)
          call checksolx(n)
+
+      case (2)
+         ! hybrid (option 4), same sequence as the accelerated branch above
+         call linear_scheme(n)
+         call hybrid_sensor(n)
+         call clear_rec_uleft_for_weno(n)
+         if (wenwrt .eq. 2) then
+            call wenoweights_char(n)
+         else
+            call wenoweights_cons(n)
+         end if
+         if (((turbulence .eq. 1) .or. (passivescalar .gt. 0)) .and. (icoupleturb .eq. 1)) then
+            call wenoweights_turb(n)
+         end if
+
+         call checksol(n)
+         call hybrid_record_scheme(n, 1)
+         call hybrid_set_flags(n, 3, 1)
+         call muscl(n)
+         call hybrid_set_flags(n, 0, 0)
+         call checksolx(n)
+         call hybrid_record_scheme(n, 2)
 
       case (-1)
 
@@ -5374,7 +5674,7 @@ contains
       real, intent(in) :: face_state(nof_variables), cell_state(nof_variables)
       real, parameter :: relative_jump_limit = 0.75e0
       real, parameter :: species_scale_min = realgas_species_jump_fraction
-      real, parameter :: vibrational_scale_fraction = 1.0e-8
+      real, parameter :: vibrational_scale_fraction = 1.0e-3
       real :: scale
 
       ! Inputs are primitive: rho, velocities, p, specific Ev, species fractions.
@@ -5936,7 +6236,7 @@ contains
       i = iconsidered
       nvtot = nof_variables + turbulenceequations + passivescalar
 
-      kappa_ven = 1.0
+      kappa_ven = 0.5
       ! Increase smooth-region regularisation for plain Venkatakrishnan only.
       ! Other limiter/blending options retain their existing coefficient.
      ! if (limiter .eq. 7) kappa_ven = 1.0
